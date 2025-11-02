@@ -1,16 +1,23 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { WikiUpload } from '@/components/WikiUpload'
 import { WikiList } from '@/components/WikiList'
 
 export default function WikiPage() {
+  const router = useRouter()
   const [refreshKey, setRefreshKey] = useState(0)
 
   const handleUploadSuccess = () => {
     // Refresh the wiki list after successful upload
     setRefreshKey(prev => prev + 1)
+  }
+
+  const handleWikiSelect = (wiki: { slug: string }) => {
+    // Navigate to the wiki view page
+    router.push(`/wiki/${wiki.slug}`)
   }
 
   return (
@@ -34,7 +41,7 @@ export default function WikiPage() {
 
             {/* Wiki List Section */}
             <div>
-              <WikiList key={refreshKey} />
+              <WikiList key={refreshKey} onWikiSelect={handleWikiSelect} />
             </div>
           </div>
         </div>

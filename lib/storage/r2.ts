@@ -92,11 +92,10 @@ export class R2StorageService {
 
       for (const file of files) {
         const fileBuffer = Buffer.from(file.content)
-        const fileType = await fileTypeFromBuffer(fileBuffer)
 
-        if (!fileType || fileType.ext !== 'md') {
-          return { success: false, error: `Invalid file type for ${file.name}` }
-        }
+        // For markdown files, file-type detection may return undefined since it's plain text
+        // We'll use a default MIME type for markdown files
+        const mimeType = 'text/markdown'
 
         const key = `${wikiSlug}/${file.name}`
 
@@ -104,7 +103,7 @@ export class R2StorageService {
           Bucket: this.bucketName,
           Key: key,
           Body: fileBuffer,
-          ContentType: fileType.mime
+          ContentType: mimeType
         })
 
         await this.s3Client.send(command)

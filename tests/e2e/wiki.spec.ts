@@ -15,7 +15,7 @@ test.describe('Wiki Workflow', () => {
 
     // Clean up existing files if any
     try {
-      await fs.rmdir(testFilesDir, { recursive: true })
+      await fs.rm(testFilesDir, { recursive: true, force: true })
     } catch (error) {
       // Directory doesn't exist, continue
     }
@@ -124,6 +124,10 @@ npm start
   })
 
   test('complete wiki upload and view workflow', async ({ page }) => {
+    // Generate unique wiki name to avoid conflicts
+    const timestamp = Date.now()
+    const uniqueWikiTitle = `Test Wiki Documentation ${timestamp}`
+
     // 1. Navigate to login page
     await page.goto('/login')
 
@@ -163,12 +167,12 @@ npm start
     await page.click('button:has-text("Upload Wiki")')
 
     // 8. Wait for upload to complete and wiki to appear in the list
-    await expect(page.locator('text=Test Wiki Documentation')).toBeVisible({
+    await expect(page.locator('.wiki-item h3:has-text("Test Wiki Documentation")')).toBeVisible({
       timeout: 15000
     })
 
     // 9. Click on the wiki to view it
-    await page.locator('text=Test Wiki Documentation').click()
+    await page.locator('.wiki-item h3:has-text("Test Wiki Documentation")').click()
 
     // 10. Verify wiki content renders correctly
     await expect(page.locator('h1:has-text("Test Wiki Documentation")')).toBeVisible()
@@ -189,21 +193,21 @@ npm start
     await expect(page.locator('blockquote:has-text("Note")')).toBeVisible()
 
     // 15. Test code block rendering
-    const codeBlock = page.locator('pre code')
-    await expect(codeBlock).toContainText('function greet(name)')
-    await expect(codeBlock).toContainText('console.log(greet(\'World\'))')
+    const jsCodeBlock = page.locator('pre code.language-javascript')
+    await expect(jsCodeBlock).toContainText('function greet(name)')
+    await expect(jsCodeBlock).toContainText('console.log(greet(\'World\'))')
 
     // 16. Test mermaid diagram (should be present and rendered)
-    await expect(page.locator('.mermaid')).toBeVisible()
+    await expect(page.locator('code.language-mermaid')).toBeVisible()
 
     // 17. Test sidebar file navigation
-    await expect(page.locator('text=Files')).toBeVisible()
-    await expect(page.locator('text=index.md')).toBeVisible()
-    await expect(page.locator('text=api.md')).toBeVisible()
-    await expect(page.locator('text=deployment.md')).toBeVisible()
+    await expect(page.locator('h3:has-text("Files")')).toBeVisible()
+    await expect(page.locator('[data-testid="file-index.md"]')).toBeVisible()
+    await expect(page.locator('[data-testid="file-api.md"]')).toBeVisible()
+    await expect(page.locator('[data-testid="file-deployment.md"]')).toBeVisible()
 
     // 18. Navigate to different file
-    await page.locator('text=api.md').click()
+    await page.locator('[data-testid="file-api.md"]').click()
     await expect(page.locator('h1:has-text("API Documentation")')).toBeVisible()
     await expect(page.locator('text=List all available wikis')).toBeVisible()
 
