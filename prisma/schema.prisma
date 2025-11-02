@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Wiki {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+  folderName  String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  files       WikiFile[]
+
+  @@map("wikis")
+}
+
+model WikiFile {
+  id          String   @id @default(cuid())
+  wikiId      String
+  fileName    String
+  filePath    String   @unique
+  fileSize    Int
+  contentType String
+  createdAt   DateTime @default(now())
+
+  wiki        Wiki     @relation(fields: [wikiId], references: [id], onDelete: Cascade)
+
+  @@map("wiki_files")
+  @@index([wikiId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
