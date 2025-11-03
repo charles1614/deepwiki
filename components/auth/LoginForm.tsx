@@ -36,7 +36,7 @@ export function LoginForm() {
         setError('Invalid credentials')
       } else if (result?.ok) {
         // Redirect will be handled by NextAuth.js
-        window.location.href = '/dashboard'
+        window.location.href = '/wiki'
       }
     } catch (err) {
       setError('An unexpected error occurred')

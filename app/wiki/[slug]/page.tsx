@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
+import { WithNavigation } from '@/components/layout/WithNavigation'
 import { WikiViewer } from '@/components/WikiViewer'
 
 interface Wiki {
@@ -64,7 +65,7 @@ export default function WikiViewPage() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50">
+        <WithNavigation>
           <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div className="px-4 py-6 sm:px-0">
               <div className="flex justify-center items-center py-12">
@@ -72,7 +73,7 @@ export default function WikiViewPage() {
               </div>
             </div>
           </div>
-        </div>
+        </WithNavigation>
       </ProtectedRoute>
     )
   }
@@ -80,7 +81,7 @@ export default function WikiViewPage() {
   if (error) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50">
+        <WithNavigation>
           <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div className="px-4 py-6 sm:px-0">
               <div className="text-center py-12">
@@ -94,7 +95,7 @@ export default function WikiViewPage() {
               </div>
             </div>
           </div>
-        </div>
+        </WithNavigation>
       </ProtectedRoute>
     )
   }
@@ -102,7 +103,7 @@ export default function WikiViewPage() {
   if (!wiki) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50">
+        <WithNavigation>
           <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div className="px-4 py-6 sm:px-0">
               <div className="text-center py-12">
@@ -116,20 +117,20 @@ export default function WikiViewPage() {
               </div>
             </div>
           </div>
-        </div>
+        </WithNavigation>
       </ProtectedRoute>
     )
   }
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <WithNavigation>
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
             <WikiViewer wiki={wiki} onBack={handleBack} />
           </div>
         </div>
-      </div>
+      </WithNavigation>
     </ProtectedRoute>
   )
 }

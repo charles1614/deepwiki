@@ -63,5 +63,6 @@ export const { handlers, auth } = NextAuth({
   },
   pages: {
     signIn: '/login',
-  }
+  },
+  useSecureCookies: process.env.NODE_ENV === 'production',
 })

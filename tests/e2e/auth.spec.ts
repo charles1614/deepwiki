@@ -29,8 +29,8 @@ test.describe('Authentication Flow', () => {
 
     // Wait for potential auto-redirect, then navigate to login if needed
     try {
-      await page.waitForURL('/dashboard', { timeout: 3000 })
-      // If redirected to dashboard, navigate to login for the test
+      await page.waitForURL('/wiki', { timeout: 3000 })
+      // If redirected to wiki, navigate to login for the test
       await page.goto('/login')
     } catch {
       // No redirect happened, continue to login
@@ -44,8 +44,8 @@ test.describe('Authentication Flow', () => {
     // 7. Submit login
     await page.click('[data-testid=login-button]')
 
-    // 8. Should be redirected to dashboard
-    await expect(page).toHaveURL('/dashboard', {
+    // 8. Should be redirected to wiki
+    await expect(page).toHaveURL('/wiki', {
       timeout: 10000
     })
 
@@ -55,7 +55,7 @@ test.describe('Authentication Flow', () => {
 
   test('user can login with existing credentials', async ({ page }) => {
     // Navigate to login page
-    await page.goto('http://localhost:3001/login')
+    await page.goto('http://localhost:3000/login')
 
     // Fill login form with seeded user
     await page.fill('[data-testid=email]', 'user@deepwiki.com')
@@ -64,8 +64,8 @@ test.describe('Authentication Flow', () => {
     // Submit login
     await page.click('[data-testid=login-button]')
 
-    // Should be redirected to dashboard
-    await expect(page).toHaveURL('http://localhost:3001/dashboard', {
+    // Should be redirected to wiki
+    await expect(page).toHaveURL('http://localhost:3000/wiki', {
       timeout: 10000
     })
 
@@ -75,7 +75,7 @@ test.describe('Authentication Flow', () => {
 
   test('shows error for invalid credentials', async ({ page }) => {
     // Navigate to login page
-    await page.goto('http://localhost:3001/login')
+    await page.goto('http://localhost:3000/login')
 
     // Fill login form with invalid credentials
     await page.fill('[data-testid=email]', 'invalid@example.com')
@@ -90,12 +90,12 @@ test.describe('Authentication Flow', () => {
     })
 
     // Should stay on login page
-    await expect(page).toHaveURL('http://localhost:3001/login')
+    await expect(page).toHaveURL('http://localhost:3000/login')
   })
 
   test('admin user can login and access admin features', async ({ page }) => {
     // Navigate to login page
-    await page.goto('http://localhost:3001/login')
+    await page.goto('http://localhost:3000/login')
 
     // Fill login form with admin credentials
     await page.fill('[data-testid=email]', 'admin@deepwiki.com')
@@ -104,8 +104,8 @@ test.describe('Authentication Flow', () => {
     // Submit login
     await page.click('[data-testid=login-button]')
 
-    // Should be redirected to dashboard
-    await expect(page).toHaveURL('http://localhost:3001/dashboard', {
+    // Should be redirected to wiki
+    await expect(page).toHaveURL('http://localhost:3000/wiki', {
       timeout: 10000
     })
 
@@ -115,7 +115,7 @@ test.describe('Authentication Flow', () => {
 
   test('form validation works correctly', async ({ page }) => {
     // Navigate to registration page
-    await page.goto('http://localhost:3001/register')
+    await page.goto('http://localhost:3000/register')
 
     // Try to submit empty form
     await page.click('[data-testid="register-button"]')
@@ -137,7 +137,7 @@ test.describe('Authentication Flow', () => {
 
   test('password reset flow works', async ({ page }) => {
     // Navigate to password reset page
-    await page.goto('http://localhost:3001/reset-password')
+    await page.goto('http://localhost:3000/reset-password')
 
     // Fill reset form
     await page.fill('[data-testid=email]', 'test@example.com')
@@ -153,36 +153,40 @@ test.describe('Authentication Flow', () => {
   })
 
   test('unauthenticated user cannot access protected routes', async ({ page }) => {
-    // Try to access dashboard directly
-    await page.goto('http://localhost:3001/dashboard')
+    // Try to access wiki directly
+    await page.goto('http://localhost:3000/wiki')
 
     // Should be redirected to login
-    await expect(page).toHaveURL('http://localhost:3001/login', {
+    await expect(page).toHaveURL('http://localhost:3000/login', {
       timeout: 5000
     })
   })
 
   test('keyboard navigation works correctly', async ({ page }) => {
     // Navigate to login page
-    await page.goto('http://localhost:3001/login')
+    await page.goto('http://localhost:3000/login')
 
-    // Focus the email input directly first, then test tab navigation
+    // Fill the form first
+    await page.fill('[data-testid=email]', 'user@deepwiki.com')
+    await page.fill('[data-testid=password]', 'User123!')
+
+    // Focus the email input and test tab navigation
     await page.locator('[data-testid=email]').focus()
     await expect(page.locator('[data-testid=email]')).toBeFocused()
 
     await page.keyboard.press('Tab') // Should focus password field
+    await page.waitForTimeout(100)
     await expect(page.locator('[data-testid=password]')).toBeFocused()
 
     await page.keyboard.press('Tab') // Should focus submit button
+    await page.waitForTimeout(100)
     await expect(page.locator('[data-testid=login-button]')).toBeFocused()
 
     // Should be able to submit with Enter
-    await page.fill('[data-testid=email]', 'user@deepwiki.com')
-    await page.fill('[data-testid=password]', 'User123!')
     await page.keyboard.press('Enter')
 
     // Should process login
-    await expect(page).toHaveURL('http://localhost:3001/dashboard', {
+    await expect(page).toHaveURL('http://localhost:3000/wiki', {
       timeout: 10000
     })
   })
@@ -190,7 +194,7 @@ test.describe('Authentication Flow', () => {
 
 test.describe('Accessibility', () => {
   test('login form is accessible', async ({ page }) => {
-    await page.goto('http://localhost:3001/login')
+    await page.goto('http://localhost:3000/login')
 
     // Check for proper landmarks and labels
     await expect(page.locator('h2:has-text("Sign in to your account")')).toBeVisible()
@@ -211,7 +215,7 @@ test.describe('Accessibility', () => {
   })
 
   test('registration form is accessible', async ({ page }) => {
-    await page.goto('http://localhost:3001/register')
+    await page.goto('http://localhost:3000/register')
 
     // Check for proper landmarks and labels
     await expect(page.locator('h2:has-text("Create your account")')).toBeVisible()
