@@ -785,8 +785,7 @@ export function MarkdownRenderer({
     }
   }, [zoomedDiagram])
 
-  // Calculate appropriate initial zoom when opening new diagram - improved for better resolution adaptation
-  // Auto-scale diagram to fit browser viewport
+  // Auto-scale diagram to fit browser viewport with adaptive resolution
   useEffect(() => {
     if (zoomedDiagram) {
       // Parse SVG to get viewBox dimensions
@@ -799,12 +798,47 @@ export function MarkdownRenderer({
         if (viewBox) {
           const [, , width, height] = viewBox.split(/\s+|,/).map(Number)
           
-          // Calculate scale to fit browser viewport (留10%边距)
-          const scaleX = (window.innerWidth * 0.9) / width
-          const scaleY = (window.innerHeight * 0.9) / height
-          const scale = Math.min(scaleX, scaleY, 2) // 最大2x
+          // Get actual viewport dimensions
+          const viewportWidth = window.innerWidth
+          const viewportHeight = window.innerHeight
           
-          setAutoScale(Math.max(scale, 0.3)) // 最小0.3x
+          // Target: Fill 80-85% of viewport for optimal visibility
+          // Use minimal padding to maximize diagram size
+          const targetFillRatio = 0.82
+          const paddingRatio = 0.04 // 4% padding on each side
+          
+          // Calculate scale to fill target percentage of viewport
+          const targetWidth = viewportWidth * targetFillRatio
+          const targetHeight = viewportHeight * targetFillRatio
+          
+          // Calculate required scale for both dimensions
+          const scaleForWidth = targetWidth / width
+          const scaleForHeight = targetHeight / height
+          
+          // Use the smaller scale to ensure diagram fits completely
+          let scale = Math.min(scaleForWidth, scaleForHeight)
+          
+          // Also calculate scale to fit with padding (fallback for very large diagrams)
+          const maxFitWidth = viewportWidth * (1 - paddingRatio * 2)
+          const maxFitHeight = viewportHeight * (1 - paddingRatio * 2)
+          const fitScale = Math.min(maxFitWidth / width, maxFitHeight / height)
+          
+          // Use the larger of target scale or fit scale, but cap appropriately
+          scale = Math.max(scale, Math.min(fitScale, 2.5))
+          
+          // Apply reasonable bounds based on diagram size
+          if (width < 300 && height < 300) {
+            // Very small diagrams: allow up to 3x
+            scale = Math.min(scale, 3)
+          } else if (width > 3000 || height > 3000) {
+            // Very large diagrams: minimum 0.2x
+            scale = Math.max(scale, 0.2)
+          } else {
+            // Normal diagrams: 0.5x to 2.5x range
+            scale = Math.max(Math.min(scale, 2.5), 0.5)
+          }
+          
+          setAutoScale(scale)
           setZoomLevel(1)
           setPosition({ x: 0, y: 0 })
         }
