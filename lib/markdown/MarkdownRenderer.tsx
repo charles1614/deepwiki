@@ -4,6 +4,13 @@ import React, { useEffect, useRef, useState, useCallback, useLayoutEffect } from
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 
+// Helper function to escape HTML for safe display
+function escapeHtml(text: string): string {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
 interface MarkdownRendererProps {
   content: string | null
   theme?: 'light' | 'dark' | 'default' | 'neutral' | 'forest'
@@ -321,15 +328,55 @@ export function MarkdownRenderer({
           }
         } catch (error) {
           console.error('Mermaid rendering error:', error)
+          
+          // Extract error message and details
+          let errorMessage = 'Unknown error'
+          let errorDetails = ''
+          
+          if (error instanceof Error) {
+            errorMessage = error.message
+            
+            // Extract line number if available (e.g., "Parse error on line 3:")
+            const lineMatch = errorMessage.match(/line (\d+)/i)
+            const lineNumber = lineMatch ? lineMatch[1] : null
+            
+            // Extract the problematic code snippet if available
+            const codeMatch = errorMessage.match(/\.\.\.\s+(.+?)\s+[\^\-]+/)
+            const problemCode = codeMatch ? codeMatch[1].trim() : null
+            
+            // Build detailed error message
+            if (lineNumber) {
+              errorDetails = `Error on line ${lineNumber}`
+              if (problemCode) {
+                errorDetails += `: "${problemCode}"`
+              }
+            } else {
+              errorDetails = errorMessage
+            }
+          } else if (typeof error === 'string') {
+            errorMessage = error
+            errorDetails = error
+          }
+          
           // Show error message in the diagram area
           element.innerHTML = `
             <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
               <p class="font-semibold text-red-800">Diagram rendering failed</p>
-              <p class="text-sm text-red-600 mt-1">Check the mermaid syntax in your markdown code block.</p>
+              <p class="text-sm text-red-600 mt-1">Mermaid syntax error detected. Please check your diagram code.</p>
+              ${errorDetails ? `
               <details class="mt-2">
-                <summary class="text-xs text-red-500 cursor-pointer">Show error details</summary>
-                <pre class="text-xs text-red-500 mt-1">${error instanceof Error ? error.message : 'Unknown error'}</pre>
+                <summary class="text-xs text-red-500 cursor-pointer hover:text-red-700">Show error details</summary>
+                <div class="mt-2 text-xs text-red-600">
+                  <p class="font-mono bg-red-100 p-2 rounded border border-red-300 whitespace-pre-wrap">${escapeHtml(errorDetails)}</p>
+                  <p class="mt-2 text-red-500">Common issues:</p>
+                  <ul class="list-disc list-inside ml-2 mt-1 space-y-1">
+                    <li>Check for unclosed brackets or quotes in node labels</li>
+                    <li>Ensure proper syntax for node definitions (e.g., A["Label"] not A[Label: "Text"])</li>
+                    <li>Verify all connections use correct arrow syntax (-->, ---, etc.)</li>
+                  </ul>
+                </div>
               </details>
+              ` : ''}
             </div>
           `
         }
