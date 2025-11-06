@@ -125,8 +125,8 @@ export default function WikiViewPage() {
   return (
     <ProtectedRoute>
       <WithNavigation>
-        <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
-          <div className="px-4 pt-2 pb-1 sm:px-0">
+        <div className="max-w-7xl mx-auto py-2 px-4 sm:px-6 lg:px-8 w-full overflow-x-hidden">
+          <div className="w-full max-w-full overflow-x-hidden">
             <WikiViewer wiki={wiki} onBack={handleBack} />
           </div>
         </div>

@@ -142,9 +142,9 @@ export function WikiViewer({ wiki, onBack }: WikiViewerProps) {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 w-full">
       {/* Sidebar */}
-      <div className="lg:w-64 flex-shrink-0">
+      <div className="w-full lg:w-64 flex-shrink-0">
         <div className="bg-white rounded-lg shadow-md p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Files</h3>
@@ -186,8 +186,8 @@ export function WikiViewer({ wiki, onBack }: WikiViewerProps) {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1">
-        <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex-1 min-w-0 w-full">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 w-full max-w-full overflow-hidden">
           {selectedFile && (
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">{wiki.title}</h1>

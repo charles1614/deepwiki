@@ -175,9 +175,34 @@ export function MarkdownRenderer({
         if (svgElement && mermaidDiv.hasAttribute('data-rendered')) continue
 
         try {
-          console.log('Rendering mermaid diagram with code:', code.substring(0, 100) + '...')
+          // Clean and normalize the mermaid code
+          const cleanedCode = code.trim()
+          if (!cleanedCode) {
+            throw new Error('Empty mermaid code')
+          }
+
+          console.log('Rendering mermaid diagram with code:', cleanedCode.substring(0, 100) + '...')
+          
+          // Validate syntax before rendering (mermaid 11.x supports parse method)
+          if (mermaidModule.parse && typeof mermaidModule.parse === 'function') {
+            try {
+              mermaidModule.parse(cleanedCode)
+            } catch (parseError) {
+              throw new Error(`Syntax error: ${parseError instanceof Error ? parseError.message : 'Invalid mermaid syntax'}`)
+            }
+          }
+
           const uniqueId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`
-          const { svg } = await mermaidModule.render(uniqueId, code)
+          
+          // Mermaid 11.x render API
+          const result = await mermaidModule.render(uniqueId, cleanedCode)
+          
+          // Handle different return formats from mermaid render
+          const svg = result.svg || result || ''
+          
+          if (!svg || typeof svg !== 'string') {
+            throw new Error('Mermaid render returned invalid result')
+          }
 
           console.log('Mermaid render successful, SVG length:', svg.length)
 
@@ -193,7 +218,7 @@ export function MarkdownRenderer({
 
             const handleClick = () => {
               console.log('Diagram clicked, opening zoom modal')
-              setZoomedDiagram({ code, svg })
+              setZoomedDiagram({ code: cleanedCode, svg })
               setScale(1)
               setPosition({ x: 0, y: 0 })
             }
@@ -203,13 +228,39 @@ export function MarkdownRenderer({
           }
         } catch (error) {
           console.error('Failed to render mermaid diagram:', error)
+          
+          // Extract more detailed error information
+          let errorMessage = 'Unknown error'
+          if (error instanceof Error) {
+            errorMessage = error.message
+            // Check for common syntax errors
+            if (errorMessage.includes('Syntax error') || errorMessage.includes('parse')) {
+              errorMessage = `Syntax error in mermaid diagram: ${errorMessage}`
+            }
+          }
+          
+          // Escape HTML in error message and code for safe display
+          const escapeHtml = (str: string) => {
+            const div = document.createElement('div')
+            div.textContent = str
+            return div.innerHTML
+          }
+          
+          const escapedErrorMessage = escapeHtml(errorMessage)
+          const escapedCode = escapeHtml(code.substring(0, 500))
+          
           mermaidDiv.innerHTML = `
             <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-              <p class="font-semibold">Diagram rendering failed</p>
+              <p class="font-semibold">Mermaid Diagram Rendering Failed</p>
               <p class="text-sm mt-1">Check the mermaid syntax in your markdown code block.</p>
-              <p class="text-xs mt-1">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+              <p class="text-xs mt-1 font-mono break-all">Error: ${escapedErrorMessage}</p>
+              <details class="mt-2 text-xs">
+                <summary class="cursor-pointer text-red-600 hover:text-red-800">Show code</summary>
+                <pre class="mt-2 p-2 bg-red-100 rounded text-xs overflow-auto">${escapedCode}</pre>
+              </details>
             </div>
           `
+          mermaidDiv.setAttribute('data-rendered', 'error')
         }
       }
     }
@@ -437,6 +488,9 @@ export function MarkdownRenderer({
           border-radius: 0.5rem;
           overflow-x: auto;
           margin-bottom: 1rem;
+          max-width: 100%;
+          word-wrap: break-word;
+          -webkit-overflow-scrolling: touch;
         }
         .markdown-content pre code {
           background-color: transparent;
@@ -444,9 +498,38 @@ export function MarkdownRenderer({
         }
         .markdown-content table {
           width: 100%;
+          max-width: 100%;
           border-collapse: collapse;
           border: 1px solid #D1D5DB;
           margin: 1rem 0;
+          table-layout: auto;
+          word-wrap: break-word;
+        }
+        
+        @media (max-width: 1024px) {
+          .markdown-content {
+            overflow-x: hidden;
+          }
+          
+          .markdown-content table {
+            display: block;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            white-space: nowrap;
+            width: 100%;
+            max-width: 100%;
+          }
+          
+          .markdown-content table thead,
+          .markdown-content table tbody,
+          .markdown-content table tr {
+            display: table-row;
+          }
+          
+          .markdown-content table td,
+          .markdown-content table th {
+            white-space: nowrap;
+          }
         }
         .markdown-content th,
         .markdown-content td {
@@ -470,7 +553,7 @@ export function MarkdownRenderer({
       `}</style>
       <div
         ref={containerRef}
-        className={`prose prose-gray max-w-none markdown-content ${className}`}
+        className={`prose prose-gray max-w-none markdown-content w-full overflow-hidden ${className}`}
       >
         {!content || content.trim() === '' ? (
           <p className="text-gray-500 italic">No content available</p>
