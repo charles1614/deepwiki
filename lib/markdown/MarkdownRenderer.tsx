@@ -82,47 +82,12 @@ export function MarkdownRenderer({
     try {
       marked.use({
         renderer: {
-          code({ text, lang }: { text: string; lang?: string }): string {
+          code(token: any): string {
+            const { text, lang } = token
             if (lang === 'mermaid') {
               return `<div class="mermaid-wrapper" data-mermaid-code="${encodeURIComponent(text)}"><div class="mermaid">${text}</div></div>`
             }
             return `<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto"><code class="text-sm font-mono">${text}</code></pre>`
-          },
-
-          heading({ text, depth }: { text: string; depth: number }): string {
-            const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')
-            return `<h${depth} id="${id}" class="font-bold text-gray-900 mb-4 mt-6 first:mt-0 text-${4-depth === 1 ?4-depth:4-depth}xl">${text}</h${depth}>`
-          },
-
-          paragraph({ text }: { text: string }): string {
-            return `<p class="mb-4 text-gray-700 leading-relaxed">${text}</p>`
-          },
-
-          list({ children, ordered }: { children: string; ordered?: boolean }): string {
-            const type = ordered ? 'ol' : 'ul'
-            const className = ordered ? 'list-decimal mb-4 pl-6' : 'list-disc mb-4 pl-6'
-            return `<${type} class="${className}">${children}</${type}>`
-          },
-
-          listitem({ text }: { text: string }): string {
-            return `<li class="mb-1">${text}</li>`
-          },
-
-          blockquote({ text }: { text: string }): string {
-            return `<blockquote class="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4">${text}</blockquote>`
-          },
-
-          codespan({ text }: { text: string }): string {
-            return `<code class="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">${text}</code>`
-          },
-
-          link({ href, title, text }: { href: string; title?: string; text: string }): string {
-            const titleAttr = title ? ` title="${title}"` : ''
-            return `<a href="${href}" class="text-blue-600 hover:text-blue-800 underline"${titleAttr}>${text}</a>`
-          },
-
-          table({ text }: { text: string }): string {
-            return `<table class="w-full border-collapse border border-gray-300 my-4">${text}</table>`
           }
         }
       })
@@ -399,9 +364,113 @@ export function MarkdownRenderer({
 
   return (
     <>
+      <style jsx>{`
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3,
+        .markdown-content h4,
+        .markdown-content h5,
+        .markdown-content h6 {
+          font-weight: bold;
+          color: #111827;
+          margin-bottom: 1rem;
+          margin-top: 1.5rem;
+        }
+        .markdown-content h1 { font-size: 2.25rem; }
+        .markdown-content h2 { font-size: 1.875rem; }
+        .markdown-content h3 { font-size: 1.5rem; }
+        .markdown-content h4 { font-size: 1.25rem; }
+        .markdown-content p {
+          margin-bottom: 1rem;
+          line-height: 1.625;
+          color: #374151;
+        }
+        .markdown-content strong {
+          font-weight: bold;
+          color: #111827;
+        }
+        .markdown-content em {
+          font-style: italic;
+          color: #4B5563;
+        }
+        .markdown-content del {
+          text-decoration: line-through;
+          color: #6B7280;
+        }
+        .markdown-content a {
+          color: #2563EB;
+          text-decoration: underline;
+        }
+        .markdown-content a:hover {
+          color: #1D4ED8;
+        }
+        .markdown-content blockquote {
+          border-left: 4px solid #D1D5DB;
+          padding-left: 1rem;
+          font-style: italic;
+          color: #4B5563;
+          margin: 1rem 0;
+        }
+        .markdown-content ul {
+          list-style-type: disc;
+          padding-left: 1.5rem;
+          margin-bottom: 1rem;
+        }
+        .markdown-content ol {
+          list-style-type: decimal;
+          padding-left: 1.5rem;
+          margin-bottom: 1rem;
+        }
+        .markdown-content li {
+          margin-bottom: 0.25rem;
+        }
+        .markdown-content code {
+          background-color: #F3F4F6;
+          padding: 0.125rem 0.25rem;
+          border-radius: 0.25rem;
+          font-size: 0.875rem;
+          font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+        }
+        .markdown-content pre {
+          background-color: #F3F4F6;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          overflow-x: auto;
+          margin-bottom: 1rem;
+        }
+        .markdown-content pre code {
+          background-color: transparent;
+          padding: 0;
+        }
+        .markdown-content table {
+          width: 100%;
+          border-collapse: collapse;
+          border: 1px solid #D1D5DB;
+          margin: 1rem 0;
+        }
+        .markdown-content th,
+        .markdown-content td {
+          border: 1px solid #D1D5DB;
+          padding: 0.5rem 1rem;
+          text-align: left;
+        }
+        .markdown-content th {
+          background-color: #F9FAFB;
+          font-weight: 600;
+          color: #111827;
+        }
+        .markdown-content tr:hover {
+          background-color: #F9FAFB;
+        }
+        .markdown-content hr {
+          border: none;
+          border-top: 1px solid #D1D5DB;
+          margin: 1.5rem 0;
+        }
+      `}</style>
       <div
         ref={containerRef}
-        className={`prose prose-gray max-w-none ${className}`}
+        className={`prose prose-gray max-w-none markdown-content ${className}`}
       >
         {!content || content.trim() === '' ? (
           <p className="text-gray-500 italic">No content available</p>
