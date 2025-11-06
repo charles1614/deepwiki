@@ -109,7 +109,7 @@ export function Navigation({ className = '' }: NavigationProps) {
     // Navigate to appropriate route
     switch (tab) {
       case 'home':
-        router.push('/')
+        router.push('/dashboard')
         break
       case 'wiki':
         router.push('/wiki')
@@ -160,41 +160,13 @@ export function Navigation({ className = '' }: NavigationProps) {
   }, [])
 
   const tabs = [
-    { id: 'home', label: 'Home', icon: HomeIcon, href: '/' },
+    { id: 'home', label: 'Dashboard', icon: HomeIcon, href: '/dashboard' },
     { id: 'wiki', label: 'Wiki', icon: BookOpenIcon, href: '/wiki' },
     { id: 'upload', label: 'Upload', icon: CloudArrowUpIcon, href: '/upload' },
     { id: 'search', label: 'Search', icon: MagnifyingGlassIcon, href: '/search' }
   ]
 
-  // Generate breadcrumb navigation
-  const generateBreadcrumbs = () => {
-    const parts = pathname.split('/').filter(Boolean)
-    const breadcrumbs = [{ label: 'Home', href: '/' }]
-
-    if (parts.length > 0) {
-      if (parts[0] === 'wiki') {
-        breadcrumbs.push({ label: 'Wiki', href: '/wiki' })
-
-        if (parts.length > 1) {
-          // This is a specific wiki page
-          const wikiSlug = parts[1]
-          breadcrumbs.push({
-            label: wikiSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            href: `/wiki/${wikiSlug}`
-          })
-        }
-      } else if (parts[0] === 'upload') {
-        breadcrumbs.push({ label: 'Upload Wiki', href: '/upload' })
-      } else if (parts[0] === 'search') {
-        breadcrumbs.push({ label: 'Search', href: '/search' })
-      }
-    }
-
-    return breadcrumbs
-  }
-
-  const breadcrumbs = generateBreadcrumbs()
-
+  
   return (
     <nav
       className={`bg-white border-b border-gray-200 shadow-sm ${className}`}
@@ -266,7 +238,37 @@ export function Navigation({ className = '' }: NavigationProps) {
                 )
               })}
             </div>
+
+            {/* Search input for desktop */}
+            <div className="ml-4">
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search wikis..."
+                  className="w-64 pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  data-testid="desktop-search-input"
+                />
+                <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              </form>
+            </div>
           </div>
+
+          {/* User menu indicator */}
+          {session && (
+            <div className="flex items-center px-3 py-2 text-sm text-gray-600 mr-4" data-testid="user-menu">
+              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-2">
+                <span className="text-white text-xs font-medium">
+                  {session.user?.email?.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <span className="hidden sm:block text-xs">
+                {session.user?.email?.split('@')[0]}
+              </span>
+            </div>
+          )}
 
           {/* Back button for desktop */}
           {showBackButton && (
@@ -279,27 +281,6 @@ export function Navigation({ className = '' }: NavigationProps) {
               Back
             </button>
           )}
-        </div>
-
-        {/* Breadcrumb navigation */}
-        <div className="hidden md:flex items-center space-x-2 text-sm text-gray-500 py-2" data-testid="breadcrumb-nav">
-          {breadcrumbs.map((crumb, index) => (
-            <React.Fragment key={crumb.href}>
-              {index > 0 && (
-                <span className="text-gray-300" data-testid="breadcrumb-separator">
-                  /
-                </span>
-              )}
-              <button
-                onClick={() => router.push(crumb.href)}
-                className={`hover:text-gray-700 ${
-                  index === breadcrumbs.length - 1 ? 'text-gray-900 font-medium' : ''
-                }`}
-              >
-                {crumb.label}
-              </button>
-            </React.Fragment>
-          ))}
         </div>
       </div>
 
@@ -365,63 +346,7 @@ export function Navigation({ className = '' }: NavigationProps) {
         </div>
       )}
 
-      {/* Sidebar for desktop - Recent Wikis */}
-      {!isMobile && activeTab === 'wiki' && (
-        <div className="hidden lg:block">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex">
-              <div className="flex-1">
-                {/* Main content area - this will be filled by the page content */}
-              </div>
-
-              {/* Wiki sidebar */}
-              <div className="w-64 ml-8" data-testid="wiki-sidebar">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">Quick Access</h3>
-                  <div className="space-y-2" data-testid="quick-access">
-                    <button
-                      onClick={() => router.push('/upload')}
-                      className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-white hover:shadow-sm rounded-md transition-colors"
-                    >
-                      <CloudArrowUpIcon className="h-4 w-4 mr-2" />
-                      Upload New Wiki
-                    </button>
-                    <button
-                      onClick={() => router.push('/wiki')}
-                      className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-white hover:shadow-sm rounded-md transition-colors"
-                    >
-                      <BookOpenIcon className="h-4 w-4 mr-2" />
-                      All Wikis
-                    </button>
-                  </div>
-
-                  {recentWikis.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="text-sm font-medium text-gray-900 mb-3">Recent Wikis</h3>
-                      <div className="space-y-2">
-                        {recentWikis.map((wiki) => (
-                          <button
-                            key={wiki.id}
-                            onClick={() => handleWikiClick(wiki)}
-                            className="block w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-white hover:shadow-sm rounded-md transition-colors"
-                            data-testid={`wiki-link-${wiki.slug}`}
-                          >
-                            <div className="font-medium text-gray-900 truncate">{wiki.title}</div>
-                            <div className="text-xs text-gray-500">
-                              {new Date(wiki.updatedAt).toLocaleDateString()}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+  
       {/* Status announcements for screen readers */}
       <div className="sr-only" role="status" aria-live="polite">
         Navigated to {tabs.find(tab => tab.id === activeTab)?.label}

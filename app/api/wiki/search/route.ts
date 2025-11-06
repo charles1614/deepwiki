@@ -10,20 +10,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ wikis: [] })
     }
 
-    // Search wikis by title or description
+    // Search wikis by title or description (SQLite doesn't support mode: 'insensitive')
     const wikis = await prisma.wiki.findMany({
       where: {
         OR: [
           {
             title: {
-              contains: query,
-              mode: 'insensitive'
+              contains: query
             }
           },
           {
             description: {
-              contains: query,
-              mode: 'insensitive'
+              contains: query
             }
           }
         ]

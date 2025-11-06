@@ -164,19 +164,19 @@ export function WikiViewer({ wiki, onBack }: WikiViewerProps) {
               <div className="text-gray-500 text-sm">No files found in this wiki</div>
             </div>
           ) : (
-            <ul className="space-y-1" data-testid="file-list">
+            <ul className="space-y-0.5" data-testid="file-list">
               {files.map((file) => (
                 <li key={file.id}>
                   <button
                     onClick={() => handleFileSelect(file)}
-                    className={`w-full text-left px-3 py-2 rounded text-sm transition-colors
+                    className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors
                       ${selectedFile?.id === file.id
                         ? 'bg-blue-100 text-blue-700 font-medium'
                         : 'hover:bg-gray-100 text-gray-700'
                       }`}
                     data-testid={`file-${file.fileName}`}
                   >
-                    {file.fileName}
+                    {file.fileName.replace(/\.md$/, '')}
                   </button>
                 </li>
               ))}
@@ -192,7 +192,7 @@ export function WikiViewer({ wiki, onBack }: WikiViewerProps) {
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">{wiki.title}</h1>
               <div className="text-sm text-gray-500">
-                Viewing: {selectedFile.fileName}
+                Viewing: {selectedFile.fileName.replace(/\.md$/, '')}
               </div>
             </div>
           )}
@@ -223,7 +223,7 @@ export function WikiViewer({ wiki, onBack }: WikiViewerProps) {
 
           {!contentLoading && !contentError && !content && selectedFile && (
             <div className="text-center py-12">
-              <div className="text-gray-500">No content available for {selectedFile.fileName}</div>
+              <div className="text-gray-500">No content available for {selectedFile.fileName.replace(/\.md$/, '')}</div>
             </div>
           )}
         </div>

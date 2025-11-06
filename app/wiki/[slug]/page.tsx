@@ -66,8 +66,8 @@ export default function WikiViewPage() {
     return (
       <ProtectedRoute>
         <WithNavigation>
-          <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="px-4 py-6 sm:px-0">
+          <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+            <div className="px-4 py-2 sm:px-0">
               <div className="flex justify-center items-center py-12">
                 <div className="text-gray-500">Loading wiki...</div>
               </div>
@@ -82,8 +82,8 @@ export default function WikiViewPage() {
     return (
       <ProtectedRoute>
         <WithNavigation>
-          <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="px-4 py-6 sm:px-0">
+          <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+            <div className="px-4 py-2 sm:px-0">
               <div className="text-center py-12">
                 <div className="text-red-600 mb-4">{error}</div>
                 <button
@@ -104,8 +104,8 @@ export default function WikiViewPage() {
     return (
       <ProtectedRoute>
         <WithNavigation>
-          <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="px-4 py-6 sm:px-0">
+          <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+            <div className="px-4 py-2 sm:px-0">
               <div className="text-center py-12">
                 <div className="text-gray-600 mb-4">Wiki not found</div>
                 <button
@@ -125,8 +125,8 @@ export default function WikiViewPage() {
   return (
     <ProtectedRoute>
       <WithNavigation>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
+        <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+          <div className="px-4 pt-2 pb-1 sm:px-0">
             <WikiViewer wiki={wiki} onBack={handleBack} />
           </div>
         </div>

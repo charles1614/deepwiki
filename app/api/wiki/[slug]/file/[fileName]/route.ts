@@ -4,10 +4,10 @@ import { R2StorageService } from '@/lib/storage/r2'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string; fileName: string } }
+  { params }: { params: Promise<{ slug: string; fileName: string }> }
 ) {
   try {
-    const { slug, fileName } = params
+    const { slug, fileName } = await params
 
     // Find wiki by slug
     const wiki = await prisma.wiki.findUnique({
@@ -50,6 +50,11 @@ export async function GET(
     return NextResponse.json({
       success: true,
       content: result.content
+    }, {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
+      }
     })
 
   } catch (error) {

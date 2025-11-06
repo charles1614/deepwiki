@@ -93,9 +93,21 @@ export function WikiList({ onWikiSelect }: WikiListProps) {
 
   if (wikis.length === 0) {
     return (
-      <div className="text-center py-12" data-testid="wiki-list-empty">
-        <div className="text-gray-500 mb-2">No wikis found</div>
-        <div className="text-gray-400 text-sm">Upload your first wiki to get started</div>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">Your Wikis</h2>
+          <button
+            onClick={handleRefresh}
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+            aria-label="Refresh wiki list"
+          >
+            Refresh
+          </button>
+        </div>
+        <div className="text-center py-12" data-testid="wiki-list-empty">
+          <div className="text-gray-500 mb-2">No wikis found</div>
+          <div className="text-gray-400 text-sm">Upload your first wiki to get started</div>
+        </div>
       </div>
     )
   }

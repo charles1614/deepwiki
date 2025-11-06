@@ -75,7 +75,34 @@ export async function POST(request: NextRequest) {
 
     // Generate wiki slug and title from index.md
     const title = r2Service.extractWikiTitle(indexFile.content)
-    const slug = r2Service.generateWikiSlug(title)
+    let slug = r2Service.generateWikiSlug(title)
+
+    // Ensure slug uniqueness to avoid constraint violations
+    let isUnique = false
+    let attempts = 0
+    const maxAttempts = 10
+
+    while (!isUnique && attempts < maxAttempts) {
+      const existingWiki = await prisma.wiki.findUnique({
+        where: { slug }
+      })
+
+      if (!existingWiki) {
+        isUnique = true
+      } else {
+        // Append a random suffix to make it unique
+        const randomSuffix = Math.random().toString(36).substring(2, 8)
+        slug = r2Service.generateWikiSlug(`${title}-${randomSuffix}`)
+        attempts++
+      }
+    }
+
+    if (!isUnique) {
+      return NextResponse.json(
+        { success: false, error: 'Could not generate unique slug for wiki' },
+        { status: 500 }
+      )
+    }
 
     // Upload files to R2
     const uploadResult = await r2Service.uploadWikiFiles(slug, wikiFiles)
