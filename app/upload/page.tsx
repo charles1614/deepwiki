@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { WithNavigation } from '@/components/layout/WithNavigation'
-import { EnhancedWikiUpload } from '@/components/EnhancedWikiUpload'
+import { WikiUpload } from '@/components/WikiUpload'
 
 interface Wiki {
   id: string
@@ -32,10 +32,14 @@ export default function UploadPage() {
               </h1>
               <p className="mt-2 text-sm text-gray-600">
                 Upload markdown files to create a new wiki. Support for Mermaid diagrams, syntax highlighting, and more.
+                <br />
+                <span className="text-xs text-gray-500">
+                  This is the dedicated upload location. You can also access upload from the navigation tab or dashboard quick actions.
+                </span>
               </p>
             </div>
 
-            <EnhancedWikiUpload onUploadSuccess={handleUploadSuccess} />
+            <WikiUpload onUploadSuccess={handleUploadSuccess} />
           </div>
         </div>
       </WithNavigation>
