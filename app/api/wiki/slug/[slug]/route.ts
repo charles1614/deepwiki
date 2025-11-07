@@ -3,10 +3,10 @@ import { prisma } from '@/lib/database'
 
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params
+    const { slug } = await params
 
     // Find wiki by slug
     const wiki = await prisma.wiki.findUnique({

@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
+  shutdownHandler: (() => void) | undefined
 }
 
 // Create Prisma client with better connection management
@@ -17,9 +18,17 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
 }
 
-// Handle graceful shutdown
-if (typeof process !== 'undefined') {
-  process.on('beforeExit', async () => {
+// Handle graceful shutdown - only add listener once
+if (typeof process !== 'undefined' && !globalForPrisma.shutdownHandler) {
+  const shutdownHandler = async () => {
     await prisma.$disconnect()
-  })
+  }
+
+  // Add multiple event listeners to ensure cleanup in different scenarios
+  process.on('beforeExit', shutdownHandler)
+  process.on('SIGINT', shutdownHandler)
+  process.on('SIGTERM', shutdownHandler)
+
+  // Store reference to prevent adding duplicate listeners
+  globalForPrisma.shutdownHandler = shutdownHandler
 }

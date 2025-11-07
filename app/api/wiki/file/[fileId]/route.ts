@@ -4,10 +4,10 @@ import { R2StorageService } from '@/lib/storage/r2'
 
 export async function GET(
   request: Request,
-  { params }: { params: { fileId: string } }
+  { params }: { params: Promise<{ fileId: string }> }
 ) {
   try {
-    const { fileId } = params
+    const { fileId } = await params
 
     // Find the file in the database
     const file = await prisma.wikiFile.findUnique({

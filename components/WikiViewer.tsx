@@ -51,23 +51,23 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewe
       setContentLoading(true)
       setContentError(null)
 
-      // Try to fetch content from the file URL directly first
-      const response = await fetch(file.url)
+      // Try API route first since direct URLs might not exist
+      const apiResponse = await fetch(`/api/wiki/file/${file.id}`)
 
-      if (response.ok) {
-        const text = await response.text()
-        setContent(text)
+      if (apiResponse.ok) {
+        const result = await apiResponse.json()
+        if (result.success) {
+          setContent(result.content || '')
+        } else {
+          setContentError(result.error || 'Failed to load wiki content')
+        }
       } else {
-        // If direct fetch fails, try API route
-        const apiResponse = await fetch(`/api/wiki/file/${file.id}`)
+        // If API fails, try direct URL (for legacy compatibility)
+        const response = await fetch(file.url)
 
-        if (apiResponse.ok) {
-          const result = await apiResponse.json()
-          if (result.success) {
-            setContent(result.content || '')
-          } else {
-            setContentError(result.error || 'Failed to load wiki content')
-          }
+        if (response.ok) {
+          const text = await response.text()
+          setContent(text)
         } else {
           setContentError('Failed to load wiki content')
         }
