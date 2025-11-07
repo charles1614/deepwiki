@@ -504,38 +504,27 @@ export function MarkdownRenderer({
           margin: 1rem 0;
           table-layout: auto;
           word-wrap: break-word;
+          display: block;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          white-space: nowrap;
         }
-        
-        @media (max-width: 1024px) {
-          .markdown-content {
-            overflow-x: hidden;
-          }
-          
-          .markdown-content table {
-            display: block;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            white-space: nowrap;
-            width: 100%;
-            max-width: 100%;
-          }
-          
-          .markdown-content table thead,
-          .markdown-content table tbody,
-          .markdown-content table tr {
-            display: table-row;
-          }
-          
-          .markdown-content table td,
-          .markdown-content table th {
-            white-space: nowrap;
-          }
+
+        .markdown-content table thead,
+        .markdown-content table tbody,
+        .markdown-content table tr {
+          display: table;
+          width: 100%;
+          table-layout: auto;
         }
-        .markdown-content th,
-        .markdown-content td {
+
+        .markdown-content table td,
+        .markdown-content table th {
           border: 1px solid #D1D5DB;
           padding: 0.5rem 1rem;
           text-align: left;
+          white-space: nowrap;
+          min-width: 150px;
         }
         .markdown-content th {
           background-color: #F9FAFB;
@@ -553,7 +542,7 @@ export function MarkdownRenderer({
       `}</style>
       <div
         ref={containerRef}
-        className={`prose prose-gray max-w-none markdown-content w-full overflow-hidden ${className}`}
+        className={`prose prose-gray max-w-none markdown-content w-full ${className}`}
       >
         {!content || content.trim() === '' ? (
           <p className="text-gray-500 italic">No content available</p>
