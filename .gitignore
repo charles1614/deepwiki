@@ -47,3 +47,23 @@ prisma/dev.db
 
 # temp data
 .swc/
+.env.local
+
+# debug and test files
+debug-*.js
+test-*.html
+test-*.md
+temp-*/
+.dev-server.pid
+.playwright-mcp/
+
+# documentation files (debug/troubleshooting)
+*TROUBLESHOOTING.md
+DEBUG_*.md
+ROOT_CAUSE_*.md
+SOLUTION_*.md
+ENV_SETUP.md
+
+# IDE
+.vscode/
+.idea/

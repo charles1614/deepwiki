@@ -19,6 +19,7 @@ export default function WikiViewPage() {
   const params = useParams()
   const router = useRouter()
   const [wiki, setWiki] = useState<Wiki | null>(null)
+  const [files, setFiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,7 +29,7 @@ export default function WikiViewPage() {
         setLoading(true)
         setError(null)
 
-        const response = await fetch(`/api/wiki/${params.slug}`)
+        const response = await fetch(`/api/wiki/slug/${params.slug}`)
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -43,6 +44,7 @@ export default function WikiViewPage() {
 
         if (result.success) {
           setWiki(result.wiki)
+          setFiles(result.wiki.files || [])
         } else {
           setError(result.error || 'Failed to load wiki')
         }
@@ -127,7 +129,7 @@ export default function WikiViewPage() {
       <WithNavigation>
         <div className="max-w-7xl mx-auto py-2 px-4 sm:px-6 lg:px-8 w-full overflow-x-hidden">
           <div className="w-full max-w-full overflow-x-hidden">
-            <WikiViewer wiki={wiki} onBack={handleBack} />
+            <WikiViewer wiki={wiki} files={files} onBack={handleBack} />
           </div>
         </div>
       </WithNavigation>

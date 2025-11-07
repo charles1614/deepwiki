@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './database'
 
-export const { handlers, auth } = NextAuth({
+export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -66,3 +66,5 @@ export const { handlers, auth } = NextAuth({
   },
   useSecureCookies: process.env.NODE_ENV === 'production',
 })
+
+export const authOptions = NextAuth(auth)

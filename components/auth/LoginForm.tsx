@@ -57,6 +57,7 @@ export function LoginForm() {
           error={errors.email?.message}
           autoComplete="email"
           disabled={isLoading}
+          dataTestId="email"
         />
 
         <Input
@@ -68,6 +69,7 @@ export function LoginForm() {
           error={errors.password?.message}
           autoComplete="current-password"
           disabled={isLoading}
+          dataTestId="password"
         />
 
         {error && (

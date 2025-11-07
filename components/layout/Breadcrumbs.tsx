@@ -19,9 +19,15 @@ export function Breadcrumbs({ className = '' }: BreadcrumbProps) {
   // Generate breadcrumb navigation
   const generateBreadcrumbs = (): Breadcrumb[] => {
     const parts = pathname.split('/').filter(Boolean)
-    const breadcrumbs: Breadcrumb[] = [{ label: 'Home', href: '/dashboard' }]
+    let breadcrumbs: Breadcrumb[] = []
 
-    if (parts.length > 0) {
+    if (parts.length === 0 || (parts.length === 1 && parts[0] === 'dashboard')) {
+      // On home page (/dashboard) - show just "Dashboard"
+      breadcrumbs = [{ label: 'Dashboard', href: '/dashboard' }]
+    } else {
+      // Start with "Home" for all other pages
+      breadcrumbs = [{ label: 'Home', href: '/dashboard' }]
+
       if (parts[0] === 'wiki') {
         breadcrumbs.push({ label: 'Wiki', href: '/wiki' })
 
@@ -37,9 +43,8 @@ export function Breadcrumbs({ className = '' }: BreadcrumbProps) {
         breadcrumbs.push({ label: 'Upload Wiki', href: '/upload' })
       } else if (parts[0] === 'search') {
         breadcrumbs.push({ label: 'Search', href: '/search' })
-      } else if (parts[0] === 'dashboard') {
-        breadcrumbs.push({ label: 'Dashboard', href: '/dashboard' })
       }
+      // Note: We don't add a separate "Dashboard" breadcrumb since it's already represented as "Home"
     }
 
     return breadcrumbs
@@ -61,7 +66,7 @@ export function Breadcrumbs({ className = '' }: BreadcrumbProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center space-x-2 text-sm text-gray-500 pt-4 pb-1">
           {breadcrumbs.map((crumb, index) => (
-            <React.Fragment key={crumb.href}>
+            <React.Fragment key={`${crumb.href}-${index}`}>
               {index > 0 && (
                 <span
                   className="text-gray-300"

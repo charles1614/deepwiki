@@ -10,6 +10,7 @@ interface InputProps {
   error?: string
   autoComplete?: string
   disabled?: boolean
+  dataTestId?: string
 }
 
 export function Input({
@@ -21,6 +22,7 @@ export function Input({
   error,
   autoComplete,
   disabled = false,
+  dataTestId,
 }: InputProps) {
   return (
     <div className="space-y-2">
@@ -37,7 +39,7 @@ export function Input({
         {...register(id)}
         autoComplete={autoComplete}
         disabled={disabled}
-        data-testid={id}
+        data-testid={dataTestId || id}
         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
         aria-invalid={error ? 'true' : 'false'}
         aria-describedby={error ? `${id}-error` : undefined}
