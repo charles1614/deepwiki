@@ -58,6 +58,9 @@ export default function WikiPage() {
                 key={refreshKey}
                 onWikiSelect={handleWikiSelect}
                 onWikiDeleted={handleWikiDeleted}
+                enableManagement={true}
+                showRefreshButton={false}
+                emptyStateMessage="Upload your first wiki to get started with documentation browsing"
               />
             </div>
           </div>

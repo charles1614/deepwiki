@@ -18,7 +18,8 @@ import {
   UsersIcon,
   ArrowPathIcon,
   StarIcon,
-  AcademicCapIcon
+  AcademicCapIcon,
+  CogIcon
 } from '@heroicons/react/24/outline'
 
 export default function DashboardPage() {
@@ -99,6 +100,14 @@ export default function DashboardPage() {
                     aria-label="Refresh dashboard"
                   >
                     <ArrowPathIcon className={`h-6 w-6 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    onClick={() => setRefreshKey(prev => prev + 1)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors group"
+                    data-testid="manage-wikis-button"
+                    aria-label="Manage wikis"
+                  >
+                    <CogIcon className="h-6 w-6 group-hover:rotate-90 transition-transform duration-200" />
                   </button>
                   <div className="flex items-center space-x-2">
                     <UserCircleIcon className="h-8 w-8 text-gray-400" />
@@ -216,6 +225,9 @@ export default function DashboardPage() {
                   key={refreshKey}
                   onWikiSelect={handleWikiSelect}
                   onWikiDeleted={() => setRefreshKey(prev => prev + 1)}
+                  enableManagement={true}
+                  showRefreshButton={false}
+                  emptyStateMessage="Upload your first wiki to get started with documentation management"
                 />
               </div>
             </div>
