@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { WithNavigation } from '@/components/layout/WithNavigation'
-import { EnhancedWikiUpload } from '@/components/EnhancedWikiUpload'
 import { WikiList } from '@/components/WikiList'
 
 export default function WikiPage() {
@@ -13,51 +12,56 @@ export default function WikiPage() {
   const { data: session } = useSession()
   const [refreshKey, setRefreshKey] = useState(0)
 
-  const handleUploadSuccess = () => {
-    // Refresh the wiki list after successful upload
-    setRefreshKey(prev => prev + 1)
-  }
+  // Fetch recent wikis on component mount and when refresh key changes
+  useEffect(() => {
+    if (session) {
+      // Refresh logic can be added here if needed
+    }
+  }, [session, refreshKey])
 
+  
   const handleWikiSelect = (wiki: { slug: string }) => {
-    // Navigate to the wiki view page
+    // Navigate to the individual wiki view
     router.push(`/wiki/${wiki.slug}`)
   }
 
-  const isAdmin = session?.user?.role === 'ADMIN'
+  const handleWikiDeleted = () => {
+    // Refresh the wiki list after deletion
+    setRefreshKey(prev => prev + 1)
+  }
 
   return (
     <ProtectedRoute>
       <WithNavigation>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
-            {/* Welcome Message */}
-            <div className="mb-8" data-testid="welcome-message">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Welcome to DeepWiki
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900">
+                Wiki Documentation
               </h1>
-              <p className="text-lg text-gray-600">
-                Upload your markdown files to create beautiful, searchable documentation with interactive diagrams.
+              <p className="mt-2 text-sm text-gray-600">
+                Browse and manage your markdown documentation with interactive diagrams.
+                <br />
+                <span className="text-xs">
+                  Need to upload new documentation? Use the{' '}
+                  <a href="/upload" className="text-blue-600 hover:text-blue-800 underline">
+                    Upload page
+                  </a>{' '}
+                  in the navigation.
+                </span>
               </p>
             </div>
 
-            {/* Admin Panel */}
-            {isAdmin && (
-              <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg" data-testid="admin-panel">
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Admin Panel</h2>
-                <div className="text-sm text-blue-700">
-                  You have administrative privileges. You can manage all wikis and user content.
-                </div>
-              </div>
-            )}
-
-            {/* Wiki Upload Section */}
-            <div className="mb-12">
-              <EnhancedWikiUpload onUploadSuccess={handleUploadSuccess} />
-            </div>
-
             {/* Wiki List Section */}
-            <div>
-              <WikiList key={refreshKey} onWikiSelect={handleWikiSelect} />
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <WikiList
+                key={refreshKey}
+                onWikiSelect={handleWikiSelect}
+                onWikiDeleted={handleWikiDeleted}
+                enableManagement={true}
+                showRefreshButton={false}
+                emptyStateMessage="Upload your first wiki to get started with documentation browsing"
+              />
             </div>
           </div>
         </div>

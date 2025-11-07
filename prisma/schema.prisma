@@ -21,6 +21,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  wikiVersions WikiVersion[]
+
   @@map("users")
 }
 
@@ -34,6 +36,7 @@ model Wiki {
   updatedAt   DateTime @updatedAt
 
   files       WikiFile[]
+  versions    WikiVersion[]
 
   @@map("wikis")
 }
@@ -45,12 +48,32 @@ model WikiFile {
   filePath    String   @unique
   fileSize    Int
   contentType String
+  content     String?  // Optional content for full-text search
   createdAt   DateTime @default(now())
 
   wiki        Wiki     @relation(fields: [wikiId], references: [id], onDelete: Cascade)
 
   @@map("wiki_files")
   @@index([wikiId])
+  @@index([contentType])
+}
+
+model WikiVersion {
+  id        String   @id @default(cuid())
+  wikiId    String
+  version   Int
+  content   String
+  changeLog String?
+  userId    String
+  createdAt DateTime @default(now())
+
+  wiki      Wiki     @relation(fields: [wikiId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([wikiId, version])
+  @@map("wiki_versions")
+  @@index([wikiId])
+  @@index([userId])
 }
 
 enum Role {

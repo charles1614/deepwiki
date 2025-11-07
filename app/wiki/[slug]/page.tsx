@@ -19,6 +19,7 @@ export default function WikiViewPage() {
   const params = useParams()
   const router = useRouter()
   const [wiki, setWiki] = useState<Wiki | null>(null)
+  const [files, setFiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,7 +29,7 @@ export default function WikiViewPage() {
         setLoading(true)
         setError(null)
 
-        const response = await fetch(`/api/wiki/${params.slug}`)
+        const response = await fetch(`/api/wiki/slug/${params.slug}`)
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -43,6 +44,7 @@ export default function WikiViewPage() {
 
         if (result.success) {
           setWiki(result.wiki)
+          setFiles(result.wiki.files || [])
         } else {
           setError(result.error || 'Failed to load wiki')
         }
@@ -66,8 +68,8 @@ export default function WikiViewPage() {
     return (
       <ProtectedRoute>
         <WithNavigation>
-          <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="px-4 py-6 sm:px-0">
+          <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+            <div className="px-4 py-2 sm:px-0">
               <div className="flex justify-center items-center py-12">
                 <div className="text-gray-500">Loading wiki...</div>
               </div>
@@ -82,8 +84,8 @@ export default function WikiViewPage() {
     return (
       <ProtectedRoute>
         <WithNavigation>
-          <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="px-4 py-6 sm:px-0">
+          <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+            <div className="px-4 py-2 sm:px-0">
               <div className="text-center py-12">
                 <div className="text-red-600 mb-4">{error}</div>
                 <button
@@ -104,8 +106,8 @@ export default function WikiViewPage() {
     return (
       <ProtectedRoute>
         <WithNavigation>
-          <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="px-4 py-6 sm:px-0">
+          <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+            <div className="px-4 py-2 sm:px-0">
               <div className="text-center py-12">
                 <div className="text-gray-600 mb-4">Wiki not found</div>
                 <button
@@ -125,9 +127,9 @@ export default function WikiViewPage() {
   return (
     <ProtectedRoute>
       <WithNavigation>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            <WikiViewer wiki={wiki} onBack={handleBack} />
+        <div className="max-w-7xl mx-auto py-2 px-4 sm:px-6 lg:px-8 w-full overflow-x-hidden">
+          <div className="w-full max-w-full overflow-x-hidden">
+            <WikiViewer wiki={wiki} files={files} onBack={handleBack} />
           </div>
         </div>
       </WithNavigation>

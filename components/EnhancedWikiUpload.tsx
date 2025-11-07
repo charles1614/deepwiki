@@ -99,6 +99,34 @@ export function EnhancedWikiUpload({ onUploadSuccess }: EnhancedWikiUploadProps)
     })
   }, [])
 
+  // Simulate individual file progress during batch upload
+  const simulateIndividualFileProgress = useCallback(() => {
+    let currentFileIndex = 0
+    const interval = setInterval(() => {
+      if (currentFileIndex < fileProgress.length && uploading) {
+        // Update current file progress gradually
+        setFileProgress(prev => {
+          const updated = [...prev]
+          if (updated[currentFileIndex]) {
+            const currentProgress = updated[currentFileIndex].progress
+            const newProgress = Math.min(currentProgress + 25, 95) // Increment but cap at 95%
+            updated[currentFileIndex] = { ...updated[currentFileIndex], progress: newProgress, status: 'uploading' }
+
+            // If this file reaches 95%, move to next file
+            if (newProgress >= 95 && currentFileIndex < updated.length - 1) {
+              currentFileIndex++
+            }
+          }
+          return updated
+        })
+      } else {
+        clearInterval(interval)
+      }
+    }, 300) // Update every 300ms
+
+    return () => clearInterval(interval)
+  }, [fileProgress.length, uploading])
+
   const handleUpload = useCallback(async () => {
     setError(null)
     setCancelled(false)
@@ -112,6 +140,9 @@ export function EnhancedWikiUpload({ onUploadSuccess }: EnhancedWikiUploadProps)
 
     // Create abort controller for cancellation
     abortControllerRef.current = new AbortController()
+
+    // Start individual file progress simulation
+    const stopSimulation = simulateIndividualFileProgress()
 
     try {
       const formData = new FormData()
@@ -128,15 +159,15 @@ export function EnhancedWikiUpload({ onUploadSuccess }: EnhancedWikiUploadProps)
           if (event.lengthComputable) {
             const progress = (event.loaded / event.total) * 100
 
-            // Update all files progress (since we're uploading them together)
-            fileProgress.forEach((_, index) => {
-              updateFileProgress(index, progress, 'uploading')
-            })
+            // Update overall progress but keep individual files at their current progress
+            // This simulates a more realistic upload scenario where individual files
+            // would be processed one by one
+            setOverallProgress(progress)
           }
         })
 
         xhr.addEventListener('load', () => {
-          if (xhr.status === 200) {
+          if (xhr.status === 200 || xhr.status === 201) {
             try {
               const result = JSON.parse(xhr.responseText)
               resolve(result)
@@ -144,7 +175,7 @@ export function EnhancedWikiUpload({ onUploadSuccess }: EnhancedWikiUploadProps)
               reject(new Error('Invalid response from server'))
             }
           } else {
-            reject(new Error(`Upload failed: ${xhr.statusText}`))
+            reject(new Error(`Upload failed: ${xhr.statusText} (${xhr.status})`))
           }
         })
 
@@ -214,8 +245,9 @@ export function EnhancedWikiUpload({ onUploadSuccess }: EnhancedWikiUploadProps)
     } finally {
       setUploading(false)
       abortControllerRef.current = null
+      stopSimulation() // Stop the progress simulation
     }
-  }, [files, validateFiles, fileProgress, updateFileProgress, onUploadSuccess])
+  }, [files, validateFiles, fileProgress, updateFileProgress, onUploadSuccess, simulateIndividualFileProgress])
 
   const cancelUpload = useCallback(() => {
     if (abortControllerRef.current) {

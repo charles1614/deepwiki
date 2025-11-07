@@ -91,19 +91,36 @@ export class R2StorageService {
       const uploadedFiles: string[] = []
 
       for (const file of files) {
-        const fileBuffer = Buffer.from(file.content)
+        // Validate and ensure UTF-8 encoding for file content
+        let contentBuffer: Buffer
+        try {
+          // Validate content is valid UTF-8
+          const encoder = new TextEncoder()
+          const decoder = new TextDecoder('utf-8', { fatal: true })
+          const validatedContent = decoder.decode(encoder.encode(file.content))
+          contentBuffer = Buffer.from(validatedContent, 'utf-8')
+        } catch (encodingError) {
+          console.warn('Invalid UTF-8 in file content, cleaning:', file.name, encodingError)
+          // Clean the content and ensure valid UTF-8
+          const cleanedContent = file.content
+            .replace(/[\uFFFD\u0000-\u001F\u007F-\u009F]/g, '')
+            .replace(/[\uFEFF]/g, '') // Remove BOM
+          const encoder = new TextEncoder()
+          contentBuffer = Buffer.from(encoder.encode(cleanedContent))
+        }
 
-        // For markdown files, file-type detection may return undefined since it's plain text
-        // We'll use a default MIME type for markdown files
-        const mimeType = 'text/markdown'
-
+        // For markdown files, use proper content-type with encoding
+        const mimeType = 'text/markdown; charset=utf-8'
         const key = `${wikiSlug}/${file.name}`
 
         const command = new PutObjectCommand({
           Bucket: this.bucketName,
           Key: key,
-          Body: fileBuffer,
-          ContentType: mimeType
+          Body: contentBuffer,
+          ContentType: mimeType,
+          Metadata: {
+            encoding: 'utf-8'
+          }
         })
 
         await this.s3Client.send(command)
@@ -136,13 +153,27 @@ export class R2StorageService {
         return { success: false, error: 'File not found' }
       }
 
-      // Convert stream to string
+      // Convert stream to string with proper UTF-8 validation
       const chunks = []
       const stream = response.Body as any
       for await (const chunk of stream) {
         chunks.push(chunk)
       }
-      const content = Buffer.concat(chunks).toString('utf-8')
+
+      // Validate UTF-8 encoding before converting
+      const buffer = Buffer.concat(chunks)
+      let content: string
+
+      try {
+        // Check if buffer is valid UTF-8
+        const decoder = new TextDecoder('utf-8', { fatal: true })
+        content = decoder.decode(buffer)
+      } catch (encodingError) {
+        console.warn('Invalid UTF-8 detected, attempting to clean:', encodingError)
+        // Fallback: clean the buffer and try non-fatal decoding
+        const decoder = new TextDecoder('utf-8', { fatal: false })
+        content = decoder.decode(buffer).replace(/[\uFFFD\u0000-\u001F\u007F-\u009F]/g, '')
+      }
 
       return { success: true, content }
     } catch (error) {

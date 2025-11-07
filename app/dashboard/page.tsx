@@ -1,109 +1,239 @@
 'use client'
 
-import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
+import { WithNavigation } from '@/components/layout/WithNavigation'
+import { WikiList } from '@/components/WikiList'
+import { DashboardStats } from '@/components/DashboardStats'
+import { DashboardActivityFeed } from '@/components/DashboardActivityFeed'
+import {
+  BookOpenIcon,
+  CloudArrowUpIcon,
+  DocumentTextIcon,
+  ChartBarIcon,
+  UserCircleIcon,
+  Cog6ToothIcon,
+  UsersIcon,
+  ArrowPathIcon,
+  StarIcon,
+  AcademicCapIcon,
+  CogIcon
+} from '@heroicons/react/24/outline'
 
 export default function DashboardPage() {
+  const router = useRouter()
   const { data: session } = useSession()
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [activityFilter, setActivityFilter] = useState('all')
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // Get personalized greeting based on time of day
+  const getPersonalizedGreeting = () => {
+    const hour = new Date().getHours()
+    const userName = session?.user?.email?.split('@')[0] || 'User'
+
+    if (hour < 12) return `Good morning, ${userName}!`
+    if (hour < 17) return `Good afternoon, ${userName}!`
+    return `Good evening, ${userName}!`
+  }
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    setRefreshKey(prev => prev + 1)
+    // Simulate refresh delay
+    setTimeout(() => setIsRefreshing(false), 1000)
+  }
+
+  const trackQuickAction = async (action: string) => {
+    try {
+      await fetch('/api/analytics/quick-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          userId: session?.user?.id,
+          timestamp: new Date().toISOString()
+        })
+      })
+    } catch (error) {
+      console.error('Failed to track quick action:', error)
+    }
+  }
+
+  const handleQuickAction = (action: string, route: string) => {
+    trackQuickAction(action)
+    router.push(route)
+  }
+
+  
+  const handleWikiSelect = (wiki: { slug: string }) => {
+    // Navigate to the wiki view page
+    router.push(`/wiki/${wiki.slug}`)
+  }
+
+  const isAdmin = session?.user?.role === 'ADMIN'
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900" data-testid="welcome-message">
-                Welcome back, {session?.user?.email}!
-              </h1>
-              <p className="mt-2 text-sm text-gray-600">
-                This is your protected dashboard. You&apos;re successfully logged in.
-              </p>
+      <WithNavigation>
+        <div className="max-w-7xl mx-auto pt-6 pb-2 sm:px-6 lg:px-8">
+          <div className="px-4 pt-6 pb-2 sm:px-0">
+            {/* Welcome Message */}
+            <div className="mb-8" data-testid="dashboard-welcome">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    {getPersonalizedGreeting()}
+                  </h1>
+                  <p className="text-lg text-gray-600">
+                    Here's your wiki activity overview.
+                  </p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                    data-testid="refresh-stats"
+                    aria-label="Refresh dashboard"
+                  >
+                    <ArrowPathIcon className={`h-6 w-6 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    onClick={() => setRefreshKey(prev => prev + 1)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors group"
+                    data-testid="manage-wikis-button"
+                    aria-label="Manage wikis"
+                  >
+                    <CogIcon className="h-6 w-6 group-hover:rotate-90 transition-transform duration-200" />
+                  </button>
+                  <div className="flex items-center space-x-2">
+                    <UserCircleIcon className="h-8 w-8 text-gray-400" />
+                    <span className="text-sm text-gray-500">{session?.user?.email}</span>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* Enhanced Stats Cards */}
+            <DashboardStats className="mb-8" />
+
+            {/* Admin Panel */}
+            {isAdmin && (
+              <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg" data-testid="admin-panel">
+                <h2 className="text-lg font-semibold text-blue-900 mb-2">Admin Panel</h2>
+                <div className="text-sm text-blue-700">
+                  You have administrative privileges. You can manage all wikis and user content.
+                </div>
+              </div>
+            )}
 
             {/* Quick Actions */}
-            <div className="bg-white shadow rounded-lg p-6 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Quick Actions
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <a
-                  href="/wiki"
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex-shrink-0">
-                    <svg className="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Quick Actions Section */}
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      onClick={() => handleQuickAction('view_wikis', '/wiki')}
+                      className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                      data-testid="action-view-wikis"
+                    >
+                      <BookOpenIcon className="h-6 w-6 text-blue-600 mr-3" />
+                      <div className="text-left">
+                        <p className="font-medium text-gray-900">View All Wikis</p>
+                        <p className="text-sm text-gray-600">Browse your documentation</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => handleQuickAction('upload_wiki', '/upload')}
+                      className="flex items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                      data-testid="action-upload-wiki"
+                    >
+                      <CloudArrowUpIcon className="h-6 w-6 text-green-600 mr-3" />
+                      <div className="text-left">
+                        <p className="font-medium text-gray-900">Upload New Wiki</p>
+                        <p className="text-sm text-gray-600">Add documentation to upload page</p>
+                      </div>
+                    </button>
+
+                    {/* Admin-only actions */}
+                    {isAdmin && (
+                      <>
+                        <button
+                          onClick={() => handleQuickAction('manage_users', '/admin/users')}
+                          className="flex items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+                          data-testid="action-manage-users"
+                        >
+                          <UsersIcon className="h-6 w-6 text-purple-600 mr-3" />
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900">Manage Users</p>
+                            <p className="text-sm text-gray-600">User accounts and permissions</p>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => handleQuickAction('system_settings', '/admin/settings')}
+                          className="flex items-center p-4 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors"
+                          data-testid="action-system-settings"
+                        >
+                          <Cog6ToothIcon className="h-6 w-6 text-yellow-600 mr-3" />
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900">System Settings</p>
+                            <p className="text-sm text-gray-600">Configure system options</p>
+                          </div>
+                        </button>
+                      </>
+                    )}
                   </div>
-                  <div className="ml-4">
-                    <h3 className="text-base font-medium text-gray-900">Wiki Documentation</h3>
-                    <p className="text-sm text-gray-500">Upload and view markdown documentation</p>
+                </div>
+              </div>
+
+              {/* Enhanced Recent Activity Sidebar */}
+              <div>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" data-testid="dashboard-sidebar">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                    <select
+                      value={activityFilter}
+                      onChange={(e) => setActivityFilter(e.target.value)}
+                      className="text-sm border border-gray-300 rounded-md px-2 py-1"
+                      data-testid="activity-filter"
+                    >
+                      <option value="all">All</option>
+                      <option value="wiki_created">Created</option>
+                      <option value="wiki_updated">Updated</option>
+                      <option value="wiki_deleted">Deleted</option>
+                    </select>
                   </div>
-                </a>
-                <div className="flex items-center p-4 border border-gray-200 rounded-lg opacity-50">
-                  <div className="flex-shrink-0">
-                    <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-base font-medium text-gray-900">Settings</h3>
-                    <p className="text-sm text-gray-500">Manage application settings</p>
-                  </div>
+                  <DashboardActivityFeed
+                    filter={activityFilter}
+                    key={`${refreshKey}-${activityFilter}`}
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                User Profile
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Email</p>
-                  <p className="text-sm text-gray-900">{session?.user?.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Role</p>
-                  <p className="text-sm text-gray-900">{session?.user?.role}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">User ID</p>
-                  <p className="text-sm text-gray-900">{session?.user?.id}</p>
-                </div>
-              </div>
-
-              {session?.user?.role === 'ADMIN' && (
-                <div className="mt-6 pt-6 border-t border-gray-200" data-testid="admin-panel">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Admin Panel
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
-                      Manage Users
-                    </button>
-                    <button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                      System Settings
-                    </button>
-                    <button className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                      Security Logs
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6">
-                <button
-                  onClick={() => window.location.href = '/api/auth/signout'}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-                >
-                  Sign Out
-                </button>
+            {/* Recent Wikis Section */}
+            <div className="mt-8">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <WikiList
+                  key={refreshKey}
+                  onWikiSelect={handleWikiSelect}
+                  onWikiDeleted={() => setRefreshKey(prev => prev + 1)}
+                  enableManagement={true}
+                  showRefreshButton={false}
+                  emptyStateMessage="Upload your first wiki to get started with documentation management"
+                />
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </WithNavigation>
     </ProtectedRoute>
   )
 }
