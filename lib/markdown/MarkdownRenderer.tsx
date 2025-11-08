@@ -1008,30 +1008,33 @@ export function MarkdownRenderer({
               const text = this.parser.parseInline(tokens)
               return `<p class="prose-p">${text}</p>`
             },
-            list({ tokens, ordered }: { tokens?: any[]; ordered?: boolean }): string {
-              // Add null checks for tokens
-              if (!tokens || !Array.isArray(tokens)) {
-                return ordered ? '<ol class="prose-ol"></ol>' : '<ul class="prose-ul"></ul>'
-              }
-
-              const type = ordered ? 'ol' : 'ul'
-              const className = ordered ? 'prose-ol' : 'prose-ul'
-              const items = tokens.map(token => {
-                if (token && token.type === 'list_item') {
-                  return this.listitem(token)
-                }
-                return ''
-              }).filter(item => item)
-              return `<${type} class="${className}">${items.join('')}</${type}>`
-            },
-            listitem({ tokens }: { tokens?: any[] }): string {
-              // Add null checks for tokens
-              if (!tokens || !Array.isArray(tokens)) {
-                return '<li class="prose-li"></li>'
-              }
-              const text = this.parser.parseInline(tokens)
-              return `<li class="prose-li">${text}</li>`
-            },
+                        list({
+                          tokens,
+                          ordered
+                        }: { tokens?: any[]; ordered?: boolean }): string {
+                          // Add null checks for tokens
+                          if (!tokens || !Array.isArray(tokens)) {
+                            return ordered ? '<ol class="prose-ol"></ol>' : '<ul class="prose-ul"></ul>'
+                          }
+            
+                          const type = ordered ? 'ol' : 'ul'
+                          const className = ordered ? 'prose-ol' : 'prose-ul'
+                          const items = tokens.map(token => {
+                            if (token && token.type === 'list_item') {
+                              return this.listitem(token)
+                            }
+                            return ''
+                          }).filter(item => item)
+                          return `<${type} class="${className}">${items.join('')}</${type}>`
+                        },
+                        listitem({ tokens }: { tokens?: any[] }): string {
+                          // Add null checks for tokens
+                          if (!tokens || !Array.isArray(tokens)) {
+                            return '<li class="prose-li"></li>'
+                          }
+                          const text = this.parser.parse(tokens)
+                          return `<li class="prose-li">${text}</li>`
+                        },
             blockquote({ tokens }: { tokens: any[] }): string {
               const text = this.parser.parse(tokens)
               return `<blockquote class="prose-blockquote">${text}</blockquote>`
@@ -1104,7 +1107,7 @@ export function MarkdownRenderer({
               if (!tokens || !Array.isArray(tokens)) {
                 return '<li class="prose-li"></li>'
               }
-              const text = this.parser.parseInline(tokens)
+              const text = this.parser.parse(tokens)
               return `<li class="prose-li">${text}</li>`
             },
             blockquote({ tokens }: { tokens: any[] }): string {
