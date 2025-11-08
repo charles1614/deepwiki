@@ -1009,30 +1009,30 @@ export function MarkdownRenderer({
               return `<p class="prose-p">${text}</p>`
             },
                         list({
-                          tokens,
+                          items,
                           ordered
-                        }: { tokens?: any[]; ordered?: boolean }): string {
-                          // Add null checks for tokens
-                          if (!tokens || !Array.isArray(tokens)) {
+                        }: { items?: any[]; ordered?: boolean }): string {
+                          // Add null checks for items
+                          if (!items || !Array.isArray(items)) {
                             return ordered ? '<ol class="prose-ol"></ol>' : '<ul class="prose-ul"></ul>'
                           }
             
                           const type = ordered ? 'ol' : 'ul'
                           const className = ordered ? 'prose-ol' : 'prose-ul'
-                          const items = tokens.map(token => {
-                            if (token && token.type === 'list_item') {
-                              return this.listitem(token)
+                          const listItems = items.map(item => {
+                            if (item && item.type === 'list_item') {
+                              return this.listitem(item)
                             }
                             return ''
                           }).filter(item => item)
-                          return `<${type} class="${className}">${items.join('')}</${type}>`
+                          return `<${type} class="${className}">${listItems.join('')}</${type}>`
                         },
                         listitem({ tokens }: { tokens?: any[] }): string {
                           // Add null checks for tokens
                           if (!tokens || !Array.isArray(tokens)) {
                             return '<li class="prose-li"></li>'
                           }
-                          const text = this.parser.parse(tokens)
+                          const text = this.parser.parseInline(tokens)
                           return `<li class="prose-li">${text}</li>`
                         },
             blockquote({ tokens }: { tokens: any[] }): string {
@@ -1086,28 +1086,28 @@ export function MarkdownRenderer({
               const text = this.parser.parseInline(tokens)
               return `<p class="prose-p">${text}</p>`
             },
-            list({ tokens, ordered }: { tokens?: any[]; ordered?: boolean }): string {
-              // Add null checks for tokens
-              if (!tokens || !Array.isArray(tokens)) {
+            list({ items, ordered }: { items?: any[]; ordered?: boolean }): string {
+              // Add null checks for items
+              if (!items || !Array.isArray(items)) {
                 return ordered ? '<ol class="prose-ol"></ol>' : '<ul class="prose-ul"></ul>'
               }
 
               const type = ordered ? 'ol' : 'ul'
               const className = ordered ? 'prose-ol' : 'prose-ul'
-              const items = tokens.map(token => {
-                if (token && token.type === 'list_item') {
-                  return this.listitem(token)
+              const listItems = items.map(item => {
+                if (item && item.type === 'list_item') {
+                  return this.listitem(item)
                 }
                 return ''
               }).filter(item => item)
-              return `<${type} class="${className}">${items.join('')}</${type}>`
+              return `<${type} class="${className}">${listItems.join('')}</${type}>`
             },
             listitem({ tokens }: { tokens?: any[] }): string {
               // Add null checks for tokens
               if (!tokens || !Array.isArray(tokens)) {
                 return '<li class="prose-li"></li>'
               }
-              const text = this.parser.parse(tokens)
+              const text = this.parser.parseInline(tokens)
               return `<li class="prose-li">${text}</li>`
             },
             blockquote({ tokens }: { tokens: any[] }): string {
