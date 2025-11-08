@@ -138,6 +138,60 @@ body {
   height: auto;
 }
 
+/* Increase spacing between Mermaid subgraphs/clusters and nodes */
+/* Add buffer zone above cluster titles to prevent arrow overlap with titles */
+/* Also add extra spacing when clusters are preceded by standalone text labels */
+.markdown-content .mermaid svg .cluster {
+  margin-top: 45px;
+  margin-bottom: 20px;
+}
+
+.markdown-content .mermaid svg .cluster rect {
+  rx: 8;
+  ry: 8;
+}
+
+/* Ensure proper spacing for cluster titles - prevent arrow overlap */
+.markdown-content .mermaid svg .cluster .titleText {
+  margin-bottom: 10px;
+  margin-top: 5px;
+  display: block;
+}
+
+/* Add spacing between different clusters */
+.markdown-content .mermaid svg g.cluster + g.cluster {
+  margin-top: 25px;
+}
+
+/* Ensure nodes inside clusters have proper spacing */
+.markdown-content .mermaid svg .cluster .node {
+  margin: 8px;
+}
+
+/* Add spacing for standalone text labels above subgraphs (like "Optimization Layers") */
+/* Target text elements that are not inside nodes or clusters */
+.markdown-content .mermaid svg g > text:not(.nodeLabel):not(.edgeLabel):not(.titleText) {
+  margin-bottom: 20px;
+  display: block;
+}
+
+/* Add spacing for text elements that appear before clusters */
+.markdown-content .mermaid svg g:has(text:not(.nodeLabel):not(.edgeLabel):not(.titleText)) + g.cluster {
+  margin-top: 45px;
+}
+
+/* Alternative: Target any text group that comes before a cluster */
+.markdown-content .mermaid svg g[class*="text"] + g.cluster,
+.markdown-content .mermaid svg g:has(> text[class=""]) + g.cluster {
+  margin-top: 45px;
+}
+
+/* Ensure standalone text has bottom margin */
+.markdown-content .mermaid svg g:has(> text:not(.nodeLabel):not(.edgeLabel):not(.titleText)):not(.cluster):not(.node) {
+  margin-bottom: 25px;
+  padding-bottom: 10px;
+}
+
 /* Enhanced Table Styles */
 .markdown-content {
   width: 100%;
