@@ -3,46 +3,92 @@ import { prisma } from '@/lib/database'
 
 export async function GET(request: Request) {
   try {
-
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') || 'all'
     const limit = 10
 
-    // Build where clause for filtering
-    const whereClause: any = {}
-    if (type !== 'all') {
-      whereClause.type = type
+    const activities: any[] = []
+
+    // Get wiki created activities (from Wiki table)
+    if (type === 'all' || type === 'wiki_created') {
+      const recentWikis = await prisma.wiki.findMany({
+        take: limit * 2, // Get more to account for filtering
+        orderBy: { createdAt: 'desc' },
+        include: {
+          versions: {
+            where: { version: 1 },
+            take: 1,
+            include: {
+              user: {
+                select: { email: true }
+              }
+            },
+            orderBy: { createdAt: 'asc' }
+          }
+        }
+      })
+
+      for (const wiki of recentWikis) {
+        const firstVersion = wiki.versions[0]
+        activities.push({
+          id: `created-${wiki.id}`,
+          type: 'wiki_created',
+          wikiTitle: wiki.title,
+          userEmail: firstVersion?.user?.email || 'system@deepwiki.com',
+          timestamp: wiki.createdAt.toISOString(),
+          metadata: { slug: wiki.slug }
+        })
+      }
     }
 
-    // Mock activities data for now (replace with actual database queries)
-    const activities = [
-      {
-        id: '1',
-        type: 'wiki_created',
-        wikiTitle: 'Getting Started Guide',
-        userEmail: 'john@example.com',
-        timestamp: '2024-01-15T10:30:00Z',
-        metadata: { slug: 'getting-started' }
-      },
-      {
-        id: '2',
-        type: 'wiki_updated',
-        wikiTitle: 'API Documentation',
-        userEmail: 'jane@example.com',
-        timestamp: '2024-01-15T09:15:00Z',
-        metadata: { slug: 'api-docs', changes: 5 }
-      },
-      {
-        id: '3',
-        type: 'wiki_deleted',
-        wikiTitle: 'Old Documentation',
-        userEmail: 'admin@example.com',
-        timestamp: '2024-01-14T16:45:00Z',
-        metadata: { reason: 'outdated' }
-      }
-    ]
+    // Get wiki updated activities (from WikiVersion table)
+    if (type === 'all' || type === 'wiki_updated') {
+      const recentVersions = await prisma.wikiVersion.findMany({
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          wiki: {
+            select: {
+              title: true,
+              slug: true
+            }
+          },
+          user: {
+            select: {
+              email: true
+            }
+          }
+        }
+      })
 
-    // Filter by type if specified
+      for (const version of recentVersions) {
+        // Skip if this is the first version (already counted as created)
+        if (version.version === 1) continue
+
+        activities.push({
+          id: `updated-${version.id}`,
+          type: 'wiki_updated',
+          wikiTitle: version.wiki.title,
+          userEmail: version.user.email,
+          timestamp: version.createdAt.toISOString(),
+          metadata: { 
+            slug: version.wiki.slug,
+            version: version.version,
+            changeLog: version.changeLog
+          }
+        })
+      }
+    }
+
+    // Note: wiki_deleted activities are not tracked in the current schema
+    // We would need to add an ActivityLog table to track deletions
+
+    // Sort all activities by timestamp (most recent first)
+    activities.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )
+
+    // Filter by type if specified (for created/updated, already filtered above)
     const filteredActivities = type === 'all'
       ? activities
       : activities.filter(activity => activity.type === type)

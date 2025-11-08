@@ -1,7 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { DocumentTextIcon } from '@heroicons/react/24/outline'
+import { 
+  DocumentTextIcon, 
+  PlusIcon, 
+  PencilIcon, 
+  TrashIcon, 
+  EyeIcon,
+  SparklesIcon
+} from '@heroicons/react/24/outline'
 
 interface Activity {
   id: string
@@ -45,15 +52,15 @@ export function DashboardActivityFeed({ className = '', filter = 'all' }: Dashbo
     const iconClass = 'h-5 w-5'
     switch (type) {
       case 'wiki_created':
-        return <span className={`${iconClass} text-green-600`} data-testid={`activity-icon-${type}`}>⬆</span>
+        return <PlusIcon className={`${iconClass} text-blue-600`} data-testid={`activity-icon-${type}`} />
       case 'wiki_updated':
-        return <span className={`${iconClass} text-blue-600`} data-testid={`activity-icon-${type}`}>✏</span>
+        return <PencilIcon className={`${iconClass} text-blue-600`} data-testid={`activity-icon-${type}`} />
       case 'wiki_deleted':
-        return <span className={`${iconClass} text-red-600`} data-testid={`activity-icon-${type}`}>🗑</span>
+        return <TrashIcon className={`${iconClass} text-red-600`} data-testid={`activity-icon-${type}`} />
       case 'wiki_viewed':
-        return <span className={`${iconClass} text-purple-600`} data-testid={`activity-icon-${type}`}>👁</span>
+        return <EyeIcon className={`${iconClass} text-gray-600`} data-testid={`activity-icon-${type}`} />
       default:
-        return <span className={`${iconClass} text-gray-600`}>📄</span>
+        return <DocumentTextIcon className={`${iconClass} text-gray-600`} />
     }
   }
 
@@ -110,7 +117,7 @@ export function DashboardActivityFeed({ className = '', filter = 'all' }: Dashbo
         <p className="text-red-600 text-sm">{error}</p>
         <button
           onClick={fetchActivities}
-          className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
+          className="mt-2 text-gray-600 hover:text-gray-800 text-sm"
         >
           Try Again
         </button>
@@ -121,7 +128,9 @@ export function DashboardActivityFeed({ className = '', filter = 'all' }: Dashbo
   if (activities.length === 0) {
     return (
       <div className={`text-center py-8 ${className}`}>
-        <div className="h-12 w-12 text-gray-300 mx-auto mb-2 flex items-center justify-center">⭐</div>
+        <div className="h-12 w-12 text-gray-300 mx-auto mb-2 flex items-center justify-center">
+          <SparklesIcon className="h-12 w-12" />
+        </div>
         <p className="text-gray-500 text-sm" data-testid="no-activities">No recent activity</p>
         <p className="text-gray-400 text-xs mt-1">Start by creating or updating wikis to see activity here.</p>
       </div>
@@ -129,17 +138,25 @@ export function DashboardActivityFeed({ className = '', filter = 'all' }: Dashbo
   }
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-2 ${className}`}>
       {activities.map((activity) => (
-        <div key={activity.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+        <div key={activity.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50/80 rounded-lg border border-transparent hover:border-blue-200/30 transition-all duration-200 group">
           <div className="flex-shrink-0 mt-0.5">
-            {getActivityIcon(activity.type)}
+            <div className={`p-1.5 rounded-md transition-colors ${
+              activity.type === 'wiki_created' || activity.type === 'wiki_updated' 
+                ? 'bg-blue-50/50 group-hover:bg-blue-50' 
+                : activity.type === 'wiki_deleted'
+                ? 'bg-red-50/50 group-hover:bg-red-50'
+                : 'bg-gray-100/50 group-hover:bg-gray-100'
+            }`}>
+              {getActivityIcon(activity.type)}
+            </div>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-gray-900">
+            <p className="text-sm font-medium text-gray-900 leading-snug">
               {getActivityDescription(activity)}
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 mt-1.5 font-medium">
               {getRelativeTime(activity.timestamp)}
             </p>
           </div>

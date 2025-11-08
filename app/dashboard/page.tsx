@@ -122,42 +122,46 @@ export default function DashboardPage() {
 
             {/* Admin Panel */}
             {isAdmin && (
-              <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg" data-testid="admin-panel">
-                <h2 className="text-lg font-semibold text-blue-900 mb-2">Admin Panel</h2>
-                <div className="text-sm text-blue-700">
+              <div className="mb-8 p-5 bg-gradient-to-r from-red-50/50 via-red-50/30 to-gray-50 border border-red-200/40 rounded-xl shadow-sm" data-testid="admin-panel">
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Admin Panel</h2>
+                <div className="text-sm text-gray-600 leading-relaxed">
                   You have administrative privileges. You can manage all wikis and user content.
                 </div>
               </div>
             )}
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
               {/* Quick Actions Section */}
               <div className="lg:col-span-2">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-full flex flex-col">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-5">Quick Actions</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
                     <button
                       onClick={() => handleQuickAction('view_wikis', '/wiki')}
-                      className="flex items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                      className="flex items-center p-4 bg-gradient-to-br from-blue-50 to-blue-100/30 hover:from-blue-100 hover:to-blue-100/50 rounded-xl border border-blue-200/50 hover:border-blue-300/60 hover:shadow-sm transition-all duration-200 group"
                       data-testid="action-view-wikis"
                     >
-                      <BookOpenIcon className="h-6 w-6 text-blue-600 mr-3" />
+                      <div className="p-2 bg-white/60 rounded-lg mr-3 group-hover:bg-white/80 transition-colors">
+                        <BookOpenIcon className="h-5 w-5 text-blue-600" />
+                      </div>
                       <div className="text-left">
-                        <p className="font-medium text-gray-900">View All Wikis</p>
-                        <p className="text-sm text-gray-600">Browse your documentation</p>
+                        <p className="font-semibold text-gray-900 text-sm">View All Wikis</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Browse your documentation</p>
                       </div>
                     </button>
 
                     <button
                       onClick={() => handleQuickAction('upload_wiki', '/upload')}
-                      className="flex items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                      className="flex items-center p-4 bg-gradient-to-br from-blue-50 to-blue-100/30 hover:from-blue-100 hover:to-blue-100/50 rounded-xl border border-blue-200/50 hover:border-blue-300/60 hover:shadow-sm transition-all duration-200 group"
                       data-testid="action-upload-wiki"
                     >
-                      <CloudArrowUpIcon className="h-6 w-6 text-green-600 mr-3" />
+                      <div className="p-2 bg-white/60 rounded-lg mr-3 group-hover:bg-white/80 transition-colors">
+                        <CloudArrowUpIcon className="h-5 w-5 text-blue-600" />
+                      </div>
                       <div className="text-left">
-                        <p className="font-medium text-gray-900">Upload New Wiki</p>
-                        <p className="text-sm text-gray-600">Add documentation to upload page</p>
+                        <p className="font-semibold text-gray-900 text-sm">Upload New Wiki</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Add documentation to upload page</p>
                       </div>
                     </button>
 
@@ -166,25 +170,29 @@ export default function DashboardPage() {
                       <>
                         <button
                           onClick={() => handleQuickAction('manage_users', '/admin/users')}
-                          className="flex items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+                          className="flex items-center p-4 bg-gradient-to-br from-gray-50 to-gray-100/30 hover:from-gray-100 hover:to-gray-100/50 rounded-xl border border-gray-200/50 hover:border-gray-300/60 hover:shadow-sm transition-all duration-200 group"
                           data-testid="action-manage-users"
                         >
-                          <UsersIcon className="h-6 w-6 text-purple-600 mr-3" />
+                          <div className="p-2 bg-white/60 rounded-lg mr-3 group-hover:bg-white/80 transition-colors">
+                            <UsersIcon className="h-5 w-5 text-gray-700" />
+                          </div>
                           <div className="text-left">
-                            <p className="font-medium text-gray-900">Manage Users</p>
-                            <p className="text-sm text-gray-600">User accounts and permissions</p>
+                            <p className="font-semibold text-gray-900 text-sm">Manage Users</p>
+                            <p className="text-xs text-gray-500 mt-0.5">User accounts and permissions</p>
                           </div>
                         </button>
 
                         <button
                           onClick={() => handleQuickAction('system_settings', '/admin/settings')}
-                          className="flex items-center p-4 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors"
+                          className="flex items-center p-4 bg-gradient-to-br from-gray-50 to-gray-100/30 hover:from-gray-100 hover:to-gray-100/50 rounded-xl border border-gray-200/50 hover:border-gray-300/60 hover:shadow-sm transition-all duration-200 group"
                           data-testid="action-system-settings"
                         >
-                          <Cog6ToothIcon className="h-6 w-6 text-yellow-600 mr-3" />
+                          <div className="p-2 bg-white/60 rounded-lg mr-3 group-hover:bg-white/80 transition-colors">
+                            <Cog6ToothIcon className="h-5 w-5 text-gray-700" />
+                          </div>
                           <div className="text-left">
-                            <p className="font-medium text-gray-900">System Settings</p>
-                            <p className="text-sm text-gray-600">Configure system options</p>
+                            <p className="font-semibold text-gray-900 text-sm">System Settings</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Configure system options</p>
                           </div>
                         </button>
                       </>
@@ -195,9 +203,9 @@ export default function DashboardPage() {
 
               {/* Enhanced Recent Activity Sidebar */}
               <div>
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6" data-testid="dashboard-sidebar">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-full flex flex-col" data-testid="dashboard-sidebar">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                    <h3 className="text-xl font-semibold text-gray-900">Recent Activity</h3>
                     <select
                       value={activityFilter}
                       onChange={(e) => setActivityFilter(e.target.value)}
@@ -210,10 +218,12 @@ export default function DashboardPage() {
                       <option value="wiki_deleted">Deleted</option>
                     </select>
                   </div>
-                  <DashboardActivityFeed
-                    filter={activityFilter}
-                    key={`${refreshKey}-${activityFilter}`}
-                  />
+                  <div className="flex-1 overflow-y-auto min-h-0">
+                    <DashboardActivityFeed
+                      filter={activityFilter}
+                      key={`${refreshKey}-${activityFilter}`}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

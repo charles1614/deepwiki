@@ -289,56 +289,31 @@ export function WikiList({
 
   return (
     <div className="space-y-6">
-      {/* Management Bar */}
-      {enableManagement && isManageMode && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 relative z-20" data-testid="bulk-actions">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                checked={selectedWikis.size === wikis.length && wikis.length > 0}
-                onChange={selectAllWikis}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                data-testid="select-all-checkbox"
-              />
-              <span className="text-sm text-gray-700">
-                {selectedWikis.size > 0 ? `${selectedWikis.size} selected` : 'Select all'}
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              {selectedWikis.size > 0 && (
-                <button
-                  onClick={() => setDeleteDialogOpen(true)}
-                  disabled={deleting}
-                  className="bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm flex items-center"
-                  data-testid="delete-selected-button"
-                >
-                  <TrashIcon className="h-4 w-4 mr-1.5" />
-                  Delete ({selectedWikis.size})
-                </button>
-              )}
-              <button
-                onClick={toggleManageMode}
-                className="text-gray-600 hover:text-gray-800 px-3 py-1.5 hover:bg-gray-100 rounded transition-colors text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       {showHeader && (
         <div className="flex justify-between items-center">
-          <div>
+          <div className="flex items-center space-x-4">
             <h2 className="text-xl font-semibold text-gray-900">
               {enableManagement && isManageMode ? 'Manage Wikis' : 'Your Wikis'}
             </h2>
+            {enableManagement && isManageMode && (
+              <div className="flex items-center space-x-2" data-testid="bulk-actions">
+                <input
+                  type="checkbox"
+                  checked={selectedWikis.size === wikis.length && wikis.length > 0}
+                  onChange={selectAllWikis}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  data-testid="select-all-checkbox"
+                />
+                <span className="text-sm text-gray-700">
+                  {selectedWikis.size > 0 ? `${selectedWikis.size} selected` : 'Select all'}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
-            {showRefreshButton && (
+            {showRefreshButton && !isManageMode && (
               <button
                 onClick={handleRefresh}
                 className="text-gray-500 hover:text-gray-700 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
@@ -358,13 +333,26 @@ export function WikiList({
               </button>
             )}
             {enableManagement && isManageMode && (
-              <button
-                onClick={toggleManageMode}
-                className="text-red-600 hover:text-red-800 px-3 py-1 hover:bg-red-50 rounded transition-colors"
-                data-testid="manage-wikis-button"
-              >
-                Cancel
-              </button>
+              <>
+                {selectedWikis.size > 0 && (
+                  <button
+                    onClick={() => setDeleteDialogOpen(true)}
+                    disabled={deleting}
+                    className="bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm flex items-center"
+                    data-testid="delete-selected-button"
+                  >
+                    <TrashIcon className="h-4 w-4 mr-1.5" />
+                    Delete ({selectedWikis.size})
+                  </button>
+                )}
+                <button
+                  onClick={toggleManageMode}
+                  className="text-red-600 hover:text-red-800 px-3 py-1 hover:bg-red-50 rounded transition-colors"
+                  data-testid="manage-wikis-button"
+                >
+                  Cancel
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -407,46 +395,75 @@ export function WikiList({
             onMouseEnter={() => handleWikiHover(wiki)}
             data-testid="wiki-item"
           >
-            {/* Checkbox overlay for manage mode */}
-            {isManageMode && (
-              <div className="absolute top-4 left-4 z-30">
-                <input
-                  type="checkbox"
-                  checked={selectedWikis.has(wiki.id)}
-                  onChange={() => toggleWikiSelection(wiki.id)}
-                  className="h-4 w-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 absolute"
-                  data-testid="wiki-checkbox"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-            )}
-
             {/* Wiki Card Content */}
-            <div className={`${isManageMode ? 'pl-10 pt-10' : 'p-4'}`}>
-              <div className="mb-3">
-                <h3 className="text-base font-semibold text-gray-900 mb-1 line-clamp-2">
-                  {wiki.title}
-                </h3>
-                <p className="text-sm text-gray-600 line-clamp-2">
-                  {wiki.description}
-                </p>
-              </div>
+            <div className="p-4">
+              {/* Checkbox for manage mode - inline with content */}
+              {isManageMode ? (
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedWikis.has(wiki.id)}
+                    onChange={() => toggleWikiSelection(wiki.id)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 mt-0.5 flex-shrink-0"
+                    data-testid="wiki-checkbox"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="mb-3">
+                      <h3 className="text-base font-semibold text-gray-900 mb-1 line-clamp-2">
+                        {wiki.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {wiki.description}
+                      </p>
+                    </div>
 
-              {/* Wiki Metadata */}
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center space-x-1">
-                  <DocumentIcon className="h-3 w-3" />
-                  <span>{wiki._count.files} files</span>
-                </div>
-                <div>
-                  {formatDate(wiki.createdAt)}
-                </div>
-              </div>
+                    {/* Wiki Metadata */}
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center space-x-1">
+                        <DocumentIcon className="h-3 w-3" />
+                        <span>{wiki._count.files} files</span>
+                      </div>
+                      <div>
+                        {formatDate(wiki.createdAt)}
+                      </div>
+                    </div>
 
-              {wiki.updatedAt !== wiki.createdAt && (
-                <div className="text-xs text-gray-400 mt-1">
-                  Updated {formatDate(wiki.updatedAt)}
+                    {wiki.updatedAt !== wiki.createdAt && (
+                      <div className="text-xs text-gray-400 mt-1">
+                        Updated {formatDate(wiki.updatedAt)}
+                      </div>
+                    )}
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <div className="mb-3">
+                    <h3 className="text-base font-semibold text-gray-900 mb-1 line-clamp-2">
+                      {wiki.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {wiki.description}
+                    </p>
+                  </div>
+
+                  {/* Wiki Metadata */}
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex items-center space-x-1">
+                      <DocumentIcon className="h-3 w-3" />
+                      <span>{wiki._count.files} files</span>
+                    </div>
+                    <div>
+                      {formatDate(wiki.createdAt)}
+                    </div>
+                  </div>
+
+                  {wiki.updatedAt !== wiki.createdAt && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      Updated {formatDate(wiki.updatedAt)}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

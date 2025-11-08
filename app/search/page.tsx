@@ -44,7 +44,14 @@ export default function SearchPage() {
       }
 
       const data = await response.json()
-      setSearchResults(data.wikis || [])
+      // API returns { success: true, results: [{ wiki: {...}, matches: [...] }] }
+      // Extract wikis from results
+      if (data.success && data.results) {
+        const wikis = data.results.map((result: any) => result.wiki)
+        setSearchResults(wikis)
+      } else {
+        setSearchResults([])
+      }
     } catch (err) {
       setError('Failed to search. Please try again.')
     } finally {
