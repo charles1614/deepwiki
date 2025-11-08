@@ -51,11 +51,6 @@ const nextConfig = {
         destination: '/dashboard',
         permanent: false,
       },
-      {
-        source: '/wiki',
-        destination: '/dashboard',
-        permanent: true,
-      },
     ];
   },
 };
