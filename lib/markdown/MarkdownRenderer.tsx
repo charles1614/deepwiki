@@ -13,11 +13,13 @@ function escapeHtml(text: string): string {
 
 interface MarkdownRendererProps {
   content: string | null
+  theme?: 'default' | 'handwritten'
   className?: string
 }
 
 export function MarkdownRenderer({
   content,
+  theme = 'default',
   className = ''
 }: MarkdownRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -74,12 +76,15 @@ export function MarkdownRenderer({
             setMermaidModule(mermaid)
             console.log('Mermaid loaded successfully:', typeof mermaid)
 
-            // Simple default configuration only
+            // Simple configuration with optional handwritten font
+            const handwrittenFont = '"Comic Neue", "Comic Sans MS", "Kalam", "Gaegu", "Caveat", "Permanent Marker", cursive'
+            const defaultFont = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+
             mermaid.initialize({
               startOnLoad: false,
               securityLevel: 'loose',
               theme: 'default',
-              fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+              fontFamily: theme === 'handwritten' ? handwrittenFont : defaultFont,
               fontSize: 14,
               flowchart: {
                 useMaxWidth: true,
@@ -90,7 +95,36 @@ export function MarkdownRenderer({
                 rankSpacing: 55,
                 wrappingWidth: 200,
                 diagramPadding: 20
-              }
+              },
+              themeCSS: theme === 'handwritten' ? `
+                .nodeLabel, .edgeLabel, .titleText {
+                  font-weight: 700 !important;
+                }
+                .nodeLabel text, .edgeLabel text, .titleText text {
+                  font-weight: 700 !important;
+                }
+
+                /* Apply dashed borders to nodes while keeping original fill colors */
+                .node rect, .node circle, .node ellipse, .node polygon {
+                  stroke: #666666 !important;
+                  stroke-width: 2px !important;
+                  stroke-dasharray: 5,3 !important;
+                  /* Do not override fill - keep original colors */
+                }
+
+                /* Apply dashed borders to clusters and make them transparent */
+                .cluster rect {
+                  fill: transparent !important;
+                  stroke: #666666 !important;
+                  stroke-width: 2px !important;
+                  stroke-dasharray: 8,4 !important;
+                }
+
+                /* Ensure edge labels have no background */
+                .edgeLabel {
+                  background: transparent !important;
+                }
+              ` : ''
             })
 
             setMermaidInitialized(true)
@@ -106,7 +140,7 @@ export function MarkdownRenderer({
     }
 
     initMermaid()
-  }, [mermaidInitialized])
+  }, [theme, mermaidInitialized])
 
 
   // Process Mermaid diagrams after content is rendered

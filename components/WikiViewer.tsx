@@ -505,7 +505,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewe
 
           {!contentLoading && !contentError && content && (
             <div className="markdown-content">
-              <MarkdownRenderer content={content} theme="handdrawn" />
+              <MarkdownRenderer content={content} theme="handwritten" />
             </div>
           )}
 
