@@ -43,7 +43,7 @@ export async function GET(
           headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Cache-Control': 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600', // Cache for 30 minutes, allow stale for 1 hour
-            'ETag': `"${fileId}-${file.updatedAt.getTime()}"` // Use file ID and update time for ETag
+            'ETag': `"${fileId}-${file.createdAt.getTime()}"` // Use file ID and creation time for ETag
           }
         })
       } else {

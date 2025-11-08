@@ -1031,7 +1031,7 @@ export function MarkdownRenderer({
 
     try {
       // Check if marked exists and is properly configured
-      if (!marked || typeof marked !== 'function') {
+      if (!marked || typeof marked.parse !== 'function') {
         console.error('Marked library not available')
         setProcessedContent('<p>Markdown renderer not available</p>')
         return
@@ -1039,164 +1039,32 @@ export function MarkdownRenderer({
 
       let htmlContent: string
 
-      // Check if we can create a Marked instance (not available in test environment)
-      if (marked.Marked && typeof marked.Marked === 'function') {
-        // Production: Create a new Marked instance to avoid state pollution between renders
-        const markedInstance = new marked.Marked()
-        
-        // Configure custom renderer extensions for this instance
-        markedInstance.use({
-          renderer: {
-            code({ text, lang }: { text: string; lang?: string }): string {
-              if (lang === 'mermaid') {
-                // Return div with text content to be rendered by useEffect
-                // We cannot pre-render here because mermaid.render() is async
-                return `<div class="mermaid my-6">${text}</div>`
-              }
-              // For other code blocks, use default rendering with a custom wrapper
-              return `<pre class="prose-pre"><code class="prose-code">${text}</code></pre>`
-            },
-            heading({ tokens, depth }: { tokens?: any[]; depth?: number }): string {
-              // Add null checks
-              if (!tokens || !Array.isArray(tokens) || !depth) {
-                return '<h1 class="heading-1 prose-headings">Missing heading</h1>'
-              }
-              const text = this.parser.parseInline(tokens)
-              const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')
-              return `<h${depth} id="${id}" class="heading-${depth} prose-headings">${text}</h${depth}>`
-            },
-            paragraph({ tokens }: { tokens: any[] }): string {
-              const text = this.parser.parseInline(tokens)
-              return `<p class="prose-p">${text}</p>`
-            },
-                        list({
-                          items,
-                          ordered
-                        }: { items?: any[]; ordered?: boolean }): string {
-                          // Add null checks for items
-                          if (!items || !Array.isArray(items)) {
-                            return ordered ? '<ol class="prose-ol"></ol>' : '<ul class="prose-ul"></ul>'
-                          }
-            
-                          const type = ordered ? 'ol' : 'ul'
-                          const className = ordered ? 'prose-ol' : 'prose-ul'
-                          const listItems = items.map(item => {
-                            if (item && item.type === 'list_item') {
-                              return this.listitem(item)
-                            }
-                            return ''
-                          }).filter(item => item)
-                          return `<${type} class="${className}">${listItems.join('')}</${type}>`
-                        },
-                        listitem({ tokens }: { tokens?: any[] }): string {
-                          // Add null checks for tokens
-                          if (!tokens || !Array.isArray(tokens)) {
-                            return '<li class="prose-li"></li>'
-                          }
-                          const text = this.parser.parseInline(tokens)
-                          return `<li class="prose-li">${text}</li>`
-                        },
-            blockquote({ tokens }: { tokens: any[] }): string {
-              const text = this.parser.parse(tokens)
-              return `<blockquote class="prose-blockquote">${text}</blockquote>`
-            },
-            codespan({ text }: { text: string }): string {
-              return `<code class="prose-code">${text}</code>`
-            },
-            link({ href, title, tokens }: { href: string; title?: string; tokens: any[] }): string {
-              const text = this.parser.parseInline(tokens)
-              const titleAttr = title ? ` title="${title}"` : ''
-              return `<a href="${href}" class="prose-a"${titleAttr} data-hover-styles>${text}</a>`
-            },
-            table({ header, rows }: { header: any[]; rows: any[][] }): string {
-              const headerCells = header.map(cell => `<th class="prose-th">${this.parser.parseInline(cell.tokens)}</th>`).join('')
-              const headerRow = `<thead><tr>${headerCells}</tr></thead>`
-              const bodyRows = rows.map(row => {
-                const cells = row.map(cell => `<td class="prose-td">${this.parser.parseInline(cell.tokens)}</td>`).join('')
-                return `<tr>${cells}</tr>`
-              }).join('')
-              const body = `<tbody>${bodyRows}</tbody>`
-              return `<div class="table-wrapper"><table class="prose-table">${headerRow}${body}</table></div>`
+      // Configure marked v16 with custom renderer (minimal customization)
+      marked.use({
+        renderer: {
+          code({ text, lang }: { text: string; lang?: string }): string {
+            if (lang === 'mermaid') {
+              // Return div with text content to be rendered by useEffect
+              // We cannot pre-render here because mermaid.render() is async
+              return `<div class="mermaid my-6">${text}</div>`
             }
-          }
-        })
-
-        // Parse markdown
-        htmlContent = markedInstance.parse(content) as string
-      } else {
-        // Test environment fallback: Use global marked function with extensions
-        marked.use({
-          renderer: {
-            code({ text, lang }: { text: string; lang?: string }): string {
-              if (lang === 'mermaid') {
-                // Return div with text content to be rendered by useEffect
-                return `<div class="mermaid my-6">${text}</div>`
-              }
-              return `<pre class="prose-pre"><code class="prose-code">${text}</code></pre>`
-            },
-            heading({ tokens, depth }: { tokens?: any[]; depth?: number }): string {
-              // Add null checks
-              if (!tokens || !Array.isArray(tokens) || !depth) {
-                return '<h1 class="heading-1 prose-headings">Missing heading</h1>'
-              }
-              const text = this.parser.parseInline(tokens)
-              const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')
-              return `<h${depth} id="${id}" class="heading-${depth} prose-headings">${text}</h${depth}>`
-            },
-            paragraph({ tokens }: { tokens: any[] }): string {
-              const text = this.parser.parseInline(tokens)
-              return `<p class="prose-p">${text}</p>`
-            },
-            list({ items, ordered }: { items?: any[]; ordered?: boolean }): string {
-              // Add null checks for items
-              if (!items || !Array.isArray(items)) {
-                return ordered ? '<ol class="prose-ol"></ol>' : '<ul class="prose-ul"></ul>'
-              }
-
-              const type = ordered ? 'ol' : 'ul'
-              const className = ordered ? 'prose-ol' : 'prose-ul'
-              const listItems = items.map(item => {
-                if (item && item.type === 'list_item') {
-                  return this.listitem(item)
-                }
-                return ''
-              }).filter(item => item)
-              return `<${type} class="${className}">${listItems.join('')}</${type}>`
-            },
-            listitem({ tokens }: { tokens?: any[] }): string {
-              // Add null checks for tokens
-              if (!tokens || !Array.isArray(tokens)) {
-                return '<li class="prose-li"></li>'
-              }
-              const text = this.parser.parseInline(tokens)
-              return `<li class="prose-li">${text}</li>`
-            },
-            blockquote({ tokens }: { tokens: any[] }): string {
-              const text = this.parser.parse(tokens)
-              return `<blockquote class="prose-blockquote">${text}</blockquote>`
-            },
-            codespan({ text }: { text: string }): string {
-              return `<code class="prose-code">${text}</code>`
-            },
-            link({ href, title, tokens }: { href: string; title?: string; tokens: any[] }): string {
-              const text = this.parser.parseInline(tokens)
-              const titleAttr = title ? ` title="${title}"` : ''
-              return `<a href="${href}" class="prose-a"${titleAttr} data-hover-styles>${text}</a>`
-            },
-            table({ header, rows }: { header: any[]; rows: any[][] }): string {
-              const headerCells = header.map(cell => `<th class="prose-th">${this.parser.parseInline(cell.tokens)}</th>`).join('')
-              const headerRow = `<thead><tr>${headerCells}</tr></thead>`
-              const bodyRows = rows.map(row => {
-                const cells = row.map(cell => `<td class="prose-td">${this.parser.parseInline(cell.tokens)}</td>`).join('')
-                return `<tr>${cells}</tr>`
-              }).join('')
-              const body = `<tbody>${bodyRows}</tbody>`
-              return `<div class="table-wrapper"><table class="prose-table">${headerRow}${body}</table></div>`
+            // For other code blocks, use default rendering with a custom wrapper
+            return `<pre class="prose-pre"><code class="prose-code">${text}</code></pre>`
+          },
+          heading({ text, depth }: { text: string; depth: number }): string {
+            if (!text || !depth) {
+              return '<h1 class="heading-1 prose-headings">Missing heading</h1>'
             }
+            const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')
+            return `<h${depth} id="${id}" class="heading-${depth} prose-headings">${text}</h${depth}>`
           }
-        })
-        htmlContent = marked(content) as string
-      }
+          // Let marked use its default renderers for everything else (paragraph, list, etc.)
+          // This ensures inline formatting (**bold**, *italic*, etc.) works correctly
+        }
+      })
+
+      // Parse markdown using marked v16 API
+      htmlContent = marked.parse(content) as string
 
       // Process mermaid code blocks and replace with pre-rendered SVGs
       console.log('Markdown preprocessing check:', {
