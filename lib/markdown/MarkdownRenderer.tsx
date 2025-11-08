@@ -87,11 +87,11 @@ export function MarkdownRenderer({
                   useMaxWidth: true,
                   htmlLabels: true,
                   curve: 'basis',
-                  padding: 25,
-                  nodeSpacing: 50,
-                  rankSpacing: 60,
+                  padding: 20,
+                  nodeSpacing: 45,
+                  rankSpacing: 55,
                   wrappingWidth: 200,
-                  diagramPadding: 25
+                  diagramPadding: 20
                 },
                 themeVariables: {
                   primaryColor: '#003f5c',
@@ -126,9 +126,9 @@ export function MarkdownRenderer({
                   flowchart: {
                     ...baseConfig.flowchart,
                     curve: 'cardinal',
-                    padding: 25,
-                    nodeSpacing: 60,
-                    rankSpacing: 70
+                    padding: 22,
+                    nodeSpacing: 55,
+                    rankSpacing: 65
                   }
                 }
               }
@@ -156,9 +156,9 @@ export function MarkdownRenderer({
                   flowchart: {
                     ...baseConfig.flowchart,
                     curve: 'basis',
-                    padding: 25,
-                    nodeSpacing: 60,
-                    rankSpacing: 70
+                    padding: 22,
+                    nodeSpacing: 55,
+                    rankSpacing: 65
                   }
                 }
               }
@@ -186,9 +186,9 @@ export function MarkdownRenderer({
                   flowchart: {
                     ...baseConfig.flowchart,
                     curve: 'step',
-                    padding: 25,
-                    nodeSpacing: 60,
-                    rankSpacing: 70
+                    padding: 22,
+                    nodeSpacing: 55,
+                    rankSpacing: 65
                   }
                 }
               }
@@ -216,9 +216,9 @@ export function MarkdownRenderer({
                   flowchart: {
                     ...baseConfig.flowchart,
                     curve: 'linear',
-                    padding: 20,
-                    nodeSpacing: 55,
-                    rankSpacing: 65
+                    padding: 18,
+                    nodeSpacing: 50,
+                    rankSpacing: 60
                   }
                 }
               }
@@ -246,9 +246,9 @@ export function MarkdownRenderer({
                   flowchart: {
                     ...baseConfig.flowchart,
                     curve: 'cardinal',
-                    padding: 30,
-                    nodeSpacing: 70,
-                    rankSpacing: 85,
+                    padding: 25,
+                    nodeSpacing: 65,
+                    rankSpacing: 80,
                     htmlLabels: true,
                     useMaxWidth: true
                   },
@@ -313,17 +313,17 @@ export function MarkdownRenderer({
 
                     /* Increase spacing between clusters/subgraphs and nodes */
                     .cluster {
-                      margin: 20px 0;
+                      margin: 18px 0;
                     }
 
                     /* Ensure proper spacing between subgraph and internal nodes */
                     .cluster .node {
-                      margin: 10px;
+                      margin: 8px;
                     }
 
                     /* Add extra padding inside clusters */
                     .cluster g {
-                      padding: 15px;
+                      padding: 12px;
                     }
 
                     .titleText {
@@ -337,7 +337,7 @@ export function MarkdownRenderer({
 
                     /* Add buffer zone above cluster titles to prevent arrow overlap */
                     .cluster {
-                      margin-top: 45px;
+                      margin-top: 40px;
                     }
 
                     /* Add spacing for standalone text labels above subgraphs */
@@ -401,9 +401,9 @@ export function MarkdownRenderer({
                   theme: 'forest',
                   flowchart: {
                     ...baseConfig.flowchart,
-                    padding: 25,
-                    nodeSpacing: 60,
-                    rankSpacing: 70
+                    padding: 22,
+                    nodeSpacing: 55,
+                    rankSpacing: 65
                   },
                   themeVariables: {
                     primaryColor: '#064e3b',
@@ -428,9 +428,9 @@ export function MarkdownRenderer({
                 theme: ['light', 'dark', 'default', 'neutral'].includes(theme) ? theme : 'default',
                 flowchart: {
                   ...baseConfig.flowchart,
-                  padding: 25,
-                  nodeSpacing: 60,
-                  rankSpacing: 70
+                  padding: 22,
+                  nodeSpacing: 55,
+                  rankSpacing: 65
                 }
               }
             }

@@ -142,8 +142,8 @@ body {
 /* Add buffer zone above cluster titles to prevent arrow overlap with titles */
 /* Also add extra spacing when clusters are preceded by standalone text labels */
 .markdown-content .mermaid svg .cluster {
-  margin-top: 45px;
-  margin-bottom: 20px;
+  margin-top: 40px;
+  margin-bottom: 18px;
 }
 
 .markdown-content .mermaid svg .cluster rect {
@@ -160,12 +160,12 @@ body {
 
 /* Add spacing between different clusters */
 .markdown-content .mermaid svg g.cluster + g.cluster {
-  margin-top: 25px;
+  margin-top: 22px;
 }
 
 /* Ensure nodes inside clusters have proper spacing */
 .markdown-content .mermaid svg .cluster .node {
-  margin: 8px;
+  margin: 7px;
 }
 
 /* Add spacing for standalone text labels above subgraphs (like "Optimization Layers") */
