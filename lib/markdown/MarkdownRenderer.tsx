@@ -1299,6 +1299,10 @@ export function MarkdownRenderer({
         })
       }
 
+      // Remove empty paragraphs (from blank lines in markdown)
+      // This removes <p> tags that are empty or contain only whitespace
+      sanitizedContent = sanitizedContent.replace(/<p[^>]*>\s*<\/p>/gi, '')
+
       setProcessedContent(sanitizedContent)
 
       // Restore protected SVG content after DOM update
