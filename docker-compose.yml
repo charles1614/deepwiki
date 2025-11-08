@@ -1,0 +1,95 @@
+services:
+  # Main Next.js application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deepwiki-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://deepwiki:devpassword123@postgres:5432/deepwiki
+      # NEXTAUTH_URL: Set to the URL you use to access the app
+      # For localhost: http://localhost:3000
+      # For network access: http://192.168.147.3:3000 (replace with your IP)
+      # With AUTH_TRUST_HOST=true, NextAuth will accept requests from any host
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=development-secret-key-change-in-production
+      - NEXT_PUBLIC_APP_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - AUTH_TRUST_HOST=true
+    volumes:
+      # Mount source code for development (hot reload)
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL database (for development)
+  postgres:
+    image: postgres:15-alpine
+    container_name: deepwiki-postgres
+    environment:
+      POSTGRES_DB: deepwiki
+      POSTGRES_USER: deepwiki
+      POSTGRES_PASSWORD: devpassword123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    # Auto-initialize database if empty
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deepwiki"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis removed - not needed for this project
+# Using JWT sessions instead of Redis-backed sessions
+
+  # Database management (Prisma Studio)
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deepwiki-studio
+    environment:
+      - DATABASE_URL=postgresql://deepwiki:devpassword123@postgres:5432/deepwiki
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npx prisma studio --hostname 0.0.0.0
+    ports:
+      - "5555:5555"
+    depends_on:
+      - postgres
+    profiles:
+      - tools
+
+  # Mailhog for email testing (development only)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: deepwiki-mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web interface
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: deepwiki-network

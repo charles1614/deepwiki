@@ -51,13 +51,17 @@ export function EnhancedMarkdownRenderer({
         if (mermaidLib && typeof mermaidLib.initialize === 'function') {
           setMermaidModule(mermaidLib)
 
-          const mermaidTheme = ['light', 'dark', 'default', 'neutral', 'forest'].includes(theme)
-            ? theme
+          // Type-safe mermaid theme handling
+          const validThemes = ['dark', 'default', 'neutral', 'forest'] as const
+          type MermaidTheme = typeof validThemes[number]
+
+          const mermaidTheme: MermaidTheme = validThemes.includes(theme as MermaidTheme)
+            ? (theme as MermaidTheme)
             : 'default'
 
           mermaidLib.initialize({
             startOnLoad: false,
-            theme: mermaidTheme,
+            theme: mermaidTheme as any, // Type assertion for mermaid internal typing
             securityLevel: 'loose',
             fontFamily: 'system-ui, -apple-system, sans-serif',
             fontSize: 14,
@@ -161,7 +165,7 @@ export function EnhancedMarkdownRenderer({
     if (!mermaidInitialized || !containerRef.current) return
 
     const renderMermaidDiagrams = async () => {
-      const mermaidWrappers = containerRef.current?.querySelectorAll('.mermaid-placeholder')
+      const mermaidWrappers = Array.from(containerRef.current?.querySelectorAll('.mermaid-placeholder') || [])
 
       for (const wrapper of mermaidWrappers) {
         const blockId = wrapper.getAttribute('data-block-id')

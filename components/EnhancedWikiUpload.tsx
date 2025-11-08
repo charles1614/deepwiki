@@ -48,6 +48,15 @@ export function EnhancedWikiUpload({ onUploadSuccess }: EnhancedWikiUploadProps)
     setError(null)
     setUploadStatus('idle')
     setOverallProgress(0)
+    
+    // Reset input value after processing to allow selecting the same file again in Chrome
+    // Chrome doesn't trigger onChange if the same file is selected
+    // Use setTimeout to ensure files are processed before resetting
+    setTimeout(() => {
+      if (event.target && fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }, 0)
   }, [])
 
   const validateFiles = useCallback(() => {
@@ -369,7 +378,7 @@ export function EnhancedWikiUpload({ onUploadSuccess }: EnhancedWikiUploadProps)
             </h3>
             <ProgressBar
               progress={overallProgress}
-              status={uploadStatus}
+              status={uploadStatus === 'idle' ? undefined : uploadStatus}
               showPercentage={true}
               message={
                 uploadStatus === 'uploading' ? `Uploading ${files.length} files...` :

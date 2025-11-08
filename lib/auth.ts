@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs'
 import { prisma } from './database'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true, // Allow dynamic host for Docker/network access
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -65,4 +67,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: '/login',
   },
   useSecureCookies: process.env.NODE_ENV === 'production',
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false, // Allow HTTP in development
+        path: '/',
+      },
+    },
+    csrfToken: {
+      name: 'next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false, // Allow HTTP in development
+        path: '/',
+      },
+    },
+  },
 })

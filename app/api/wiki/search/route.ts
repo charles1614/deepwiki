@@ -6,7 +6,7 @@ interface SearchResult {
     id: string
     title: string
     slug: string
-    description: string
+    description: string | null
     createdAt: string
     updatedAt: string
   }
@@ -194,7 +194,11 @@ export async function GET(request: NextRequest) {
       for (const file of files) {
         if (!wikiMap.has(file.wiki.id)) {
           wikiMap.set(file.wiki.id, {
-            wiki: file.wiki,
+            wiki: {
+              ...file.wiki,
+              createdAt: file.wiki.createdAt.toISOString(),
+              updatedAt: file.wiki.updatedAt.toISOString(),
+            },
             matches: []
           })
         }
@@ -239,7 +243,11 @@ export async function GET(request: NextRequest) {
       })
 
       results = wikis.map(wiki => ({
-        wiki,
+        wiki: {
+          ...wiki,
+          createdAt: wiki.createdAt.toISOString(),
+          updatedAt: wiki.updatedAt.toISOString(),
+        },
         matches: []
       }))
     }

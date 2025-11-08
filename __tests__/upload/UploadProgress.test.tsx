@@ -236,7 +236,6 @@ describe('WikiUpload Progress Tracking', () => {
         new Promise((resolve, reject) =>
           setTimeout(() => reject(new Error('Network error')), 300)
         ))
-      )
 
       render(<WikiUpload onUploadSuccess={mockOnUploadSuccess} />)
 

@@ -74,6 +74,15 @@ export function WikiUpload({
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || [])
     processFiles(selectedFiles)
+    
+    // Reset input value after processing to allow selecting the same file again in Chrome
+    // Chrome doesn't trigger onChange if the same file is selected
+    // Use setTimeout to ensure files are processed before resetting
+    setTimeout(() => {
+      if (event.target && fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }, 0)
   }, [processFiles])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -104,6 +113,25 @@ export function WikiUpload({
       setError(`Only ${allowedFileTypes.join(', ')} files are allowed.`)
     }
   }, [processFiles, allowedFileTypes])
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    // Only trigger if not uploading
+    if (uploading) {
+      return
+    }
+    
+    // Check if click is on a button or interactive element
+    const target = e.target as HTMLElement
+    if (target.tagName === 'BUTTON' || target.closest('button')) {
+      return
+    }
+    
+    // Trigger file input click immediately (synchronous)
+    // Browser security requires this to be triggered by user interaction
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }, [uploading])
 
   const validateFiles = useCallback(() => {
     if (files.length === 0) {
@@ -369,19 +397,20 @@ export function WikiUpload({
 
       <div className="space-y-4">
         {/* Drag and Drop Area */}
-        <div
+        <label
+          htmlFor="file-input"
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onClick={handleClick}
           className={`
-            relative border-2 border-dashed rounded-lg p-6 text-center transition-all
+            relative border-2 border-dashed rounded-lg p-6 text-center transition-all block
             ${isDragging 
               ? 'border-blue-500 bg-blue-50' 
               : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
             }
             ${uploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}
-          onClick={() => !uploading && fileInputRef.current?.click()}
         >
           <input
             ref={fileInputRef}
@@ -415,7 +444,7 @@ export function WikiUpload({
               </p>
             </div>
           </div>
-        </div>
+        </label>
 
         {/* File List with/without Progress */}
         {files.length > 0 && (
@@ -548,7 +577,7 @@ export function WikiUpload({
             </div>
             <ProgressBar
               progress={overallProgress}
-              status={uploadStatus}
+              status={uploadStatus === 'idle' ? undefined : uploadStatus}
               showPercentage={true}
               message={
                 uploadStatus === 'uploading' ? `Uploading ${files.length} files...` :
