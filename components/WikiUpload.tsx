@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ProgressBar } from '@/components/ui/ProgressBar'
+import { CloudArrowUpIcon, DocumentIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 
 interface Wiki {
   id: string
@@ -42,12 +43,11 @@ export function WikiUpload({
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
   const [cancelled, setCancelled] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files || [])
-
+  const processFiles = useCallback((selectedFiles: File[]) => {
     // Validate file count
     if (selectedFiles.length > maxFiles) {
       setError(`Maximum ${maxFiles} files allowed`)
@@ -70,6 +70,40 @@ export function WikiUpload({
     setUploadStatus('idle')
     setOverallProgress(0)
   }, [maxFiles, enableProgressTracking])
+
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || [])
+    processFiles(selectedFiles)
+  }, [processFiles])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    const validFiles = droppedFiles.filter(file =>
+      allowedFileTypes.some(ext => file.name.endsWith(ext))
+    )
+    
+    if (validFiles.length > 0) {
+      processFiles(validFiles)
+    } else {
+      setError(`Only ${allowedFileTypes.join(', ')} files are allowed.`)
+    }
+  }, [processFiles, allowedFileTypes])
 
   const validateFiles = useCallback(() => {
     if (files.length === 0) {
@@ -322,15 +356,33 @@ export function WikiUpload({
   }, [fileProgress, updateFileProgress, enableProgressTracking])
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Upload Wiki Files</h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 w-full">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+          <CloudArrowUpIcon className="h-6 w-6 text-blue-600" />
+          Upload Wiki Files
+        </h2>
+        <p className="text-sm text-gray-500">
+          Upload your markdown documentation files to create a new wiki
+        </p>
+      </div>
 
-      <div className="space-y-6">
-        {/* File Input */}
-        <div>
-          <label htmlFor="file-input" className="block text-sm font-medium text-gray-700 mb-2">
-            Select Markdown Files
-          </label>
+      <div className="space-y-4">
+        {/* Drag and Drop Area */}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`
+            relative border-2 border-dashed rounded-lg p-6 text-center transition-all
+            ${isDragging 
+              ? 'border-blue-500 bg-blue-50' 
+              : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
+            }
+            ${uploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          `}
+          onClick={() => !uploading && fileInputRef.current?.click()}
+        >
           <input
             ref={fileInputRef}
             id="file-input"
@@ -340,61 +392,104 @@ export function WikiUpload({
             accept={allowedFileTypes.join(',')}
             onChange={handleFileChange}
             disabled={uploading}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-full file:border-0
-              file:text-sm file:font-semibold
-              file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100
-              disabled:opacity-50 disabled:cursor-not-allowed
-              cursor-pointer"
+            className="hidden"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Select multiple {allowedFileTypes.join(' files, ')} files. index.md is required.
-            Maximum file size: {(maxFileSize / 1024 / 1024).toFixed(1)}MB
-          </p>
+          
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <div className={`
+              p-3 rounded-full transition-colors
+              ${isDragging ? 'bg-blue-100' : 'bg-gray-100'}
+            `}>
+              <CloudArrowUpIcon className={`h-10 w-10 ${isDragging ? 'text-blue-600' : 'text-gray-400'}`} />
+            </div>
+            
+            <div>
+              <p className="text-base font-medium text-gray-900 mb-1">
+                {isDragging ? 'Drop files here' : 'Drag and drop files here'}
+              </p>
+              <p className="text-sm text-gray-500 mb-2">
+                or <span className="text-blue-600 font-medium">browse</span> to select files
+              </p>
+              <p className="text-xs text-gray-400">
+                Select multiple {allowedFileTypes.join(', ')} files • index.md is required • Max {(maxFileSize / 1024 / 1024).toFixed(1)}MB per file
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* File List with/without Progress */}
         {files.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">
-              Selected Files: {files.length} files
-            </h3>
-            <div className="space-y-3">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <DocumentIcon className="h-4 w-4 text-gray-400" />
+                Selected Files ({files.length})
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {enableProgressTracking ? (
                 // Enhanced file list with progress
                 fileProgress.map((fp, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-900">
-                          {fp.file.name}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          ({(fp.file.size / 1024).toFixed(1)} KB)
-                        </span>
+                  <div 
+                    key={index} 
+                    className={`
+                      border rounded-lg p-3 transition-all
+                      ${fp.status === 'error' 
+                        ? 'border-red-200 bg-red-50' 
+                        : fp.status === 'completed'
+                        ? 'border-green-200 bg-green-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        <DocumentIcon className={`h-4 w-4 flex-shrink-0 ${
+                          fp.status === 'error' ? 'text-red-500' :
+                          fp.status === 'completed' ? 'text-green-500' :
+                          'text-gray-400'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium text-gray-900 truncate">
+                              {fp.file.name}
+                            </span>
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                              {(fp.file.size / 1024).toFixed(1)} KB
+                            </span>
+                            {fp.status === 'completed' && (
+                              <CheckCircleIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            )}
+                            {fp.status === 'error' && (
+                              <ExclamationCircleIcon className="h-4 w-4 text-red-500 flex-shrink-0" />
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 flex-shrink-0">
                         {fp.status === 'error' && (
-                          <span className="text-xs text-red-500" data-testid={`file-error-${fp.file.name}`}>
+                          <span className="text-xs text-red-600 font-medium hidden sm:inline" data-testid={`file-error-${fp.file.name}`}>
                             {fp.error}
                           </span>
                         )}
                         {!uploading && (
                           <button
-                            onClick={() => removeFile(index)}
-                            className="text-red-500 hover:text-red-700 text-sm font-medium"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              removeFile(index)
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-600 transition-colors rounded"
                             data-testid={`remove-file-${index}`}
+                            aria-label="Remove file"
                           >
-                            Remove
+                            <XMarkIcon className="h-4 w-4" />
                           </button>
                         )}
                       </div>
                     </div>
 
                     {uploading && (
-                      <div className="w-full">
+                      <div className="w-full mt-2">
                         <ProgressBar
                           progress={fp.progress}
                           status={fp.status === 'error' ? 'error' : 'uploading'}
@@ -413,15 +508,26 @@ export function WikiUpload({
               ) : (
                 // Simple file list without progress
                 files.map((file, index) => (
-                  <li key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                    <span className="text-sm text-gray-700">{file.name}</span>
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg p-2.5 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      <DocumentIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
+                        <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </span>
+                      </div>
+                    </div>
                     <button
                       onClick={() => removeFile(index)}
-                      className="text-red-500 hover:text-red-700 text-sm"
+                      className="p-1 text-gray-400 hover:text-red-600 transition-colors rounded ml-2 flex-shrink-0"
                     >
-                      Remove
+                      <XMarkIcon className="h-4 w-4" />
                     </button>
-                  </li>
+                  </div>
                 ))
               )}
             </div>
@@ -430,10 +536,16 @@ export function WikiUpload({
 
         {/* Overall Progress */}
         {enableProgressTracking && uploading && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4" data-testid="upload-progress">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">
-              Overall Upload Progress
-            </h3>
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4" data-testid="upload-progress">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <CloudArrowUpIcon className="h-4 w-4 text-blue-600" />
+                Overall Upload Progress
+              </h3>
+              <span className="text-sm font-medium text-gray-600">
+                {Math.round(overallProgress)}%
+              </span>
+            </div>
             <ProgressBar
               progress={overallProgress}
               status={uploadStatus}
@@ -449,9 +561,10 @@ export function WikiUpload({
             {enableCancellation && uploading && !cancelled && (
               <button
                 onClick={cancelUpload}
-                className="mt-3 text-sm text-red-600 hover:text-red-800 font-medium"
+                className="mt-3 text-sm text-red-600 hover:text-red-800 font-medium flex items-center gap-1 transition-colors"
                 data-testid="cancel-upload"
               >
+                <XMarkIcon className="h-4 w-4" />
                 Cancel Upload
               </button>
             )}
@@ -460,17 +573,20 @@ export function WikiUpload({
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" data-testid="error-message">
-            <p className="font-medium">{error}</p>
-            {uploadStatus === 'error' && (
-              <button
-                onClick={retryUpload}
-                className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
-                data-testid="retry-upload"
-              >
-                Retry Upload
-              </button>
-            )}
+          <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2" data-testid="error-message">
+            <ExclamationCircleIcon className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold mb-1">{error}</p>
+              {uploadStatus === 'error' && (
+                <button
+                  onClick={retryUpload}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium underline"
+                  data-testid="retry-upload"
+                >
+                  Retry Upload
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -478,12 +594,26 @@ export function WikiUpload({
         <button
           onClick={handleUpload}
           disabled={uploading || files.length === 0}
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700
-                     disabled:opacity-50 disabled:cursor-not-allowed transition-colors
-                     font-medium text-base"
+          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-5 rounded-lg hover:from-blue-700 hover:to-indigo-700
+                     disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
+                     font-semibold text-sm shadow-md hover:shadow-lg
+                     flex items-center justify-center gap-2"
           data-testid="upload-button"
         >
-          {uploading ? 'Uploading Files...' : 'Upload Wiki'}
+          {uploading ? (
+            <>
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Uploading Files...
+            </>
+          ) : (
+            <>
+              <CloudArrowUpIcon className="h-4 w-4" />
+              Upload Wiki
+            </>
+          )}
         </button>
       </div>
     </div>

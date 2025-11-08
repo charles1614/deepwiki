@@ -22,8 +22,9 @@ export async function GET(
     })
 
     if (!file) {
+      console.error(`File not found in database: fileId=${fileId}`)
       return NextResponse.json(
-        { success: false, error: 'File not found' },
+        { success: false, error: `File not found (ID: ${fileId})` },
         { status: 404 }
       )
     }
@@ -38,10 +39,17 @@ export async function GET(
           success: true,
           content: result.content,
           fileName: file.fileName
+        }, {
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600', // Cache for 30 minutes, allow stale for 1 hour
+            'ETag': `"${fileId}-${file.updatedAt.getTime()}"` // Use file ID and update time for ETag
+          }
         })
       } else {
+        console.error(`File content not available from R2: fileId=${fileId}, fileName=${file.fileName}, slug=${file.wiki.slug}, error=${result.error}`)
         return NextResponse.json(
-          { success: false, error: result.error || 'File content not available' },
+          { success: false, error: result.error || `File content not available (${file.fileName})` },
           { status: 404 }
         )
       }

@@ -20,13 +20,13 @@ export default function WikiViewPage() {
   const router = useRouter()
   const [wiki, setWiki] = useState<Wiki | null>(null)
   const [files, setFiles] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchWiki = async () => {
       try {
-        setLoading(true)
+        setInitialLoading(true)
         setError(null)
 
         const response = await fetch(`/api/wiki/slug/${params.slug}`)
@@ -37,6 +37,7 @@ export default function WikiViewPage() {
           } else {
             setError('Failed to load wiki')
           }
+          setInitialLoading(false)
           return
         }
 
@@ -45,13 +46,15 @@ export default function WikiViewPage() {
         if (result.success) {
           setWiki(result.wiki)
           setFiles(result.wiki.files || [])
+          // Immediately render WikiViewer once we have wiki and files metadata
+          setInitialLoading(false)
         } else {
           setError(result.error || 'Failed to load wiki')
+          setInitialLoading(false)
         }
       } catch (err) {
         setError('Failed to load wiki. Please try again later.')
-      } finally {
-        setLoading(false)
+        setInitialLoading(false)
       }
     }
 
@@ -64,22 +67,7 @@ export default function WikiViewPage() {
     router.push('/wiki')
   }
 
-  if (loading) {
-    return (
-      <ProtectedRoute>
-        <WithNavigation>
-          <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
-            <div className="px-4 py-2 sm:px-0">
-              <div className="flex justify-center items-center py-12">
-                <div className="text-gray-500">Loading wiki...</div>
-              </div>
-            </div>
-          </div>
-        </WithNavigation>
-      </ProtectedRoute>
-    )
-  }
-
+  // Show error state
   if (error) {
     return (
       <ProtectedRoute>
@@ -102,20 +90,15 @@ export default function WikiViewPage() {
     )
   }
 
-  if (!wiki) {
+  // Show loading skeleton only for initial metadata load
+  if (initialLoading || !wiki) {
     return (
       <ProtectedRoute>
         <WithNavigation>
           <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
             <div className="px-4 py-2 sm:px-0">
-              <div className="text-center py-12">
-                <div className="text-gray-600 mb-4">Wiki not found</div>
-                <button
-                  onClick={handleBack}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-                >
-                  ← Back to Wikis
-                </button>
+              <div className="flex justify-center items-center py-12">
+                <div className="text-gray-500">Loading wiki...</div>
               </div>
             </div>
           </div>
@@ -124,6 +107,8 @@ export default function WikiViewPage() {
     )
   }
 
+  // Render WikiViewer immediately once we have wiki and files metadata
+  // Content loading will be handled inside WikiViewer
   return (
     <ProtectedRoute>
       <WithNavigation>

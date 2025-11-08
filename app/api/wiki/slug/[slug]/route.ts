@@ -44,6 +44,12 @@ export async function GET(
           uploadedAt: file.createdAt.toISOString()
         }))
       }
+    }, {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=600', // Cache for 5 minutes, allow stale for 10 minutes
+        'ETag': `"${wiki.id}-${wiki.updatedAt.getTime()}"` // Use wiki ID and update time for ETag
+      }
     })
 
   } catch (error) {

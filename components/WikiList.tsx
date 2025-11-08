@@ -171,6 +171,55 @@ export function WikiList({
     }
   }, [selectedWikis, fetchWikis, onWikiDeleted])
 
+  // Prefetch wiki metadata on hover to speed up navigation
+  const prefetchWiki = useCallback(async (wiki: Wiki) => {
+    // Prefetch wiki metadata and file list
+    try {
+      await fetch(`/api/wiki/slug/${wiki.slug}`, {
+        cache: 'default'
+      })
+    } catch (err) {
+      // Silently fail for prefetch
+    }
+  }, [])
+
+  // Track hover timeouts
+  const hoverTimeoutsRef = React.useRef<Map<string, NodeJS.Timeout>>(new Map())
+
+  const handleWikiHover = useCallback((wiki: Wiki) => {
+    if (isManageMode) {
+      return
+    }
+
+    // Clear any existing timeout for this wiki
+    const existingTimeout = hoverTimeoutsRef.current.get(wiki.id)
+    if (existingTimeout) {
+      clearTimeout(existingTimeout)
+    }
+
+    // Delay prefetch to avoid unnecessary requests on quick hovers
+    const timeoutId = setTimeout(() => {
+      hoverTimeoutsRef.current.delete(wiki.id)
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          prefetchWiki(wiki)
+        }, { timeout: 1000 })
+      } else {
+        prefetchWiki(wiki)
+      }
+    }, 300) // 300ms delay
+
+    hoverTimeoutsRef.current.set(wiki.id, timeoutId)
+  }, [isManageMode, prefetchWiki])
+
+  // Cleanup timeouts on unmount
+  React.useEffect(() => {
+    return () => {
+      hoverTimeoutsRef.current.forEach(timeout => clearTimeout(timeout))
+      hoverTimeoutsRef.current.clear()
+    }
+  }, [])
+
   const handleWikiClick = useCallback((wiki: Wiki, event: React.MouseEvent) => {
     if (isManageMode) {
       event.preventDefault()
@@ -355,6 +404,7 @@ export function WikiList({
               !isManageMode ? 'cursor-pointer' : ''
             }`}
             onClick={(e) => handleWikiClick(wiki, e)}
+            onMouseEnter={() => handleWikiHover(wiki)}
             data-testid="wiki-item"
           >
             {/* Checkbox overlay for manage mode */}
