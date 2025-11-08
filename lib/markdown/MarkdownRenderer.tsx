@@ -13,7 +13,7 @@ function escapeHtml(text: string): string {
 
 interface MarkdownRendererProps {
   content: string | null
-  theme?: 'light' | 'dark' | 'default' | 'neutral' | 'forest'
+  theme?: 'light' | 'dark' | 'default' | 'neutral' | 'forest' | 'academic' | 'elegant' | 'professional' | 'minimal' | 'handdrawn'
   className?: string
 }
 
@@ -27,7 +27,7 @@ export function MarkdownRenderer({
   const [mermaidInitialized, setMermaidInitialized] = useState(false)
   const [processedContent, setProcessedContent] = useState<string>('')
   const [zoomedDiagram, setZoomedDiagram] = useState<{ code: string; svg: string } | null>(null)
-  const [zoomLevel, setZoomLevel] = useState(1)
+  const [zoomLevel, setZoomLevel] = useState(4) // Set to 4x for maximum default view
   const [autoScale, setAutoScale] = useState(1)
   const [renderedDiagrams, setRenderedDiagrams] = useState<Map<string, string>>(new Map())
   const [processedMermaid, setProcessedMermaid] = useState<Set<string>>(new Set())
@@ -76,31 +76,305 @@ export function MarkdownRenderer({
             setMermaidModule(mermaid)
             console.log('Mermaid loaded successfully:', typeof mermaid)
 
-            // Support all theme values: 'light', 'dark', 'default', 'neutral', 'forest'
-            const mermaidTheme = ['light', 'dark', 'default', 'neutral', 'forest'].includes(theme)
-              ? theme
-              : 'default'
-
-            mermaid.initialize({
-              startOnLoad: false,
-              theme: mermaidTheme,
-              securityLevel: 'loose',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-              fontSize: 14,
-              flowchart: {
-                useMaxWidth: true,
-                htmlLabels: true,
-                curve: 'basis'
-              },
-              themeVariables: {
-                primaryColor: '#003f5c',
-                primaryTextColor: '#fff',
-                primaryBorderColor: '#585e6a',
-                lineColor: '#585e6a',
-                secondaryColor: '#ffa600',
-                tertiaryColor: '#bc5090'
+            // Enhanced theme support with academic and professional themes
+            const getMermaidConfig = (theme: string) => {
+              const baseConfig = {
+                startOnLoad: false,
+                securityLevel: 'loose',
+                fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                fontSize: 14,
+                flowchart: {
+                  useMaxWidth: true,
+                  htmlLabels: true,
+                  curve: 'basis'
+                },
+                themeVariables: {
+                  primaryColor: '#003f5c',
+                  primaryTextColor: '#fff',
+                  primaryBorderColor: '#585e6a',
+                  lineColor: '#585e6a',
+                  secondaryColor: '#ffa600',
+                  tertiaryColor: '#bc5090'
+                }
               }
-            })
+
+              // Academic theme - sophisticated university style
+              if (theme === 'academic') {
+                return {
+                  ...baseConfig,
+                  theme: 'dark',
+                  themeVariables: {
+                    primaryColor: '#1e3a8a',
+                    primaryTextColor: '#ffffff',
+                    primaryBorderColor: '#3730a3',
+                    secondaryColor: '#7c3aed',
+                    tertiaryColor: '#a78bfa',
+                    lineColor: '#6b7280',
+                    sectionBkgColor: '#1e293b',
+                    altSectionBkgColor: '#334155',
+                    gridColor: '#475569',
+                    titleColor: '#f1f5f9',
+                    edgeLabelBackground: '#1e293b',
+                    clusterBkg: '#0f172a',
+                    clusterBorder: '#334155'
+                  },
+                  flowchart: {
+                    ...baseConfig.flowchart,
+                    curve: 'cardinal',
+                    padding: 20
+                  }
+                }
+              }
+
+              // Elegant theme - modern and refined
+              if (theme === 'elegant') {
+                return {
+                  ...baseConfig,
+                  theme: 'dark',
+                  themeVariables: {
+                    primaryColor: '#0f172a',
+                    primaryTextColor: '#f1f5f9',
+                    primaryBorderColor: '#334155',
+                    secondaryColor: '#0891b2',
+                    tertiaryColor: '#06b6d4',
+                    lineColor: '#64748b',
+                    sectionBkgColor: '#1e293b',
+                    altSectionBkgColor: '#334155',
+                    gridColor: '#475569',
+                    titleColor: '#f1f5f9',
+                    edgeLabelBackground: '#1e293b',
+                    clusterBkg: '#0f172a',
+                    clusterBorder: '#334155'
+                  },
+                  flowchart: {
+                    ...baseConfig.flowchart,
+                    curve: 'basis',
+                    padding: 25
+                  }
+                }
+              }
+
+              // Professional theme - corporate and clean
+              if (theme === 'professional') {
+                return {
+                  ...baseConfig,
+                  theme: 'light',
+                  themeVariables: {
+                    primaryColor: '#0f172a',
+                    primaryTextColor: '#f1f5f9',
+                    primaryBorderColor: '#334155',
+                    secondaryColor: '#0ea5e9',
+                    tertiaryColor: '#0284c7',
+                    lineColor: '#64748b',
+                    sectionBkgColor: '#f8fafc',
+                    altSectionBkgColor: '#f1f5f9',
+                    gridColor: '#e2e8f0',
+                    titleColor: '#0f172a',
+                    edgeLabelBackground: '#ffffff',
+                    clusterBkg: '#f8fafc',
+                    clusterBorder: '#e2e8f0'
+                  },
+                  flowchart: {
+                    ...baseConfig.flowchart,
+                    curve: 'step',
+                    padding: 20
+                  }
+                }
+              }
+
+              // Minimal theme - clean and simple
+              if (theme === 'minimal') {
+                return {
+                  ...baseConfig,
+                  theme: 'light',
+                  themeVariables: {
+                    primaryColor: '#ffffff',
+                    primaryTextColor: '#000000',
+                    primaryBorderColor: '#e5e7eb',
+                    secondaryColor: '#f3f4f6',
+                    tertiaryColor: '#9ca3af',
+                    lineColor: '#d1d5db',
+                    sectionBkgColor: '#ffffff',
+                    altSectionBkgColor: '#f9fafb',
+                    gridColor: '#f3f4f6',
+                    titleColor: '#000000',
+                    edgeLabelBackground: '#ffffff',
+                    clusterBkg: '#ffffff',
+                    clusterBorder: '#e5e7eb'
+                  },
+                  flowchart: {
+                    ...baseConfig.flowchart,
+                    curve: 'linear',
+                    padding: 15
+                  }
+                }
+              }
+
+              // Handdrawn theme - sketchy and playful
+              if (theme === 'handdrawn') {
+                return {
+                  ...baseConfig,
+                  theme: 'default',
+                  themeVariables: {
+                    primaryColor: '#e5e7eb',
+                    primaryTextColor: '#374151',
+                    primaryBorderColor: '#6b7280',
+                    secondaryColor: '#9ca3af',
+                    tertiaryColor: '#6b7280',
+                    lineColor: '#9ca3af',
+                    sectionBkgColor: '#f3f4f6',
+                    altSectionBkgColor: '#e5e7eb',
+                    gridColor: '#d1d5db',
+                    titleColor: '#374151',
+                    edgeLabelBackground: '#f9fafb',
+                    clusterBkg: '#fafafa',
+                    clusterBorder: '#9ca3af'
+                  },
+                  flowchart: {
+                    ...baseConfig.flowchart,
+                    curve: 'cardinal',
+                    padding: 35,
+                    htmlLabels: true,
+                    useMaxWidth: true
+                  },
+                  // Add rough/rough-like appearance with larger fonts and diagonal stripes
+                  themeCSS: `
+                    .node rect, .node circle, .node ellipse, .node polygon {
+                      stroke-dasharray: 3,2;
+                      stroke-linecap: round;
+                      fill-opacity: 0.85;
+                    }
+
+                    /* Add diagonal stripes to gray nodes (secondary/tertiary colors) */
+                    .node rect[style*="fill:#9ca3af"],
+                    .node circle[style*="fill:#9ca3af"],
+                    .node ellipse[style*="fill:#9ca3af"],
+                    .node polygon[style*="fill:#9ca3af"],
+                    .node rect[style*="fill:#6b7280"],
+                    .node circle[style*="fill:#6b7280"],
+                    .node ellipse[style*="fill:#6b7280"],
+                    .node polygon[style*="fill:#6b7280"] {
+                      position: relative;
+                      background-image: repeating-linear-gradient(
+                        45deg,
+                        transparent,
+                        transparent 4px,
+                        rgba(255,255,255,0.4) 4px,
+                        rgba(255,255,255,0.4) 8px
+                      );
+                    }
+
+                    .edgePath path {
+                      stroke-dasharray: 5,3;
+                      stroke-linecap: round;
+                      stroke-linejoin: round;
+                      stroke-width: 3;
+                      opacity: 0.7;
+                    }
+
+                    .edgeLabel {
+                      font-family: 'Comic Sans MS', 'Marker Felt', cursive;
+                      font-size: 1.2em;
+                      font-weight: 600;
+                      white-space: nowrap;
+                      text-overflow: ellipsis;
+                      overflow: hidden;
+                    }
+
+                    .nodeLabel {
+                      font-family: 'Comic Sans MS', 'Marker Felt', cursive;
+                      font-size: 1.3em;
+                      font-weight: 600;
+                      white-space: nowrap;
+                      text-overflow: ellipsis;
+                      overflow: hidden;
+                    }
+
+                    .cluster rect {
+                      stroke-dasharray: 7,4;
+                      stroke-width: 2.5;
+                      fill-opacity: 0.6;
+                    }
+
+                    .titleText {
+                      font-family: 'Comic Sans MS', 'Marker Felt', cursive;
+                      font-size: 1.5em;
+                      font-weight: 700;
+                    }
+
+                    /* Make borders more sketchy and ensure proper sizing */
+                    .node rect, .node circle, .node ellipse, .node polygon {
+                      stroke-width: 2.5;
+                      stroke-linecap: round;
+                      stroke-dasharray: 5,3;
+                      transform: rotate(-0.8deg);
+                    }
+
+                    /* Ensure nodes have minimum size to accommodate text */
+                    .node rect {
+                      min-width: 80px;
+                      min-height: 40px;
+                    }
+
+                    .node circle, .node ellipse {
+                      min-width: 60px;
+                      min-height: 60px;
+                    }
+
+                    /* Make sure text containers are properly sized and on top */
+                    .nodeLabel, .edgeLabel, .titleText {
+                      display: block;
+                      text-align: center;
+                      padding: 2px 4px;
+                      position: relative;
+                      z-index: 10;
+                    }
+
+                    /* Ensure all text elements are on top layer */
+                    .nodeLabel text, .edgeLabel text, .titleText text {
+                      position: relative;
+                      z-index: 15;
+                    }
+
+                    /* Make sure the main SVG text elements are on top */
+                    svg g text {
+                      position: relative;
+                      z-index: 20;
+                    }
+                  `
+                }
+              }
+
+              // Enhanced default themes
+              if (theme === 'forest') {
+                return {
+                  ...baseConfig,
+                  theme: 'forest',
+                  themeVariables: {
+                    primaryColor: '#064e3b',
+                    primaryTextColor: '#ffffff',
+                    primaryBorderColor: '#047857',
+                    secondaryColor: '#10b981',
+                    tertiaryColor: '#34d399',
+                    lineColor: '#6b7280',
+                    sectionBkgColor: '#064e3b',
+                    altSectionBkgColor: '#047857',
+                    gridColor: '#10b981',
+                    titleColor: '#ffffff',
+                    edgeLabelBackground: '#064e3b',
+                    clusterBkg: '#064e3b',
+                    clusterBorder: '#10b981'
+                  }
+                }
+              }
+
+              return {
+                ...baseConfig,
+                theme: ['light', 'dark', 'default', 'neutral'].includes(theme) ? theme : 'default'
+              }
+            }
+
+            mermaid.initialize(getMermaidConfig(theme))
 
             setMermaidInitialized(true)
           } else {
@@ -116,6 +390,92 @@ export function MarkdownRenderer({
 
     initMermaid()
   }, [theme, mermaidInitialized])
+
+  // Helper functions for theme-based styling
+  const getThemeClasses = (theme: string): string[] => {
+    switch (theme) {
+      case 'academic':
+        return ['hover:scale-102']
+      case 'elegant':
+        return ['hover:scale-101']
+      case 'professional':
+        return ['hover:scale-102']
+      case 'minimal':
+        return ['hover:scale-100']
+      case 'handdrawn':
+        return [] // No shadow or scale effects for handdrawn
+      default:
+        return ['hover:scale-105']
+    }
+  }
+
+  const getThemeFilter = (theme: string): string => {
+    switch (theme) {
+      case 'academic':
+        return 'contrast(1.05) saturate(1.1)'
+      case 'elegant':
+        return 'contrast(1.02) saturate(1.05) brightness(1.02)'
+      case 'professional':
+        return 'contrast(1.03) saturate(1.08)'
+      case 'minimal':
+        return 'contrast(1.01) saturate(0.95)'
+      case 'handdrawn':
+        return 'contrast(0.95) saturate(1.2) brightness(1.05) sepia(0.1)'
+      default:
+        return 'none'
+    }
+  }
+
+  const getThemeShadow = (theme: string): string => {
+    switch (theme) {
+      case 'academic':
+        return '0 4px 6px -1px rgba(30, 58, 138, 0.1), 0 2px 4px -1px rgba(30, 58, 138, 0.06)'
+      case 'elegant':
+        return '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+      case 'professional':
+        return '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+      case 'minimal':
+        return '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
+      case 'handdrawn':
+        return '0 8px 12px -2px rgba(107, 114, 128, 0.15), 0 4px 6px -1px rgba(107, 114, 128, 0.1)'
+      default:
+        return 'none'
+    }
+  }
+
+  const getThemePrimaryColor = (theme: string): string => {
+    switch (theme) {
+      case 'academic':
+        return '#1e3a8a'
+      case 'elegant':
+        return '#4c1d95'
+      case 'professional':
+        return '#1e293b'
+      case 'minimal':
+        return '#64748b'
+      case 'handdrawn':
+        return '#a16207'
+      default:
+        return '#3b82f6'
+    }
+  }
+
+  const getThemeSecondaryColor = (theme: string): string => {
+    switch (theme) {
+      case 'academic':
+        return '#7c3aed'
+      case 'elegant':
+        return '#a21caf'
+      case 'professional':
+        return '#475569'
+      case 'minimal':
+        return '#94a3b8'
+      case 'handdrawn':
+        return '#c084fc'
+      default:
+        return '#6366f1'
+    }
+  }
 
   // Process Mermaid diagrams after content is rendered
   useEffect(() => {
@@ -177,7 +537,7 @@ export function MarkdownRenderer({
                 svgElement.setAttribute('aria-label', `Mermaid diagram: ${originalText.split('\n')[0]}`)
                 svgElement.setAttribute('title', 'Click to zoom diagram')
                 svgElement.style.cursor = 'pointer'
-                svgElement.classList.add('w-full', 'h-auto', 'transition-transform', 'hover:scale-105')
+                svgElement.classList.add('w-full', 'h-auto')
                 svgElement.setAttribute('data-click-handler-added', 'true')
 
                 const handleDiagramClick = () => {
@@ -207,7 +567,7 @@ export function MarkdownRenderer({
               svgElement.setAttribute('aria-label', `Mermaid diagram: ${originalText.split('\n')[0]}`)
               svgElement.setAttribute('title', 'Click to zoom diagram')
               svgElement.style.cursor = 'pointer'
-              svgElement.classList.add('w-full', 'h-auto', 'transition-transform', 'hover:scale-105')
+              svgElement.classList.add('w-full', 'h-auto')
               svgElement.setAttribute('data-click-handler-added', 'true')
 
               const renderedSvg = element.innerHTML
@@ -263,13 +623,50 @@ export function MarkdownRenderer({
               hasProtectionMarker: element.hasAttribute('data-mermaid-rendered')
             })
 
-            // Style the SVG and add click-to-zoom functionality
+            // Style the SVG with enhanced academic and professional themes
             if (svgElement) {
               svgElement.setAttribute('role', 'img')
               svgElement.setAttribute('aria-label', `Mermaid diagram: ${originalText.split('\n')[0]}`)
               svgElement.setAttribute('title', 'Click to zoom diagram')
               svgElement.style.cursor = 'pointer'
-              svgElement.classList.add('w-full', 'h-auto', 'transition-transform', 'hover:scale-105')
+
+              // Apply theme-based styling
+              const themeClasses = getThemeClasses(theme)
+              svgElement.classList.add(
+                'w-full',
+                'h-auto',
+                ...themeClasses
+              )
+
+              // Enhanced visual styling - no border radius, shadows, or filters
+              svgElement.style.filter = 'none'
+              svgElement.style.borderRadius = '0px'
+
+              // Special styling for handdrawn theme - no background or border
+              if (theme === 'handdrawn') {
+                // Keep only shadow effect, no background or border
+              }
+
+              // Apply theme-specific CSS variables
+              svgElement.style.setProperty('--mermaid-primary', getThemePrimaryColor(theme))
+              svgElement.style.setProperty('--mermaid-secondary', getThemeSecondaryColor(theme))
+
+              // Ensure text elements are on top layer
+              const textElements = svgElement.querySelectorAll('text')
+              textElements.forEach(textEl => {
+                textEl.style.zIndex = '100'
+                textEl.style.position = 'relative'
+              })
+
+              // Ensure all g elements containing text are on top
+              const gElements = svgElement.querySelectorAll('g')
+              gElements.forEach(gEl => {
+                const hasText = gEl.querySelector('text')
+                if (hasText) {
+                  gEl.style.zIndex = '50'
+                  gEl.style.position = 'relative'
+                }
+              })
 
               // Capture the rendered SVG immediately to prevent loss
               const renderedSvg = element.innerHTML
@@ -305,7 +702,44 @@ export function MarkdownRenderer({
                 svgElement.setAttribute('aria-label', `Mermaid diagram: ${originalText.split('\n')[0]}`)
                 svgElement.setAttribute('title', 'Click to zoom diagram')
                 svgElement.style.cursor = 'pointer'
-                svgElement.classList.add('w-full', 'h-auto', 'transition-transform', 'hover:scale-105')
+
+                // Apply enhanced theme-based styling for fallback rendering
+                const themeClasses = getThemeClasses(theme)
+                svgElement.classList.add(
+                  'w-full',
+                  'h-auto',
+                  ...themeClasses
+                )
+
+                // Enhanced visual styling for fallback
+                svgElement.style.filter = 'none' // No filters
+                svgElement.style.borderRadius = '0px' // No border radius
+
+                // Special styling for handdrawn theme - no background or border for fallback either
+                if (theme === 'handdrawn') {
+                  // Keep only shadow effect, no background or border
+                }
+
+                // Apply theme-specific CSS variables
+                svgElement.style.setProperty('--mermaid-primary', getThemePrimaryColor(theme))
+                svgElement.style.setProperty('--mermaid-secondary', getThemeSecondaryColor(theme))
+
+                // Ensure text elements are on top layer for fallback
+                const textElements = svgElement.querySelectorAll('text')
+                textElements.forEach(textEl => {
+                  textEl.style.zIndex = '100'
+                  textEl.style.position = 'relative'
+                })
+
+                // Ensure all g elements containing text are on top
+                const gElements = svgElement.querySelectorAll('g')
+                gElements.forEach(gEl => {
+                  const hasText = gEl.querySelector('text')
+                  if (hasText) {
+                    gEl.style.zIndex = '50'
+                    gEl.style.position = 'relative'
+                  }
+                })
 
                 // Use the svgContent directly as it's already the rendered content
                 const handleDiagramClick = () => {
@@ -441,7 +875,7 @@ export function MarkdownRenderer({
               svgElement.setAttribute('aria-label', `Mermaid diagram: ${originalText.split('\n')[0]}`)
               svgElement.setAttribute('title', 'Click to zoom diagram')
               svgElement.style.cursor = 'pointer'
-              svgElement.classList.add('w-full', 'h-auto', 'transition-transform', 'hover:scale-105')
+              svgElement.classList.add('w-full', 'h-auto')
               svgElement.setAttribute('data-click-handler-added', 'true')
 
               // Re-add click handler
@@ -582,7 +1016,12 @@ export function MarkdownRenderer({
 
               const type = ordered ? 'ol' : 'ul'
               const className = ordered ? 'prose-ol' : 'prose-ul'
-              const items = tokens.map(token => this.parser.parse([token]))
+              const items = tokens.map(token => {
+                if (token && token.type === 'list_item') {
+                  return this.listitem(token)
+                }
+                return ''
+              }).filter(item => item)
               return `<${type} class="${className}">${items.join('')}</${type}>`
             },
             listitem({ tokens }: { tokens?: any[] }): string {
@@ -652,7 +1091,12 @@ export function MarkdownRenderer({
 
               const type = ordered ? 'ol' : 'ul'
               const className = ordered ? 'prose-ol' : 'prose-ul'
-              const items = tokens.map(token => this.parser.parse([token]))
+              const items = tokens.map(token => {
+                if (token && token.type === 'list_item') {
+                  return this.listitem(token)
+                }
+                return ''
+              }).filter(item => item)
               return `<${type} class="${className}">${items.join('')}</${type}>`
             },
             listitem({ tokens }: { tokens?: any[] }): string {
@@ -870,29 +1314,18 @@ export function MarkdownRenderer({
           const maxFitHeight = viewportHeight * (1 - paddingRatio * 2)
           const fitScale = Math.min(maxFitWidth / width, maxFitHeight / height)
           
-          // Use the larger of target scale or fit scale, but cap appropriately
-          scale = Math.max(scale, Math.min(fitScale, 2.5))
-          
-          // Apply reasonable bounds based on diagram size
-          if (width < 300 && height < 300) {
-            // Very small diagrams: allow up to 3x
-            scale = Math.min(scale, 3)
-          } else if (width > 3000 || height > 3000) {
-            // Very large diagrams: minimum 0.2x
-            scale = Math.max(scale, 0.2)
-          } else {
-            // Normal diagrams: 0.5x to 2.5x range
-            scale = Math.max(Math.min(scale, 2.5), 0.5)
-          }
+          // Use the larger of target scale or fit scale (no artificial limits)
+          scale = Math.max(scale, fitScale)
+
+          // No artificial size constraints - allow any scale that makes sense for the content
           
           setAutoScale(scale)
-          setZoomLevel(1)
           setPosition({ x: 0, y: 0 })
         }
       }
     } else {
       setAutoScale(1)
-      setZoomLevel(1)
+      // Don't reset zoomLevel to 1, keep the default value (5)
       setPosition({ x: 0, y: 0 })
     }
   }, [zoomedDiagram])
@@ -980,11 +1413,11 @@ export function MarkdownRenderer({
 
       setZoomLevel(prev => {
         if (delta < 0) {
-          // Scroll up - zoom in
-          return Math.min(prev + zoomStep, 5) // Max 5x zoom
+          // Scroll up - zoom in (no upper limit)
+          return prev + zoomStep
         } else {
-          // Scroll down - zoom out
-          return Math.max(prev - zoomStep, 0.25) // Min 0.25x zoom
+          // Scroll down - zoom out (minimum 0.1x)
+          return Math.max(prev - zoomStep, 0.1)
         }
       })
     }
@@ -999,7 +1432,8 @@ export function MarkdownRenderer({
 
   const handleModalClose = () => {
     setZoomedDiagram(null)
-    setZoomLevel(1)
+    // Reset to default zoom level (4x)
+    setZoomLevel(4)
     setPosition({ x: 0, y: 0 })
   }
 
@@ -1052,7 +1486,7 @@ export function MarkdownRenderer({
           {/* Close button */}
           <button
             onClick={handleModalClose}
-            className="absolute top-4 right-4 z-50 w-10 h-10 flex items-center justify-center bg-white/90 hover:bg-white rounded-full shadow-lg cursor-pointer transition-colors"
+            className="absolute top-4 right-4 z-50 w-10 h-10 flex items-center justify-center bg-white/90 hover:bg-white cursor-pointer transition-colors"
             aria-label="Close"
           >
             <span className="text-xl text-gray-700">✕</span>
@@ -1073,6 +1507,8 @@ export function MarkdownRenderer({
               cursor: isDragging ? 'grabbing' : 'grab',
               userSelect: 'none',
               touchAction: 'none',
+              borderRadius: '0px',
+              overflow: 'visible',
             }}
             dangerouslySetInnerHTML={{ __html: zoomedDiagram.svg }}
           />
