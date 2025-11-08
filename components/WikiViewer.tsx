@@ -96,6 +96,35 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewe
     }
   }, [contentError, selectedFile, fetchFileContent])
 
+  // Sort files: index and overview first, then others alphabetically
+  const sortedFiles = React.useMemo(() => {
+    const files = [...initialFiles]
+    const indexFile = files.find(file => {
+      const name = file.filename.replace(/\.md$/, '').toLowerCase()
+      return name === 'index'
+    })
+    const overviewFile = files.find(file => {
+      const name = file.filename.replace(/\.md$/, '').toLowerCase()
+      return name === 'overview'
+    })
+    
+    const otherFiles = files.filter(file => {
+      const name = file.filename.replace(/\.md$/, '').toLowerCase()
+      return name !== 'index' && name !== 'overview'
+    }).sort((a, b) => {
+      const nameA = a.filename.replace(/\.md$/, '').toLowerCase()
+      const nameB = b.filename.replace(/\.md$/, '').toLowerCase()
+      return nameA.localeCompare(nameB)
+    })
+    
+    const sorted: WikiFile[] = []
+    if (indexFile) sorted.push(indexFile)
+    if (overviewFile) sorted.push(overviewFile)
+    sorted.push(...otherFiles)
+    
+    return sorted
+  }, [initialFiles])
+
   
   if (initialFiles.length === 0) {
     return (
@@ -137,7 +166,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewe
             </div>
           ) : (
             <ul className="space-y-0.5" data-testid="file-list">
-              {initialFiles.map((file) => (
+              {sortedFiles.map((file) => (
                 <li key={file.id}>
                   <button
                     onClick={() => handleFileSelect(file)}
