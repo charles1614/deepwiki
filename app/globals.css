@@ -260,11 +260,17 @@ body {
   border: 1px solid #e5e7eb;
   margin: 2rem 0;
   text-align: center;
+  max-height: 500px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .markdown-content .mermaid svg {
   max-width: 100%;
   height: auto;
+  max-height: 400px;
 }
 
 /* Increase spacing between Mermaid subgraphs/clusters and nodes */
