@@ -1116,7 +1116,7 @@ export function MarkdownRenderer({
                 return `<tr>${cells}</tr>`
               }).join('')
               const body = `<tbody>${bodyRows}</tbody>`
-              return `<table class="prose-table">${headerRow}${body}</table>`
+              return `<div class="table-wrapper"><table class="prose-table">${headerRow}${body}</table></div>`
             }
           }
         })
@@ -1191,7 +1191,7 @@ export function MarkdownRenderer({
                 return `<tr>${cells}</tr>`
               }).join('')
               const body = `<tbody>${bodyRows}</tbody>`
-              return `<table class="prose-table">${headerRow}${body}</table>`
+              return `<div class="table-wrapper"><table class="prose-table">${headerRow}${body}</table></div>`
             }
           }
         })

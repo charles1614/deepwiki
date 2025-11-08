@@ -387,7 +387,8 @@ body {
 
 /* Table responsive wrapper */
 .markdown-content .table-wrapper {
-  @apply overflow-x-auto my-6 w-full;
+  @apply overflow-x-auto overflow-y-auto my-6 w-full;
+  max-height: 70vh;
   -webkit-overflow-scrolling: touch;
 }
 
