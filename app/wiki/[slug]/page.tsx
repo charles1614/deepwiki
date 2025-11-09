@@ -23,45 +23,51 @@ export default function WikiViewPage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchWiki = async () => {
-      try {
-        setInitialLoading(true)
-        setError(null)
+  const fetchWiki = useCallback(async () => {
+    if (!params.slug) return
+    
+    try {
+      setInitialLoading(true)
+      setError(null)
 
-        const response = await fetch(`/api/wiki/slug/${params.slug}`)
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Wiki not found')
-          } else {
-            setError('Failed to load wiki')
-          }
-          setInitialLoading(false)
-          return
+      const response = await fetch(`/api/wiki/slug/${params.slug}`, {
+        cache: 'no-store', // Bypass cache to get fresh data
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
         }
+      })
 
-        const result = await response.json()
-
-        if (result.success) {
-          setWiki(result.wiki)
-          setFiles(result.wiki.files || [])
-          // Immediately render WikiViewer once we have wiki and files metadata
-          setInitialLoading(false)
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('Wiki not found')
         } else {
-          setError(result.error || 'Failed to load wiki')
-          setInitialLoading(false)
+          setError('Failed to load wiki')
         }
-      } catch (err) {
-        setError('Failed to load wiki. Please try again later.')
+        setInitialLoading(false)
+        return
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        setWiki(result.wiki)
+        setFiles(result.wiki.files || [])
+        // Immediately render WikiViewer once we have wiki and files metadata
+        setInitialLoading(false)
+      } else {
+        setError(result.error || 'Failed to load wiki')
         setInitialLoading(false)
       }
-    }
-
-    if (params.slug) {
-      fetchWiki()
+    } catch (err) {
+      setError('Failed to load wiki. Please try again later.')
+      setInitialLoading(false)
     }
   }, [params.slug])
+
+  useEffect(() => {
+    fetchWiki()
+  }, [fetchWiki])
 
   const handleBack = () => {
     router.push('/wiki')
@@ -114,7 +120,7 @@ export default function WikiViewPage() {
       <WithNavigation>
         <div className="max-w-7xl mx-auto py-2 px-4 sm:px-6 lg:px-8 w-full overflow-x-hidden">
           <div className="w-full max-w-full overflow-x-hidden">
-            <WikiViewer wiki={wiki} files={files} onBack={handleBack} />
+            <WikiViewer wiki={wiki} files={files} onBack={handleBack} onFilesRefresh={fetchWiki} />
           </div>
         </div>
       </WithNavigation>

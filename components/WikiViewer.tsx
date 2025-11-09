@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { MarkdownRenderer } from '@/lib/markdown/MarkdownRenderer'
 import { AddPageModal } from '@/components/AddPageModal'
 import { EditPageModal } from '@/components/EditPageModal'
@@ -38,8 +38,9 @@ const fileContentCache = new Map<string, { content: string; timestamp: number }>
 const CACHE_TTL = 30 * 60 * 1000 // 30 minutes cache TTL
 const PREFETCH_DELAY = 300 // 300ms delay before prefetch on hover
 
-export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewerProps) {
+export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefresh }: WikiViewerProps) {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { setContent: setBreadcrumbRightContent } = useBreadcrumbRightContent()
   const [selectedFile, setSelectedFile] = useState<WikiFile | null>(null)
   const [content, setContent] = useState<string>('')
@@ -590,11 +591,15 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewe
     setIsAddPageModalOpen(true)
   }
 
-  const handlePageCreated = (newFile: { id: string; filename: string }) => {
-    // Refetch files or add the new file to the list
-    // For now, we'll trigger a page reload to see the new file
-    window.location.reload()
-  }
+  const handlePageCreated = useCallback(async (newFile: { id: string; filename: string }) => {
+    // Refresh the file list by calling the parent's refresh function
+    if (onFilesRefresh) {
+      onFilesRefresh()
+    } else {
+      // Fallback: use router refresh
+      router.refresh()
+    }
+  }, [router, onFilesRefresh])
 
   // Handle page editing
   const handleEditPage = (file: WikiFile) => {
