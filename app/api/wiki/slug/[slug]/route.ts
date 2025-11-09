@@ -16,7 +16,7 @@ export async function GET(
       include: {
         files: {
           orderBy: {
-            fileName: 'asc'
+            filename: 'asc'
           }
         }
       }
@@ -37,11 +37,11 @@ export async function GET(
         updatedAt: wiki.updatedAt.toISOString(),
         files: wiki.files.map(file => ({
           id: file.id,
-          filename: file.fileName,
-          originalName: file.fileName,
-          size: file.fileSize,
-          url: file.filePath,
-          uploadedAt: file.createdAt.toISOString()
+          filename: file.filename,
+          originalName: file.originalName,
+          size: file.size,
+          url: file.url,
+          uploadedAt: file.uploadedAt.toISOString()
         }))
       }
     }, {

@@ -9,7 +9,7 @@ export async function GET(
   try {
     const { fileId } = await params
 
-    // Find the file in the database
+    // Find the file in the database with latest version
     const file = await prisma.wikiFile.findUnique({
       where: { id: fileId },
       include: {
@@ -17,6 +17,10 @@ export async function GET(
           select: {
             slug: true
           }
+        },
+        versions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
         }
       }
     })
@@ -29,34 +33,48 @@ export async function GET(
       )
     }
 
-    // Try to get file content from R2 storage
+    // If file has a version in database, use that (for test wikis or when R2 fails)
+    const latestVersion = file.versions[0]
+    if (latestVersion) {
+      return NextResponse.json({
+        success: true,
+        content: latestVersion.content,
+        fileName: file.filename
+      }, {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600',
+          'ETag': `"${fileId}-${file.uploadedAt.getTime()}"`
+        }
+      })
+    }
+
+    // Fallback to R2 storage (for production wikis)
     try {
       const r2Service = new R2StorageService()
-      const result = await r2Service.getWikiFile(file.wiki.slug, file.fileName)
+      const result = await r2Service.getWikiFile(file.wiki.slug, file.filename)
 
       if (result.success && result.content) {
         return NextResponse.json({
           success: true,
           content: result.content,
-          fileName: file.fileName
+          fileName: file.filename
         }, {
           headers: {
             'Content-Type': 'application/json; charset=utf-8',
-            'Cache-Control': 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600', // Cache for 30 minutes, allow stale for 1 hour
-            'ETag': `"${fileId}-${file.createdAt.getTime()}"` // Use file ID and creation time for ETag
+            'Cache-Control': 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600',
+            'ETag': `"${fileId}-${file.uploadedAt.getTime()}"`
           }
         })
       } else {
-        console.error(`File content not available from R2: fileId=${fileId}, fileName=${file.fileName}, slug=${file.wiki.slug}, error=${result.error}`)
+        console.error(`File content not available from R2: fileId=${fileId}, fileName=${file.filename}, slug=${file.wiki.slug}, error=${result.error}`)
         return NextResponse.json(
-          { success: false, error: result.error || `File content not available (${file.fileName})` },
+          { success: false, error: result.error || `File content not available (${file.filename})` },
           { status: 404 }
         )
       }
     } catch (r2Error) {
       console.error('Error retrieving file from R2:', r2Error)
-
-      // If R2 retrieval fails, try fallback method if any
       return NextResponse.json(
         { success: false, error: 'File content not available from storage' },
         { status: 500 }

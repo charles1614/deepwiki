@@ -21,7 +21,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  wikiVersions WikiVersion[]
+  wikis      Wiki[]
+  versions   WikiVersion[]
 
   @@map("users")
 }
@@ -31,12 +32,12 @@ model Wiki {
   title       String
   slug        String   @unique
   description String?
-  folderName  String   @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  ownerId     String
 
+  owner      User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   files       WikiFile[]
-  versions    WikiVersion[]
 
   @@map("wikis")
 }
@@ -44,36 +45,40 @@ model Wiki {
 model WikiFile {
   id          String   @id @default(cuid())
   wikiId      String
-  fileName    String
-  filePath    String   @unique
-  fileSize    Int
-  contentType String
-  content     String?  // Optional content for full-text search
-  createdAt   DateTime @default(now())
+  filename    String
+  originalName String
+  size        Int
+  url         String
+  uploadedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   wiki        Wiki     @relation(fields: [wikiId], references: [id], onDelete: Cascade)
+  versions    WikiVersion[]
 
   @@map("wiki_files")
   @@index([wikiId])
-  @@index([contentType])
+  @@index([filename])
 }
 
 model WikiVersion {
-  id        String   @id @default(cuid())
-  wikiId    String
-  version   Int
-  content   String
-  changeLog String?
-  userId    String
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  fileId          String
+  versionNumber    Int
+  content          String
+  changeType       String   // CREATE, UPDATE, DELETE
+  changeDescription String?
+  authorId         String
+  contentSize      Int
+  checksum         String
+  createdAt        DateTime @default(now())
 
-  wiki      Wiki     @relation(fields: [wikiId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file             WikiFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  author           User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  @@unique([wikiId, version])
+  @@unique([fileId, versionNumber])
   @@map("wiki_versions")
-  @@index([wikiId])
-  @@index([userId])
+  @@index([fileId])
+  @@index([authorId])
 }
 
 enum Role {

@@ -3,6 +3,7 @@
 import React from 'react'
 import { Navigation } from './Navigation'
 import { Breadcrumbs } from './Breadcrumbs'
+import { BreadcrumbRightContentProvider } from './BreadcrumbsRightContent'
 
 interface WithNavigationProps {
   children: React.ReactNode
@@ -11,12 +12,14 @@ interface WithNavigationProps {
 
 export function WithNavigation({ children, className = '' }: WithNavigationProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      <Breadcrumbs />
-      <main className={className}>
-        {children}
-      </main>
-    </div>
+    <BreadcrumbRightContentProvider>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <Breadcrumbs />
+        <main className={className}>
+          {children}
+        </main>
+      </div>
+    </BreadcrumbRightContentProvider>
   )
 }

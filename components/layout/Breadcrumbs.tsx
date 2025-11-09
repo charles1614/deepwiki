@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useBreadcrumbRightContent } from './BreadcrumbsRightContent'
 
 interface BreadcrumbProps {
   className?: string
@@ -15,6 +16,7 @@ interface Breadcrumb {
 export function Breadcrumbs({ className = '' }: BreadcrumbProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const { content: rightContent } = useBreadcrumbRightContent()
 
   // Generate breadcrumb navigation
   const generateBreadcrumbs = (): Breadcrumb[] => {
@@ -64,38 +66,45 @@ export function Breadcrumbs({ className = '' }: BreadcrumbProps) {
       data-testid="breadcrumb-nav"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center space-x-2 text-sm text-gray-500 pt-4 pb-1">
-          {breadcrumbs.map((crumb, index) => (
-            <React.Fragment key={`${crumb.href}-${index}`}>
-              {index > 0 && (
-                <span
-                  className="text-gray-300"
-                  data-testid="breadcrumb-separator"
-                  aria-hidden="true"
-                >
-                  /
-                </span>
-              )}
-              {index === breadcrumbs.length - 1 ? (
-                // Current page - not clickable
-                <span
-                  className="text-gray-900 font-medium"
-                  aria-current="page"
-                >
-                  {crumb.label}
-                </span>
-              ) : (
-                // Clickable breadcrumb
-                <button
-                  onClick={() => router.push(crumb.href)}
-                  className="hover:text-gray-700 transition-colors"
-                  aria-label={`Navigate to ${crumb.label}`}
-                >
-                  {crumb.label}
-                </button>
-              )}
-            </React.Fragment>
-          ))}
+        <div className="flex items-center justify-between pt-3 pb-1">
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            {breadcrumbs.map((crumb, index) => (
+              <React.Fragment key={`${crumb.href}-${index}`}>
+                {index > 0 && (
+                  <span
+                    className="text-gray-300"
+                    data-testid="breadcrumb-separator"
+                    aria-hidden="true"
+                  >
+                    /
+                  </span>
+                )}
+                {index === breadcrumbs.length - 1 ? (
+                  // Current page - not clickable
+                  <span
+                    className="text-gray-900 font-medium"
+                    aria-current="page"
+                  >
+                    {crumb.label}
+                  </span>
+                ) : (
+                  // Clickable breadcrumb
+                  <button
+                    onClick={() => router.push(crumb.href)}
+                    className="hover:text-gray-700 transition-colors"
+                    aria-label={`Navigate to ${crumb.label}`}
+                  >
+                    {crumb.label}
+                  </button>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+          {rightContent && (
+            <div className="flex items-center">
+              {rightContent}
+            </div>
+          )}
         </div>
       </div>
     </nav>

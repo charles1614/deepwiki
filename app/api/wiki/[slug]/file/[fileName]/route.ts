@@ -21,11 +21,17 @@ export async function GET(
       )
     }
 
-    // Verify file exists in database
+    // Verify file exists in database and get latest version
     const file = await prisma.wikiFile.findFirst({
       where: {
         wikiId: wiki.id,
-        fileName
+        filename: fileName
+      },
+      include: {
+        versions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
       }
     })
 
@@ -36,26 +42,45 @@ export async function GET(
       )
     }
 
-    // Fetch file content from R2
-    const r2Service = new R2StorageService()
-    const result = await r2Service.getWikiFile(slug, fileName)
-
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: result.error || 'Failed to fetch file content' },
-        { status: 500 }
-      )
+    // If file has a version in database, use that (for test wikis or when R2 fails)
+    const latestVersion = file.versions[0]
+    if (latestVersion) {
+      return NextResponse.json({
+        success: true,
+        content: latestVersion.content
+      }, {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
+        }
+      })
     }
 
-    return NextResponse.json({
-      success: true,
-      content: result.content
-    }, {
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
+    // Fallback to R2 storage (for production wikis)
+    try {
+      const r2Service = new R2StorageService()
+      const result = await r2Service.getWikiFile(slug, fileName)
+
+      if (result.success) {
+        return NextResponse.json({
+          success: true,
+          content: result.content
+        }, {
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
+          }
+        })
       }
-    })
+    } catch (r2Error) {
+      console.warn('R2 fetch failed, using database version:', r2Error)
+    }
+
+    // If no version and R2 failed, return error
+    return NextResponse.json(
+      { success: false, error: 'File content not found' },
+      { status: 404 }
+    )
 
   } catch (error) {
     console.error('Error fetching file content:', error)

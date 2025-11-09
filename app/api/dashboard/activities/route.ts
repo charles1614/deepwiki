@@ -15,26 +15,35 @@ export async function GET(request: Request) {
         take: limit * 2, // Get more to account for filtering
         orderBy: { createdAt: 'desc' },
         include: {
-          versions: {
-            where: { version: 1 },
-            take: 1,
+          owner: {
+            select: { email: true }
+          },
+          files: {
             include: {
-              user: {
-                select: { email: true }
+              versions: {
+                where: { versionNumber: 1 },
+                take: 1,
+                include: {
+                  author: {
+                    select: { email: true }
+                  }
+                },
+                orderBy: { createdAt: 'asc' }
               }
-            },
-            orderBy: { createdAt: 'asc' }
+            }
           }
         }
       })
 
       for (const wiki of recentWikis) {
-        const firstVersion = wiki.versions[0]
+        // Get the first version from the first file (index.md)
+        const indexFile = wiki.files.find(f => f.filename === 'index.md')
+        const firstVersion = indexFile?.versions[0]
         activities.push({
           id: `created-${wiki.id}`,
           type: 'wiki_created',
           wikiTitle: wiki.title,
-          userEmail: firstVersion?.user?.email || 'system@deepwiki.com',
+          userEmail: firstVersion?.author?.email || wiki.owner?.email || 'system@deepwiki.com',
           timestamp: wiki.createdAt.toISOString(),
           metadata: { slug: wiki.slug }
         })
@@ -47,13 +56,17 @@ export async function GET(request: Request) {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          wiki: {
-            select: {
-              title: true,
-              slug: true
+          file: {
+            include: {
+              wiki: {
+                select: {
+                  title: true,
+                  slug: true
+                }
+              }
             }
           },
-          user: {
+          author: {
             select: {
               email: true
             }
@@ -63,18 +76,18 @@ export async function GET(request: Request) {
 
       for (const version of recentVersions) {
         // Skip if this is the first version (already counted as created)
-        if (version.version === 1) continue
+        if (version.versionNumber === 1) continue
 
         activities.push({
           id: `updated-${version.id}`,
           type: 'wiki_updated',
-          wikiTitle: version.wiki.title,
-          userEmail: version.user.email,
+          wikiTitle: version.file.wiki.title,
+          userEmail: version.author.email,
           timestamp: version.createdAt.toISOString(),
           metadata: { 
-            slug: version.wiki.slug,
-            version: version.version,
-            changeLog: version.changeLog
+            slug: version.file.wiki.slug,
+            version: version.versionNumber,
+            changeDescription: version.changeDescription
           }
         })
       }

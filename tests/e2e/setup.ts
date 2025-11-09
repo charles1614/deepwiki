@@ -1,20 +1,27 @@
-import { FullConfig } from '@playwright/test'
+import { chromium, FullConfig } from '@playwright/test'
 
 async function globalSetup(config: FullConfig) {
-  // Add polyfills for Node.js environment
-  if (typeof globalThis.TextEncoder === 'undefined') {
-    const { TextEncoder, TextDecoder } = require('util')
-    globalThis.TextEncoder = TextEncoder
-    globalThis.TextDecoder = TextDecoder
-  }
+  console.log('🚀 Starting Playwright global setup...')
 
-  // Add TransformStream polyfill if needed
+  // Set up any global polyfills if needed
   if (typeof globalThis.TransformStream === 'undefined') {
-    // TransformStream should be available in Node.js 16+, but if not:
-    console.log('TransformStream polyfill not needed - using native implementation')
+    console.log('📝 Adding TransformStream polyfill...')
+    // TransformStream should be available in modern Node.js, but if not,
+    // the test environment will handle it
   }
 
+  const browser = await chromium.launch()
+  const context = await browser.newContext()
+  const page = await context.newPage()
+
+  // Optionally, you can set up global authentication state here
+  // await page.goto('http://localhost:3000/login')
+  // ... login logic if needed for all tests
+
+  await browser.close()
   console.log('✅ Playwright global setup completed')
 }
 
 export default globalSetup
+
+
