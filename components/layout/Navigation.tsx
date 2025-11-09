@@ -119,6 +119,8 @@ export function Navigation({ className = '' }: NavigationProps) {
         router.push('/dashboard')
         break
       case 'wiki':
+        // Set flag to help fix browser cache redirect issue
+        sessionStorage.setItem('intendedWikiPage', 'true')
         router.push('/wiki')
         break
       case 'upload':

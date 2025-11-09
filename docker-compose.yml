@@ -18,6 +18,9 @@ services:
       - NEXTAUTH_SECRET=development-secret-key-change-in-production
       - NEXT_PUBLIC_APP_URL=${NEXTAUTH_URL:-http://localhost:3000}
       - AUTH_TRUST_HOST=true
+      # Bind Next.js to all interfaces (0.0.0.0) to allow external access
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
     volumes:
       # Mount source code for development (hot reload)
       - .:/app

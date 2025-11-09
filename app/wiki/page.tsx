@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { WithNavigation } from '@/components/layout/WithNavigation'
@@ -9,8 +9,33 @@ import { WikiList } from '@/components/WikiList'
 
 export default function WikiPage() {
   const router = useRouter()
+  const pathname = usePathname()
   const { data: session } = useSession()
   const [refreshKey, setRefreshKey] = useState(0)
+
+  // Fix browser cache redirect issue: if we're on dashboard but should be on wiki
+  useEffect(() => {
+    // Check if we're on dashboard but the URL should be /wiki
+    // This happens when browser caches the old permanent redirect
+    if (pathname === '/dashboard') {
+      // Check if we came from trying to access /wiki
+      const referrer = document.referrer
+      const shouldBeOnWiki = referrer.includes('/wiki') || 
+                             sessionStorage.getItem('intendedWikiPage') === 'true'
+      
+      if (shouldBeOnWiki) {
+        // Clear the flag and redirect to wiki
+        sessionStorage.removeItem('intendedWikiPage')
+        window.location.replace('/wiki')
+        return
+      }
+    }
+    
+    // If we successfully reached /wiki, clear any flags
+    if (pathname === '/wiki') {
+      sessionStorage.removeItem('intendedWikiPage')
+    }
+  }, [pathname])
 
   // Fetch recent wikis on component mount and when refresh key changes
   useEffect(() => {
