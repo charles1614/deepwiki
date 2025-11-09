@@ -134,7 +134,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
               {/* Quick Actions Section */}
               <div className="lg:col-span-2">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-full flex flex-col">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-[300px] flex flex-col">
                   <h2 className="text-xl font-semibold text-gray-900 mb-5">Quick Actions</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
                     <button
@@ -203,7 +203,7 @@ export default function DashboardPage() {
 
               {/* Enhanced Recent Activity Sidebar */}
               <div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-full flex flex-col" data-testid="dashboard-sidebar">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-[300px] flex flex-col" data-testid="dashboard-sidebar">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-semibold text-gray-900">Recent Activity</h3>
                     <select
