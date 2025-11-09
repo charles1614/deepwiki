@@ -27,6 +27,8 @@ interface WikiListProps {
   showRefreshButton?: boolean
   showHeader?: boolean
   emptyStateMessage?: string
+  maxItems?: number
+  onSeeMore?: () => void
 }
 
 export function WikiList({
@@ -35,11 +37,17 @@ export function WikiList({
   enableManagement = false,
   showRefreshButton = true,
   showHeader = true,
-  emptyStateMessage = "Upload your first wiki to get started"
+  emptyStateMessage = "Upload your first wiki to get started",
+  maxItems,
+  onSeeMore
 }: WikiListProps) {
   const [wikis, setWikis] = useState<Wiki[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(15)
 
   // Management mode states
   const [isManageMode, setIsManageMode] = useState(false)
@@ -62,7 +70,10 @@ export function WikiList({
       const result = await response.json()
 
       if (result.success) {
-        setWikis(result.wikis || [])
+        const fetchedWikis = result.wikis || []
+        setWikis(fetchedWikis)
+        // Reset to page 1 when new data is fetched
+        setCurrentPage(1)
       } else {
         setError(result.error || 'Failed to load wikis')
       }
@@ -381,7 +392,20 @@ export function WikiList({
 
       {/* Wiki Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="wiki-list">
-        {wikis.map((wiki) => (
+        {(() => {
+          // Determine which wikis to display
+          let displayWikis = wikis
+          if (maxItems) {
+            // Dashboard mode: show first maxItems
+            displayWikis = wikis.slice(0, maxItems)
+          } else if (!maxItems && itemsPerPage) {
+            // Pagination mode: show current page
+            const startIndex = (currentPage - 1) * itemsPerPage
+            const endIndex = startIndex + itemsPerPage
+            displayWikis = wikis.slice(startIndex, endIndex)
+          }
+          return displayWikis
+        })().map((wiki) => (
           <div
             key={wiki.id}
             className={`group relative bg-white border rounded-lg transition-all duration-150 ${
@@ -468,7 +492,107 @@ export function WikiList({
             </div>
           </div>
         ))}
+        {/* See More button - show if maxItems is set and there are more items */}
+        {maxItems && wikis.length > maxItems && (
+          <div
+            className="group relative bg-white border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-150 cursor-pointer flex items-center justify-center"
+            onClick={() => onSeeMore?.()}
+            data-testid="see-more-wiki"
+          >
+            <div className="p-8 text-center">
+              <div className="text-gray-400 group-hover:text-gray-600 mb-2">
+                <DocumentIcon className="h-8 w-8 mx-auto" />
+              </div>
+              <h3 className="text-base font-semibold text-gray-700 mb-1">
+                See More
+              </h3>
+              <p className="text-sm text-gray-500">
+                {wikis.length - maxItems} more wiki{wikis.length - maxItems > 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Pagination Controls - only show if not using maxItems (dashboard mode) */}
+      {!maxItems && itemsPerPage && wikis.length > itemsPerPage && (
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-6">
+          {/* Items per page selector */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-700">Items per page:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value))
+                setCurrentPage(1) // Reset to first page when changing items per page
+              }}
+              className="text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              data-testid="items-per-page-select"
+            >
+              <option value={15}>15</option>
+              <option value={30}>30</option>
+              <option value={60}>60</option>
+            </select>
+          </div>
+
+          {/* Page info and navigation */}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-700">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, wikis.length)} of {wikis.length} wikis
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                data-testid="prev-page-button"
+              >
+                Previous
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.ceil(wikis.length / itemsPerPage) }, (_, i) => i + 1)
+                  .filter(page => {
+                    // Show first page, last page, current page, and pages around current
+                    const totalPages = Math.ceil(wikis.length / itemsPerPage)
+                    return page === 1 || 
+                           page === totalPages || 
+                           (page >= currentPage - 1 && page <= currentPage + 1)
+                  })
+                  .map((page, index, array) => {
+                    // Add ellipsis if there's a gap
+                    const showEllipsisBefore = index > 0 && array[index - 1] < page - 1
+                    return (
+                      <React.Fragment key={page}>
+                        {showEllipsisBefore && (
+                          <span className="px-2 text-gray-500">...</span>
+                        )}
+                        <button
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-1.5 text-sm border rounded-md transition-colors ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'border-gray-300 hover:bg-gray-50'
+                          }`}
+                          data-testid={`page-button-${page}`}
+                        >
+                          {page}
+                        </button>
+                      </React.Fragment>
+                    )
+                  })}
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(wikis.length / itemsPerPage), prev + 1))}
+                disabled={currentPage >= Math.ceil(wikis.length / itemsPerPage)}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                data-testid="next-page-button"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteDialogOpen && (

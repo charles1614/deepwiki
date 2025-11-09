@@ -238,6 +238,8 @@ export default function DashboardPage() {
                   enableManagement={true}
                   showRefreshButton={false}
                   emptyStateMessage="Upload your first wiki to get started with documentation management"
+                  maxItems={8}
+                  onSeeMore={() => router.push('/wiki')}
                 />
               </div>
             </div>
