@@ -7,7 +7,17 @@ export async function POST(request: NextRequest) {
   try {
     // Get the current session
     const session = await auth()
+    
+    // Debug logging
+    console.log('Upload API - Session check:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email
+    })
+    
     if (!session?.user) {
+      console.error('Upload API - No session or user found')
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -16,6 +26,7 @@ export async function POST(request: NextRequest) {
 
     // Verify user exists in database
     if (!session.user.id) {
+      console.error('Upload API - User ID not found in session')
       return NextResponse.json(
         { success: false, error: 'User ID not found in session' },
         { status: 401 }
@@ -28,11 +39,14 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
+      console.error('Upload API - User not found in database:', session.user.id)
       return NextResponse.json(
         { success: false, error: 'User not found in database' },
         { status: 401 }
       )
     }
+    
+    console.log('Upload API - User verified:', user.email)
 
     // Parse form data
     const formData = await request.formData()

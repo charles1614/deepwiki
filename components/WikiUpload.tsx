@@ -260,6 +260,7 @@ export function WikiUpload({
           // Open and send request
           xhr.open('POST', '/api/wiki/upload')
           xhr.setRequestHeader('Accept', 'application/json')
+          xhr.withCredentials = true // Ensure cookies are sent
 
           // Handle cancellation
           if (abortControllerRef.current) {
@@ -277,6 +278,7 @@ export function WikiUpload({
         const response = await fetch('/api/wiki/upload', {
           method: 'POST',
           body: formData,
+          credentials: 'include', // Ensure cookies are sent for authentication
         })
 
         if (!response.ok) {
