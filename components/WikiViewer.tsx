@@ -31,6 +31,7 @@ interface WikiViewerProps {
   wiki: Wiki
   onBack?: () => void
   files?: WikiFile[]
+  onFilesRefresh?: () => void
 }
 
 // Global cache for file contents (shared across all WikiViewer instances)
