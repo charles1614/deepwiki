@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database'
 import { R2StorageService } from '@/lib/storage/r2'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const { slug } = await params
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -36,7 +37,7 @@ export async function POST(
 
     // Find the wiki by slug
     const wiki = await prisma.wiki.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       include: { owner: true }
     })
 
@@ -107,7 +108,7 @@ export async function POST(
     // Upload initial version to R2 storage to reduce database pressure
     const r2Service = new R2StorageService()
     const r2UploadResult = await r2Service.uploadFileVersion(
-      params.slug,
+      slug,
       finalFilename,
       content,
       1
@@ -162,10 +163,11 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const { slug } = await params
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -175,7 +177,7 @@ export async function GET(
 
     // Find the wiki by slug
     const wiki = await prisma.wiki.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       include: {
         files: {
           include: {
@@ -243,10 +245,11 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const { slug } = await params
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -267,7 +270,7 @@ export async function DELETE(
 
     // Find the wiki by slug
     const wiki = await prisma.wiki.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       include: { owner: true }
     })
 
