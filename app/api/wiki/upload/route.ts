@@ -41,7 +41,10 @@ export async function POST(request: NextRequest) {
     if (!user) {
       console.error('Upload API - User not found in database:', session.user.id)
       return NextResponse.json(
-        { success: false, error: 'User not found in database' },
+        { 
+          success: false, 
+          error: 'User not found in database. Please log out and log in again.' 
+        },
         { status: 401 }
       )
     }
