@@ -142,10 +142,14 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewe
 
       const result = await response.json()
 
-      // Update the content and cache
-      setContent(editContent.trim())
+      // Clear cache for this file to force fresh fetch on next load
+      fileContentCache.delete(selectedFile.id)
+      
+      // Update the content and cache with new content
+      const savedContent = editContent.trim()
+      setContent(savedContent)
       fileContentCache.set(selectedFile.id, {
-        content: editContent.trim(),
+        content: savedContent,
         timestamp: Date.now()
       })
 
@@ -229,7 +233,11 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewe
         try {
           console.log(`Fetching file content via slug route: slug=${wiki.slug}, filename=${file.filename}`)
           apiResponse = await fetch(`/api/wiki/${wiki.slug}/file/${encodeURIComponent(file.filename)}`, {
-            cache: 'default'
+            cache: 'no-store', // Always fetch fresh content, bypass browser cache
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            }
           })
           usedAlternativeRoute = true
         } catch (altErr) {
@@ -241,7 +249,11 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewe
       if (!apiResponse || !apiResponse.ok) {
         console.log(`Fetching file content via fileId route: fileId=${file.id}, filename=${file.filename}`)
         apiResponse = await fetch(`/api/wiki/file/${file.id}`, {
-          cache: 'default'
+          cache: 'no-store', // Always fetch fresh content, bypass browser cache
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
         })
         usedAlternativeRoute = false
       }
@@ -298,7 +310,11 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewe
         if (file.url) {
           try {
             const response = await fetch(file.url, {
-              cache: 'default'
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
+              }
             })
 
             if (response.ok) {
@@ -345,10 +361,14 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [] }: WikiViewe
 
     try {
       setPrefetchingFile(file.id)
-      // Use low priority fetch with cache
-      const apiResponse = await fetch(`/api/wiki/file/${file.id}`, {
-        cache: 'default'
-      })
+        // Use low priority fetch, but still bypass cache to get fresh content
+        const apiResponse = await fetch(`/api/wiki/file/${file.id}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        })
 
       if (apiResponse.ok) {
         const result = await apiResponse.json()

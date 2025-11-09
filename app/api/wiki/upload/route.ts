@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { R2StorageService } from '@/lib/storage/r2'
 import { prisma } from '@/lib/database'
 
 export async function POST(request: NextRequest) {
   try {
+    // Get the current session
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     // Parse form data
     const formData = await request.formData()
     const files = formData.getAll('files') as File[]
@@ -119,7 +129,7 @@ export async function POST(request: NextRequest) {
         title,
         slug,
         description: `Wiki: ${title}`,
-        folderName: slug
+        ownerId: session.user.id
       }
     })
 
@@ -129,10 +139,10 @@ export async function POST(request: NextRequest) {
         prisma.wikiFile.create({
           data: {
             wikiId: wiki.id,
-            fileName: file.name,
-            filePath: `${slug}/${file.name}`,
-            fileSize: file.size,
-            contentType: 'text/markdown'
+            filename: file.name,
+            originalName: file.name,
+            size: file.size,
+            url: `${slug}/${file.name}`
           }
         })
       )
@@ -147,8 +157,8 @@ export async function POST(request: NextRequest) {
         description: wiki.description,
         files: fileRecords.map(f => ({
           id: f.id,
-          fileName: f.fileName,
-          fileSize: f.fileSize
+          filename: f.filename,
+          size: f.size
         }))
       }
     }, { status: 201 })

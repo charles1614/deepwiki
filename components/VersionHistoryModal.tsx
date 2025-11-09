@@ -11,7 +11,6 @@ interface WikiVersion {
   createdAt: string
   author: {
     id: string
-    name: string | null
     email: string
   }
 }
@@ -133,13 +132,13 @@ export function VersionHistoryModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="version-history-modal-overlay">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden" data-testid="version-history-modal">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900" data-testid="version-history-modal-title">
                 Version History
               </h2>
               <p className="text-sm text-gray-600 mt-1">
@@ -149,6 +148,7 @@ export function VersionHistoryModal({
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg p-2"
+              data-testid="version-history-modal-close"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -160,25 +160,26 @@ export function VersionHistoryModal({
         {/* Content */}
         <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-8rem)]">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md" data-testid="version-history-error">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
           {loading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-8" data-testid="version-history-loading">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           ) : versions.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="text-center py-8" data-testid="version-history-empty">
               <p className="text-gray-500">No version history available</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4" data-testid="version-history-list">
               {versions.map((version) => (
                 <div
                   key={version.id}
                   className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                  data-testid={`version-item-${version.versionNumber}`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -208,7 +209,7 @@ export function VersionHistoryModal({
 
                       <div className="flex items-center space-x-4 text-xs text-gray-500">
                         <span>
-                          By {version.author.name || version.author.email}
+                          By {version.author.email}
                         </span>
                         <span>•</span>
                         <span>{formatDate(version.createdAt)}</span>
@@ -223,6 +224,7 @@ export function VersionHistoryModal({
                           onClick={() => handleRollback(version.id, version.versionNumber)}
                           disabled={rollingBack === version.id}
                           className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          data-testid={`rollback-button-${version.versionNumber}`}
                         >
                           {rollingBack === version.id ? 'Rolling back...' : 'Rollback'}
                         </button>
@@ -244,6 +246,7 @@ export function VersionHistoryModal({
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              data-testid="version-history-modal-close-button"
             >
               Close
             </button>

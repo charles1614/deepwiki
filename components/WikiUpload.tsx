@@ -114,25 +114,6 @@ export function WikiUpload({
     }
   }, [processFiles, allowedFileTypes])
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    // Only trigger if not uploading
-    if (uploading) {
-      return
-    }
-    
-    // Check if click is on a button or interactive element
-    const target = e.target as HTMLElement
-    if (target.tagName === 'BUTTON' || target.closest('button')) {
-      return
-    }
-    
-    // Trigger file input click immediately (synchronous)
-    // Browser security requires this to be triggered by user interaction
-    if (fileInputRef.current) {
-      fileInputRef.current.click()
-    }
-  }, [uploading])
-
   const validateFiles = useCallback(() => {
     if (files.length === 0) {
       setError('Please select at least one file.')
@@ -402,7 +383,6 @@ export function WikiUpload({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onClick={handleClick}
           className={`
             relative border-2 border-dashed rounded-lg p-6 text-center transition-all block
             ${isDragging 

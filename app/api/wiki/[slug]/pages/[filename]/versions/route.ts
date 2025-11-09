@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string; filename: string } }
+  { params }: { params: Promise<{ slug: string; filename: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const { slug, filename } = await params
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -18,7 +18,7 @@ export async function GET(
 
     // Find the wiki by slug
     const wiki = await prisma.wiki.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       include: { owner: true }
     })
 
@@ -46,7 +46,7 @@ export async function GET(
     const file = await prisma.wikiFile.findFirst({
       where: {
         wikiId: wiki.id,
-        filename: params.filename
+        filename
       }
     })
 
@@ -66,7 +66,6 @@ export async function GET(
         author: {
           select: {
             id: true,
-            name: true,
             email: true
           }
         }
@@ -110,10 +109,11 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string; filename: string } }
+  { params }: { params: Promise<{ slug: string; filename: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const { slug, filename } = await params
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -134,7 +134,7 @@ export async function POST(
 
     // Find the wiki by slug
     const wiki = await prisma.wiki.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       include: { owner: true }
     })
 
@@ -162,7 +162,7 @@ export async function POST(
     const file = await prisma.wikiFile.findFirst({
       where: {
         wikiId: wiki.id,
-        filename: params.filename
+        filename
       }
     })
 
