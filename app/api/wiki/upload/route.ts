@@ -14,6 +14,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verify user exists in database
+    if (!session.user.id) {
+      return NextResponse.json(
+        { success: false, error: 'User ID not found in session' },
+        { status: 401 }
+      )
+    }
+
+    // Verify the user exists in the database
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found in database' },
+        { status: 401 }
+      )
+    }
+
     // Parse form data
     const formData = await request.formData()
     const files = formData.getAll('files') as File[]
