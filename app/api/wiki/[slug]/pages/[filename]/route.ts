@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database'
+import { R2StorageService } from '@/lib/storage/r2'
 
 export async function GET(
   request: NextRequest,
@@ -176,7 +177,21 @@ export async function PUT(
     const latestVersion = file.versions[0]
     const newVersionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1
 
-    // Create new version
+    // Upload version content to R2 storage to reduce database pressure
+    const r2Service = new R2StorageService()
+    const r2UploadResult = await r2Service.uploadFileVersion(
+      slug,
+      filename,
+      content,
+      newVersionNumber
+    )
+
+    // Log R2 upload result but don't fail if it fails (database is primary storage)
+    if (!r2UploadResult.success) {
+      console.warn('Failed to upload version to R2, continuing with database storage:', r2UploadResult.error)
+    }
+
+    // Create new version in database (still store content for fast access and backward compatibility)
     const newVersion = await prisma.wikiVersion.create({
       data: {
         fileId: file.id,
@@ -208,7 +223,7 @@ export async function PUT(
       data: { updatedAt: new Date() }
     })
 
-    // Maintain only last 3 versions (cleanup older versions)
+    // Maintain only last 3 versions (cleanup older versions from database and R2)
     const allVersions = await prisma.wikiVersion.findMany({
       where: { fileId: file.id },
       orderBy: { versionNumber: 'desc' }
@@ -216,11 +231,22 @@ export async function PUT(
 
     if (allVersions.length > 3) {
       const versionsToDelete = allVersions.slice(3)
+      
+      // Delete old versions from database
       await prisma.wikiVersion.deleteMany({
         where: {
           id: { in: versionsToDelete.map(v => v.id) }
         }
       })
+
+      // Delete old versions from R2 storage
+      for (const version of versionsToDelete) {
+        const r2DeleteResult = await r2Service.deleteFileVersion(slug, filename, version.versionNumber)
+        if (!r2DeleteResult.success) {
+          // Log but don't fail if R2 deletion fails
+          console.warn(`Failed to delete old version ${version.versionNumber} from R2:`, r2DeleteResult.error)
+        }
+      }
     }
 
     return NextResponse.json({

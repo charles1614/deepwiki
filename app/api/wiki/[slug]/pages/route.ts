@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/database'
+import { R2StorageService } from '@/lib/storage/r2'
 
 export async function POST(
   request: NextRequest,
@@ -103,7 +104,21 @@ export async function POST(
       }
     })
 
-    // Create initial version
+    // Upload initial version to R2 storage to reduce database pressure
+    const r2Service = new R2StorageService()
+    const r2UploadResult = await r2Service.uploadFileVersion(
+      params.slug,
+      finalFilename,
+      content,
+      1
+    )
+
+    // Log R2 upload result but don't fail if it fails (database is primary storage)
+    if (!r2UploadResult.success) {
+      console.warn('Failed to upload initial version to R2, continuing with database storage:', r2UploadResult.error)
+    }
+
+    // Create initial version in database
     const newVersion = await prisma.wikiVersion.create({
       data: {
         fileId: newFile.id,

@@ -138,6 +138,139 @@ export class R2StorageService {
   }
 
   /**
+   * Upload a single file version to R2 storage
+   * Used for storing versioned content to reduce database pressure
+   */
+  async uploadFileVersion(
+    wikiSlug: string,
+    fileName: string,
+    content: string,
+    versionNumber: number
+  ): Promise<UploadResult> {
+    try {
+      // Validate content encoding
+      let contentBuffer: Buffer
+      try {
+        const encoder = new TextEncoder()
+        const decoder = new TextDecoder('utf-8', { fatal: true })
+        const validatedContent = decoder.decode(encoder.encode(content))
+        contentBuffer = Buffer.from(validatedContent, 'utf-8')
+      } catch (encodingError) {
+        console.warn('Invalid UTF-8 in file content, cleaning:', fileName, encodingError)
+        const cleanedContent = content
+          .replace(/[\uFFFD\u0000-\u001F\u007F-\u009F]/g, '')
+          .replace(/[\uFEFF]/g, '')
+        const encoder = new TextEncoder()
+        contentBuffer = Buffer.from(encoder.encode(cleanedContent))
+      }
+
+      // Use versioned path: {slug}/{filename}.v{versionNumber}
+      // Also update the main file path for latest version
+      const versionedKey = `${wikiSlug}/${fileName}.v${versionNumber}`
+      const mainKey = `${wikiSlug}/${fileName}`
+
+      const mimeType = 'text/markdown; charset=utf-8'
+
+      // Upload versioned file
+      const versionCommand = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: versionedKey,
+        Body: contentBuffer,
+        ContentType: mimeType,
+        Metadata: {
+          encoding: 'utf-8',
+          version: versionNumber.toString()
+        }
+      })
+
+      await this.s3Client.send(versionCommand)
+
+      // Also update the main file path with latest version (for backward compatibility)
+      const mainCommand = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: mainKey,
+        Body: contentBuffer,
+        ContentType: mimeType,
+        Metadata: {
+          encoding: 'utf-8',
+          version: versionNumber.toString()
+        }
+      })
+
+      await this.s3Client.send(mainCommand)
+
+      return { success: true, uploadedFiles: [versionedKey, mainKey] }
+    } catch (error) {
+      console.error('Error uploading file version to R2:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error during version upload'
+      }
+    }
+  }
+
+  /**
+   * Get a specific file version from R2 storage
+   */
+  async getFileVersion(
+    wikiSlug: string,
+    fileName: string,
+    versionNumber?: number
+  ): Promise<GetFileResult> {
+    try {
+      let key: string
+      if (versionNumber !== undefined) {
+        // Get specific version
+        key = `${wikiSlug}/${fileName}.v${versionNumber}`
+      } else {
+        // Get latest version (main file)
+        key = `${wikiSlug}/${fileName}`
+      }
+
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key
+      })
+
+      const response = await this.s3Client.send(command)
+
+      if (!response.Body) {
+        return { success: false, error: 'File version not found' }
+      }
+
+      // Convert stream to string with proper UTF-8 validation
+      const chunks = []
+      const stream = response.Body as any
+      for await (const chunk of stream) {
+        chunks.push(chunk)
+      }
+
+      const buffer = Buffer.concat(chunks)
+      let content: string
+
+      try {
+        const decoder = new TextDecoder('utf-8', { fatal: true })
+        content = decoder.decode(buffer)
+      } catch (encodingError) {
+        console.warn('Invalid UTF-8 detected, attempting to clean:', encodingError)
+        const decoder = new TextDecoder('utf-8', { fatal: false })
+        content = decoder.decode(buffer).replace(/[\uFFFD\u0000-\u001F\u007F-\u009F]/g, '')
+      }
+
+      return { success: true, content }
+    } catch (error) {
+      console.error('Error getting file version:', error)
+      if (error instanceof Error && error.message.includes('NoSuchKey')) {
+        return { success: false, error: 'File version not found' }
+      }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error getting file version'
+      }
+    }
+  }
+
+  /**
    * Get a specific file content from R2 storage
    */
   async getWikiFile(wikiSlug: string, fileName: string): Promise<GetFileResult> {
@@ -211,6 +344,32 @@ export class R2StorageService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error listing files'
+      }
+    }
+  }
+
+  /**
+   * Delete a specific file version from R2 storage
+   */
+  async deleteFileVersion(
+    wikiSlug: string,
+    fileName: string,
+    versionNumber: number
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const versionedKey = `${wikiSlug}/${fileName}.v${versionNumber}`
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucketName,
+        Key: versionedKey
+      })
+
+      await this.s3Client.send(command)
+      return { success: true }
+    } catch (error) {
+      console.error('Error deleting file version from R2:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error deleting file version'
       }
     }
   }
