@@ -495,20 +495,22 @@ export function WikiList({
         {/* See More button - show if maxItems is set and there are more items */}
         {maxItems && wikis.length > maxItems && (
           <div
-            className="group relative bg-white border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-150 cursor-pointer flex items-center justify-center"
+            className="group relative bg-white border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-150 cursor-pointer"
             onClick={() => onSeeMore?.()}
             data-testid="see-more-wiki"
           >
-            <div className="p-8 text-center">
-              <div className="text-gray-400 group-hover:text-gray-600 mb-2">
-                <DocumentIcon className="h-8 w-8 mx-auto" />
+            <div className="p-4 h-full flex flex-col justify-center">
+              <div className="mb-3 text-center">
+                <div className="text-gray-400 group-hover:text-gray-600 mb-2">
+                  <DocumentIcon className="h-5 w-5 mx-auto" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-700 mb-1">
+                  See More
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {wikis.length - maxItems} more wiki{wikis.length - maxItems > 1 ? 's' : ''}
+                </p>
               </div>
-              <h3 className="text-base font-semibold text-gray-700 mb-1">
-                See More
-              </h3>
-              <p className="text-sm text-gray-500">
-                {wikis.length - maxItems} more wiki{wikis.length - maxItems > 1 ? 's' : ''}
-              </p>
             </div>
           </div>
         )}
