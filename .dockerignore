@@ -52,9 +52,9 @@ playwright-report
 test-results
 test-screenshots
 
-# Playwright
-.github
-.github/workflows
+# Playwright (but keep GitHub workflows for container build)
+# .github
+# .github/workflows
 
 # Logs
 logs
@@ -122,13 +122,13 @@ temp/
 *.sln
 *.sw?
 
-# Docker
-Dockerfile
+# Docker (keep Dockerfile for container build)
+# Dockerfile
 docker-compose*.yml
 .dockerignore
 
-# CI/CD
-.github
+# CI/CD (keep GitHub for container build)
+# .github
 .gitlab-ci.yml
 .travis.yml
 .circleci

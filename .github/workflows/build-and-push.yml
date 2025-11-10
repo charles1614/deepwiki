@@ -1,0 +1,114 @@
+name: Build and Push to GHCR
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag for the image (optional)'
+        required: false
+        type: string
+        default: ''
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Download Prisma binaries and dependencies
+        run: |
+          # Install all dependencies including dev dependencies for build
+          npm ci
+
+          # Generate Prisma client to ensure all binaries are downloaded
+          npx prisma generate
+
+          # Download Prisma migration engine for offline use
+          npx prisma migrate download || echo "No migrations to download"
+
+          # Ensure Prisma CLI is available and cached
+          mkdir -p ./prisma/binaries
+          cp $(which prisma) ./prisma/binaries/ 2>/dev/null || echo "Prisma binary not found in PATH"
+
+          # List Prisma-related files for debugging
+          find node_modules/@prisma -name "*.node" -type f | head -10 || echo "No .node files found"
+          ls -la node_modules/.prisma/ 2>/dev/null || echo "No .prisma directory found"
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event.inputs.tag != '' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            NEXT_TELEMETRY_DISABLED=1
+
+      - name: Generate SBOM
+        if: github.event_name != 'pull_request'
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Upload SBOM
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+
+      - name: Output image URL
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "🎉 Successfully built and pushed image:"
+          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
+          echo ""
+          echo "To run the container:"
+          echo "docker run -p 3000:3000 \\"
+          echo "  -e DATABASE_URL='postgresql://...' \\"
+          echo "  -e NEXTAUTH_SECRET='your-secret' \\"
+          echo "  -e NEXTAUTH_URL='http://localhost:3000' \\"
+          echo "  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
