@@ -59,7 +59,7 @@ export class R2StorageService {
 
     // Initialize S3 client for R2
     this.s3Client = new S3Client({
-      region: 'auto',
+      region: process.env.CLOUDFLARE_R2_REGION || 'auto',
       endpoint: process.env.CLOUDFLARE_R2_ENDPOINT_URL,
       credentials: {
         accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
