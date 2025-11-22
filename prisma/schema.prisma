@@ -85,3 +85,12 @@ enum Role {
   USER
   ADMIN
 }
+
+model SystemSetting {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}

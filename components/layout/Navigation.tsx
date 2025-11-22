@@ -10,13 +10,16 @@ import {
   MagnifyingGlassIcon,
   Bars3Icon,
   XMarkIcon,
-  ChevronLeftIcon
+  ChevronLeftIcon,
+  ArrowRightOnRectangleIcon,
+  UsersIcon,
+  Cog6ToothIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline'
-import { Input } from '@/components/ui/Input'
+import { signOut } from 'next-auth/react'
+// import { getPublicSystemSettings } from '@/app/actions/public-settings'
 
-interface NavigationProps {
-  className?: string
-}
+// ... existing imports ...
 
 type TabType = 'home' | 'wiki' | 'upload' | 'search'
 
@@ -24,20 +27,50 @@ interface Wiki {
   id: string
   title: string
   slug: string
-  updatedAt: string
+}
+
+interface NavigationProps {
+  className?: string
 }
 
 export function Navigation({ className = '' }: NavigationProps) {
-  const router = useRouter()
   const pathname = usePathname()
+  const router = useRouter()
   const { data: session } = useSession()
-  const [activeTab, setActiveTab] = useState<TabType>('home')
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<Wiki[]>([])
-  const [recentWikis, setRecentWikis] = useState<Wiki[]>([])
+  const [siteName, setSiteName] = useState('DeepWiki')
+  const [activeTab, setActiveTab] = useState('home')
   const [showBackButton, setShowBackButton] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [recentWikis, setRecentWikis] = useState<any[]>([])
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  const isAdmin = session?.user?.role === 'ADMIN'
+
+  const handleLogout = () => {
+    signOut({ callbackUrl: '/login' })
+  }
+  // ... existing state ...
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/public')
+        if (response.ok) {
+          const settings = await response.json()
+          if (settings['site_name']) {
+            setSiteName(settings['site_name'])
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error)
+      }
+    }
+    loadSettings()
+  }, [])
 
   // Determine active tab based on current pathname
   useEffect(() => {
@@ -175,7 +208,7 @@ export function Navigation({ className = '' }: NavigationProps) {
     { id: 'search', label: 'Search', icon: MagnifyingGlassIcon, href: '/search' }
   ]
 
-  
+
   return (
     <nav
       className={`bg-white border-b border-gray-200 shadow-sm ${className}`}
@@ -210,7 +243,7 @@ export function Navigation({ className = '' }: NavigationProps) {
               )}
             </button>
           </div>
-          <h1 className="text-lg font-semibold text-gray-900">DeepWiki</h1>
+          <h1 className="text-lg font-semibold text-gray-900">{siteName}</h1>
           <div className="w-10" /> {/* Spacer for centering */}
         </div>
 
@@ -219,7 +252,7 @@ export function Navigation({ className = '' }: NavigationProps) {
           <div className="flex items-center space-x-8">
             {/* Logo/Brand */}
             <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-gray-900">DeepWiki</h1>
+              <h1 className="text-xl font-bold text-gray-900">{siteName}</h1>
             </div>
 
             {/* Main navigation tabs */}
@@ -230,11 +263,10 @@ export function Navigation({ className = '' }: NavigationProps) {
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id as TabType)}
-                    className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      activeTab === tab.id
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
+                    className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tab.id
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                      }`}
                     role="tab"
                     aria-selected={activeTab === tab.id}
                     aria-controls={`${tab.id}-panel`}
@@ -265,17 +297,87 @@ export function Navigation({ className = '' }: NavigationProps) {
             </div>
           </div>
 
-          {/* User menu indicator */}
+          {/* User menu dropdown */}
           {session && (
-            <div className="flex items-center px-3 py-2 text-sm text-gray-600 mr-4" data-testid="user-menu">
-              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-2">
-                <span className="text-white text-xs font-medium">
-                  {session.user?.email?.charAt(0).toUpperCase()}
+            <div className="relative ml-4" ref={userMenuRef} data-testid="user-menu">
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                aria-expanded={isUserMenuOpen}
+                aria-haspopup="true"
+              >
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-2 shadow-sm">
+                  <span className="text-white text-xs font-medium">
+                    {session.user?.email?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <span className="hidden sm:block text-sm font-medium">
+                  {session.user?.email?.split('@')[0]}
                 </span>
-              </div>
-              <span className="hidden sm:block text-xs">
-                {session.user?.email?.split('@')[0]}
-              </span>
+              </button>
+
+              {/* Dropdown menu */}
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 z-50 origin-top-right transform transition-all duration-200 ease-out">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Signed in as</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{session.user?.email}</p>
+                  </div>
+
+                  <div className="py-1">
+                    {/* Admin Links */}
+                    <div className="px-4 py-2">
+                      <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Admin</p>
+
+                      <button
+                        onClick={() => {
+                          if (isAdmin) {
+                            router.push('/admin/users')
+                            setIsUserMenuOpen(false)
+                          }
+                        }}
+                        disabled={!isAdmin}
+                        className={`group flex w-full items-center px-2 py-2 text-sm rounded-md ${isAdmin
+                          ? 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                          : 'text-gray-400 cursor-not-allowed opacity-60'
+                          }`}
+                        title={!isAdmin ? "Only administrators can manage users" : ""}
+                      >
+                        <UsersIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" aria-hidden="true" />
+                        Manage Users
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (isAdmin) {
+                            router.push('/admin/settings')
+                            setIsUserMenuOpen(false)
+                          }
+                        }}
+                        disabled={!isAdmin}
+                        className={`group flex w-full items-center px-2 py-2 text-sm rounded-md ${isAdmin
+                          ? 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                          : 'text-gray-400 cursor-not-allowed opacity-60'
+                          }`}
+                        title={!isAdmin ? "Only administrators can access system settings" : ""}
+                      >
+                        <Cog6ToothIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" aria-hidden="true" />
+                        System Settings
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-100 py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="group flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 text-red-400 group-hover:text-red-500" aria-hidden="true" />
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -303,11 +405,10 @@ export function Navigation({ className = '' }: NavigationProps) {
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id as TabType)}
-                  className={`flex items-center w-full px-3 py-2 text-base font-medium rounded-md ${
-                    activeTab === tab.id
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                  }`}
+                  className={`flex items-center w-full px-3 py-2 text-base font-medium rounded-md ${activeTab === tab.id
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                    }`}
                   role="tab"
                   aria-selected={activeTab === tab.id}
                   data-testid={`tab-${tab.id}`}
@@ -355,7 +456,7 @@ export function Navigation({ className = '' }: NavigationProps) {
         </div>
       )}
 
-  
+
       {/* Status announcements for screen readers */}
       <div className="sr-only" role="status" aria-live="polite">
         Navigated to {tabs.find(tab => tab.id === activeTab)?.label}

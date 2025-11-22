@@ -8,6 +8,7 @@ import { WithNavigation } from '@/components/layout/WithNavigation'
 import { WikiList } from '@/components/WikiList'
 import { DashboardStats } from '@/components/DashboardStats'
 import { DashboardActivityFeed } from '@/components/DashboardActivityFeed'
+// import { getPublicSystemSettings } from '@/app/actions/public-settings'
 import {
   BookOpenIcon,
   CloudArrowUpIcon,
@@ -17,6 +18,7 @@ import {
   Cog6ToothIcon,
   UsersIcon,
   ArrowPathIcon,
+  LockClosedIcon,
   StarIcon,
   AcademicCapIcon,
   CogIcon
@@ -28,9 +30,12 @@ export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [activityFilter, setActivityFilter] = useState('all')
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [welcomeMessage, setWelcomeMessage] = useState('')
 
   // Get personalized greeting based on time of day
   const getPersonalizedGreeting = () => {
+    if (welcomeMessage) return welcomeMessage
+
     const hour = new Date().getHours()
     const userName = session?.user?.email?.split('@')[0] || 'User'
 
@@ -38,6 +43,23 @@ export default function DashboardPage() {
     if (hour < 17) return `Good afternoon, ${userName}!`
     return `Good evening, ${userName}!`
   }
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/public')
+        if (response.ok) {
+          const settings = await response.json()
+          if (settings['welcome_message']) {
+            setWelcomeMessage(settings['welcome_message'])
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error)
+      }
+    }
+    loadSettings()
+  }, [])
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -67,7 +89,7 @@ export default function DashboardPage() {
     router.push(route)
   }
 
-  
+
   const handleWikiSelect = (wiki: { slug: string }) => {
     // Navigate to the wiki view page
     router.push(`/wiki/${wiki.slug}`)
@@ -165,38 +187,52 @@ export default function DashboardPage() {
                       </div>
                     </button>
 
-                    {/* Admin-only actions */}
-                    {isAdmin && (
-                      <>
-                        <button
-                          onClick={() => handleQuickAction('manage_users', '/admin/users')}
-                          className="flex items-center p-4 bg-gradient-to-br from-gray-50 to-gray-100/30 hover:from-gray-100 hover:to-gray-100/50 rounded-xl border border-gray-200/50 hover:border-gray-300/60 hover:shadow-sm transition-all duration-200 group"
-                          data-testid="action-manage-users"
-                        >
-                          <div className="p-2 bg-white/60 rounded-lg mr-3 group-hover:bg-white/80 transition-colors">
-                            <UsersIcon className="h-5 w-5 text-gray-700" />
-                          </div>
-                          <div className="text-left">
-                            <p className="font-semibold text-gray-900 text-sm">Manage Users</p>
-                            <p className="text-xs text-gray-500 mt-0.5">User accounts and permissions</p>
-                          </div>
-                        </button>
+                    {/* Admin-only actions - visible but disabled for non-admins */}
+                    <button
+                      onClick={() => isAdmin && handleQuickAction('manage_users', '/admin/users')}
+                      disabled={!isAdmin}
+                      className={`flex items-center p-4 rounded-xl border transition-all duration-200 group ${isAdmin
+                        ? 'bg-gradient-to-br from-gray-50 to-gray-100/30 hover:from-gray-100 hover:to-gray-100/50 border-gray-200/50 hover:border-gray-300/60 hover:shadow-sm cursor-pointer'
+                        : 'bg-gray-100/40 border-gray-300/50 cursor-not-allowed'
+                        }`}
+                      title={!isAdmin ? "Only administrators can manage users" : ""}
+                      data-testid="action-manage-users"
+                    >
+                      <div className={`p-2 rounded-lg mr-3 transition-colors ${isAdmin ? 'bg-white/60 group-hover:bg-white/80' : 'bg-white/40'
+                        }`}>
+                        <UsersIcon className={`h-5 w-5 ${isAdmin ? 'text-gray-700' : 'text-gray-400'}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className={`font-semibold text-sm flex items-center gap-2 ${isAdmin ? 'text-gray-900' : 'text-gray-500'}`}>
+                          Manage Users
+                          {!isAdmin && <span className="text-xs font-normal text-gray-400">(Admin Only)</span>}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">User accounts and permissions</p>
+                      </div>
+                    </button>
 
-                        <button
-                          onClick={() => handleQuickAction('system_settings', '/admin/settings')}
-                          className="flex items-center p-4 bg-gradient-to-br from-gray-50 to-gray-100/30 hover:from-gray-100 hover:to-gray-100/50 rounded-xl border border-gray-200/50 hover:border-gray-300/60 hover:shadow-sm transition-all duration-200 group"
-                          data-testid="action-system-settings"
-                        >
-                          <div className="p-2 bg-white/60 rounded-lg mr-3 group-hover:bg-white/80 transition-colors">
-                            <Cog6ToothIcon className="h-5 w-5 text-gray-700" />
-                          </div>
-                          <div className="text-left">
-                            <p className="font-semibold text-gray-900 text-sm">System Settings</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Configure system options</p>
-                          </div>
-                        </button>
-                      </>
-                    )}
+                    <button
+                      onClick={() => isAdmin && handleQuickAction('system_settings', '/admin/settings')}
+                      disabled={!isAdmin}
+                      className={`flex items-center p-4 rounded-xl border transition-all duration-200 group ${isAdmin
+                        ? 'bg-gradient-to-br from-gray-50 to-gray-100/30 hover:from-gray-100 hover:to-gray-100/50 border-gray-200/50 hover:border-gray-300/60 hover:shadow-sm cursor-pointer'
+                        : 'bg-gray-100/40 border-gray-300/50 cursor-not-allowed'
+                        }`}
+                      title={!isAdmin ? "Only administrators can access system settings" : ""}
+                      data-testid="action-system-settings"
+                    >
+                      <div className={`p-2 rounded-lg mr-3 transition-colors ${isAdmin ? 'bg-white/60 group-hover:bg-white/80' : 'bg-white/40'
+                        }`}>
+                        <Cog6ToothIcon className={`h-5 w-5 ${isAdmin ? 'text-gray-700' : 'text-gray-400'}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className={`font-semibold text-sm flex items-center gap-2 ${isAdmin ? 'text-gray-900' : 'text-gray-500'}`}>
+                          System Settings
+                          {!isAdmin && <span className="text-xs font-normal text-gray-400">(Admin Only)</span>}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">Configure system options</p>
+                      </div>
+                    </button>
                   </div>
                 </div>
               </div>

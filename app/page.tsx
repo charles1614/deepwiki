@@ -8,18 +8,35 @@ import { WithNavigation } from '@/components/layout/WithNavigation'
 import { WikiUpload } from '@/components/WikiUpload'
 import { WikiList } from '@/components/WikiList'
 import { CloudArrowUpIcon, BookOpenIcon } from '@heroicons/react/24/outline'
+// import { getPublicSystemSettings } from '@/app/actions/public-settings'
 
 export default function Home() {
   const router = useRouter()
   const { data: session } = useSession()
   const [refreshKey, setRefreshKey] = useState(0)
   const [recentWikis, setRecentWikis] = useState<any[]>([])
+  const [welcomeMessage, setWelcomeMessage] = useState('Welcome to DeepWiki')
 
-  // Fetch recent wikis on component mount and when refresh key changes
+  // Fetch recent wikis and settings on component mount
   useEffect(() => {
-    if (session) {
-      fetchRecentWikis()
+    const loadData = async () => {
+      if (session) {
+        fetchRecentWikis()
+      }
+
+      try {
+        const response = await fetch('/api/settings/public')
+        if (response.ok) {
+          const settings = await response.json()
+          if (settings['welcome_message']) {
+            setWelcomeMessage(settings['welcome_message'])
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error)
+      }
     }
+    loadData()
   }, [session, refreshKey])
 
   const fetchRecentWikis = async () => {
@@ -60,7 +77,7 @@ export default function Home() {
           {/* Welcome Message */}
           <div className="mb-8" data-testid="welcome-message">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome to DeepWiki
+              {welcomeMessage}
             </h1>
             <p className="text-lg text-gray-600">
               Upload your markdown files to create beautiful, searchable documentation with interactive diagrams.
