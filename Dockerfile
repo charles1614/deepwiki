@@ -28,7 +28,8 @@ RUN mkdir -p ./prisma-binaries && \
 
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+# Skip ISR data collection during build to avoid database connection requirement
+RUN NEXT_BUILD_SKIP_DATA_COLLECTION=true npm run build
 
 # Ensure public directory exists (may be required by Next.js standalone output)
 RUN mkdir -p ./public
