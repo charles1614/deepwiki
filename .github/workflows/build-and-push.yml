@@ -29,7 +29,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Download Prisma binaries and dependencies
@@ -40,8 +40,7 @@ jobs:
           # Generate Prisma client to ensure all binaries are downloaded
           npx prisma generate
 
-          # Download Prisma migration engine for offline use
-          npx prisma migrate download || echo "No migrations to download"
+          # Note: Prisma migration binaries are included in client generation
 
           # Ensure Prisma CLI is available and cached
           mkdir -p ./prisma/binaries

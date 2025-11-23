@@ -1,5 +1,5 @@
 # Multi-stage build for optimized offline deployment
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache libc6-compat python3 make g++ git
@@ -19,8 +19,7 @@ COPY . .
 # Generate Prisma client (this downloads all necessary binaries)
 RUN npx prisma generate
 
-# Pre-download Prisma migration engine for offline use
-RUN npx prisma migrate download || echo "No migrations to download"
+# Note: Prisma migration binaries are included in client generation
 
 # Copy Prisma binaries to ensure they're available in final image
 RUN mkdir -p ./prisma-binaries && \
@@ -35,7 +34,7 @@ RUN npm run build
 RUN mkdir -p ./public
 
 # Production stage
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 
 # Install runtime dependencies
 RUN apk add --no-cache libc6-compat openssl dumb-init
