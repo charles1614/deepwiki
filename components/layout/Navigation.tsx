@@ -51,7 +51,7 @@ export function Navigation({ className = '' }: NavigationProps) {
   const isAdmin = session?.user?.role === 'ADMIN'
 
   const handleLogout = () => {
-    signOut({ callbackUrl: '/login' })
+    signOut({ callbackUrl: `${window.location.origin}/login` })
   }
   // ... existing state ...
 
