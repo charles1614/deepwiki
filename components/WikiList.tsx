@@ -44,7 +44,7 @@ export function WikiList({
   const [wikis, setWikis] = useState<Wiki[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(15)
@@ -372,11 +372,10 @@ export function WikiList({
       {/* Messages */}
       {deleteMessage && (
         <div
-          className={`p-4 rounded-lg flex items-center space-x-3 ${
-            deleteMessage.type === 'error'
+          className={`p-4 rounded-lg flex items-center space-x-3 ${deleteMessage.type === 'error'
               ? 'bg-red-50 border border-red-200 text-red-700'
               : 'bg-green-50 border border-green-200 text-green-700'
-          }`}
+            }`}
           data-testid={deleteMessage.type === 'error' ? 'delete-error-message' : 'delete-success-message'}
         >
           {deleteMessage.type === 'error' ? (
@@ -408,13 +407,11 @@ export function WikiList({
         })().map((wiki) => (
           <div
             key={wiki.id}
-            className={`group relative bg-white border rounded-lg transition-all duration-150 ${
-              isManageMode
+            className={`group relative bg-white border rounded-lg transition-all duration-150 ${isManageMode
                 ? 'border-gray-300 hover:border-gray-400'
                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-            } ${selectedWikis.has(wiki.id) ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' : ''} ${
-              !isManageMode ? 'cursor-pointer' : ''
-            }`}
+              } ${selectedWikis.has(wiki.id) ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' : ''} ${!isManageMode ? 'cursor-pointer' : ''
+              }`}
             onClick={(e) => handleWikiClick(wiki, e)}
             onMouseEnter={() => handleWikiHover(wiki)}
             data-testid="wiki-item"
@@ -556,9 +553,9 @@ export function WikiList({
                   .filter(page => {
                     // Show first page, last page, current page, and pages around current
                     const totalPages = Math.ceil(wikis.length / itemsPerPage)
-                    return page === 1 || 
-                           page === totalPages || 
-                           (page >= currentPage - 1 && page <= currentPage + 1)
+                    return page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
                   })
                   .map((page, index, array) => {
                     // Add ellipsis if there's a gap
@@ -570,11 +567,10 @@ export function WikiList({
                         )}
                         <button
                           onClick={() => setCurrentPage(page)}
-                          className={`px-3 py-1.5 text-sm border rounded-md transition-colors ${
-                            currentPage === page
+                          className={`px-3 py-1.5 text-sm border rounded-md transition-colors ${currentPage === page
                               ? 'bg-blue-600 text-white border-blue-600'
                               : 'border-gray-300 hover:bg-gray-50'
-                          }`}
+                            }`}
                           data-testid={`page-button-${page}`}
                         >
                           {page}

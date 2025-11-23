@@ -141,7 +141,7 @@ export function markAsTestData(data: { title?: string; slug?: string; email?: st
   }
 
   if (data.email) {
-    marked.email = data.email.includes('@') 
+    marked.email = data.email.includes('@')
       ? data.email.replace('@', '@test.')
       : `test-${data.email}`
   }

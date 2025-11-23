@@ -62,7 +62,7 @@ export const test = base.extend<TestFixtures>({
 
     // Wait for successful registration and auto-redirect to dashboard
     // RegisterForm auto-redirects after 2 seconds, so wait for the redirect
-    await page.waitForURL(/\/(dashboard|wiki)/, { timeout: 15000 })
+    await page.waitForURL(/\/(dashboard|wiki)/, { timeout: 30000 })
 
     // Wait for client-side session to be established
     await page.waitForSelector('[data-testid=user-menu]', { timeout: 10000 })

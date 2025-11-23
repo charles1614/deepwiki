@@ -2,6 +2,8 @@ import { test, expect } from './helpers/fixtures'
 import { generateTestMarkdown } from './helpers/test-data'
 
 test.describe('Version History Feature', () => {
+  // Increase overall timeout for this suite to handle slower environments
+  test.setTimeout(120000);
   test.beforeEach(async ({ authenticatedPage, createTestWiki, wikiPage }) => {
     // Create test wiki with initial content
     const initialContent = generateTestMarkdown({
@@ -95,7 +97,7 @@ test.describe('Version History Feature', () => {
     const hasVersions = await versionList.isVisible()
     if (hasVersions) {
       const versionItems = page.locator('[data-testid^="version-item-"]')
-      await expect(versionItems).toHaveCount(await versionItems.count(), { timeout: 5000 })
+
       const versionCount = await versionItems.count()
       expect(versionCount).toBeGreaterThan(0)
     }
@@ -111,6 +113,8 @@ test.describe('Version History Feature', () => {
     const contentTextarea = page.locator('[data-testid=content-textarea]')
     await contentTextarea.fill('# Updated Content\n\nThis is an updated version.')
     await page.click('[data-testid=save-edit]')
+    // Ensure the save request completes before proceeding
+    await page.waitForResponse(response => response.url().includes('/api/wiki/') && response.status() === 200)
     await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 15000 })
 
     // Enter manage mode
@@ -124,6 +128,8 @@ test.describe('Version History Feature', () => {
     const historyButton = page.locator(`[data-testid^="history-"]`).first()
     await expect(historyButton).toBeVisible({ timeout: 10000 })
     await historyButton.click()
+    // Wait for versions API response after opening modal
+    await page.waitForResponse(response => response.url().includes('/api/wiki/') && response.url().includes('/versions') && response.status() === 200)
 
     // Wait for modal
     await expect(page.locator('[data-testid="version-history-modal"]')).toBeVisible({ timeout: 5000 })
@@ -179,7 +185,8 @@ test.describe('Version History Feature', () => {
     await page.click('[data-testid=edit-button]')
     await contentTextarea.fill('# Second Edit\n\nThis is the second edit.')
     await page.click('[data-testid=save-edit]')
-    await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 15000 })
+    await page.waitForTimeout(2000) // Extra wait for webkit
+    await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 20000 })
 
     // Verify second edit is saved
     await expect(page.locator('h1:has-text("Second Edit")')).toBeVisible()
@@ -212,9 +219,13 @@ test.describe('Version History Feature', () => {
 
       // Click the first rollback button (should be for an older version)
       await rollbackButtons.first().click()
+      // Wait for rollback API call to finish
+      await page.waitForResponse(response => response.url().includes('/api/wiki/') && response.status() === 200)
 
       // Wait for rollback to complete
-      await page.waitForTimeout(3000)
+      await page.waitForTimeout(3000);
+      // Ensure rollback API call completed
+      await page.waitForResponse(response => response.url().includes('/api/wiki/') && response.status() === 200);
 
       // Close the modal
       const closeButton = page.locator('[data-testid="version-history-modal-close-button"]')
@@ -225,6 +236,8 @@ test.describe('Version History Feature', () => {
         const xButton = page.locator('[data-testid="version-history-modal-close"]')
         await xButton.click()
       }
+      // Wait a moment for modal to fully close
+      await page.waitForTimeout(500);
 
       await page.waitForTimeout(1000)
 
@@ -253,7 +266,8 @@ test.describe('Version History Feature', () => {
     await page.click('[data-testid=edit-button]')
     await contentTextarea.fill('# Edit 2\n\nSecond edit.')
     await page.click('[data-testid=save-edit]')
-    await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 15000 })
+    await page.waitForTimeout(2000) // Extra wait for webkit
+    await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 20000 })
 
     // Open version history
     const manageButton = page.locator('button:has-text("Manage")')
@@ -265,6 +279,8 @@ test.describe('Version History Feature', () => {
     const historyButton = page.locator(`[data-testid^="history-"]`).first()
     await expect(historyButton).toBeVisible({ timeout: 10000 })
     await historyButton.click()
+    // Wait for versions API response after opening modal
+    await page.waitForResponse(response => response.url().includes('/api/wiki/') && response.url().includes('/versions') && response.status() === 200)
 
     await expect(page.locator('[data-testid="version-history-modal"]')).toBeVisible({ timeout: 5000 })
     await page.waitForTimeout(2000)

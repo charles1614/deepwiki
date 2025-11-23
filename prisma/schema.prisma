@@ -11,6 +11,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Increase connection pool for parallel E2E tests
+  // shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model User {

@@ -35,7 +35,7 @@ export class WikiPage {
    * Navigate to a wiki by slug
    */
   async goto(slug: string): Promise<void> {
-    await this.page.goto(`/wiki/${slug}`, { waitUntil: 'networkidle' })
+    await this.page.goto(`/wiki/${slug}`, { waitUntil: 'load' })
     await this.waitForLoad()
   }
 
@@ -133,7 +133,7 @@ export class WikiPage {
     const historyButton = fileId
       ? this.page.locator(`[data-testid="history-${fileId}"]`)
       : this.page.locator('[data-testid^="history-"]').first()
-    
+
     await expect(historyButton).toBeVisible({ timeout: 10000 })
     await historyButton.click()
   }
