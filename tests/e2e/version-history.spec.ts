@@ -1,109 +1,26 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './helpers/fixtures'
+import { generateTestMarkdown } from './helpers/test-data'
 
 test.describe('Version History Feature', () => {
-  let testUserEmail: string
-  let testWikiSlug: string
-  let testFileId: string
-
-  test.beforeEach(async ({ page, request }) => {
-    // Clear any existing session
-    await page.context().clearCookies()
-
-    // Generate unique email for each test run
-    const timestamp = Date.now()
-    testUserEmail = `testuser${timestamp}@example.com`
-
-    // Register and login
-    await page.goto('/register')
-    await page.fill('[data-testid=email]', testUserEmail)
-    await page.fill('[data-testid=password]', 'Password123!')
-    await page.fill('[data-testid=confirmPassword]', 'Password123!')
-    await page.click('[data-testid=register-button]')
-    
-    // Wait for registration success
-    await expect(page.locator('text=/Account created successfully/i')).toBeVisible({
-      timeout: 10000
+  test.beforeEach(async ({ authenticatedPage, createTestWiki, wikiPage }) => {
+    // Create test wiki with initial content
+    const initialContent = generateTestMarkdown({
+      title: 'Test Wiki for Version History',
+      sections: 2,
     })
 
-    // Navigate to login if not auto-redirected
-    try {
-      await page.waitForURL('/wiki', { timeout: 3000 })
-    } catch {
-      await page.goto('/login')
-      await page.fill('[data-testid=email]', testUserEmail)
-      await page.fill('[data-testid=password]', 'Password123!')
-      await page.click('[data-testid=login-button]')
-      await expect(page).toHaveURL(/\/(dashboard|wiki)/, { timeout: 10000 })
-    }
+    const { slug } = await createTestWiki(initialContent)
 
-    // Get session cookies for API requests
-    const cookies = await page.context().cookies()
-    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
-
-    // Initial content for the wiki
-    const initialContent = `# Test Wiki for Version History
-
-This is the initial content of the test wiki.
-
-## Section 1
-
-Initial section content.
-`
-
-    // Generate unique wiki slug
-    testWikiSlug = `test-wiki-version-history-${timestamp}`
-
-    // Create wiki and page via test helper API (bypasses R2 storage)
-    const createWikiResponse = await request.post('http://localhost:3000/api/test-helper/create-wiki', {
-      headers: {
-        'Cookie': cookieHeader,
-        'Content-Type': 'application/json'
-      },
-      data: {
-        title: 'Test Wiki for Version History',
-        slug: testWikiSlug,
-        content: initialContent
-      }
-    })
-
-    if (!createWikiResponse.ok()) {
-      throw new Error(`Failed to create test wiki: ${await createWikiResponse.text()}`)
-    }
-
-    const wikiData = await createWikiResponse.json()
-    if (wikiData.files && wikiData.files.length > 0) {
-      testFileId = wikiData.files[0].id
-    }
-
-    // Navigate to the wiki
-    await page.goto(`/wiki/${testWikiSlug}`, { waitUntil: 'networkidle' })
-
-    // Wait for wiki page to be fully loaded
-    await page.waitForSelector('body', { timeout: 10000 })
-    await page.waitForSelector('[data-testid=file-list]', { timeout: 15000 })
-    await page.waitForSelector('[data-testid=markdown-content]', { timeout: 15000 })
+    // Navigate to the wiki using page object
+    await wikiPage.goto(slug)
   })
 
-  test('should open version history modal when clicking history button', async ({ page }) => {
-    // Wait for file list to be visible
-    await expect(page.locator('[data-testid=file-list]')).toBeVisible()
+  test('should open version history modal when clicking history button', async ({ wikiPage, page }) => {
+    // Enter manage mode if needed
+    await wikiPage.enterManageMode()
 
-    // Find the history button (it should be visible in manage mode or in the file list)
-    // First, try to find it in the file list
-    const historyButton = page.locator(`[data-testid^="history-"]`).first()
-    
-    // If not visible, we might need to enter manage mode first
-    const manageButton = page.locator('button:has-text("Manage")')
-    if (await manageButton.isVisible()) {
-      await manageButton.click()
-      await page.waitForTimeout(500) // Wait for manage mode to activate
-    }
-
-    // Wait for history button to be visible
-    await expect(historyButton).toBeVisible({ timeout: 10000 })
-
-    // Click the history button
-    await historyButton.click()
+    // Click history button using page object
+    await wikiPage.clickHistoryButton()
 
     // Verify version history modal is opened
     await expect(page.locator('[data-testid="version-history-modal"]')).toBeVisible({ timeout: 5000 })
@@ -151,32 +68,17 @@ Initial section content.
     }
   })
 
-  test('should create new version when editing and saving', async ({ page }) => {
-    // First, make an edit to create a new version
-    await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 10000 })
-    await page.click('[data-testid=edit-button]')
-
-    // Modify content
-    const contentTextarea = page.locator('[data-testid=content-textarea]')
-    await contentTextarea.fill('# Test Wiki for Version History\n\nThis is the first edit.\n\n## Section 1\n\nUpdated section content.')
+  test('should create new version when editing and saving', async ({ wikiPage, page }) => {
+    // Enter edit mode and make changes
+    await wikiPage.enterEditMode()
+    await wikiPage.editContent('# Test Wiki for Version History\n\nThis is the first edit.\n\n## Section 1\n\nUpdated section content.')
 
     // Save the edit
-    await page.click('[data-testid=save-edit]')
+    await wikiPage.exitEditMode('save')
 
-    // Wait for save to complete
-    await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 15000 })
-
-    // Enter manage mode to access history button
-    const manageButton = page.locator('button:has-text("Manage")')
-    if (await manageButton.isVisible()) {
-      await manageButton.click()
-      await page.waitForTimeout(500)
-    }
-
-    // Open version history
-    const historyButton = page.locator(`[data-testid^="history-"]`).first()
-    await expect(historyButton).toBeVisible({ timeout: 10000 })
-    await historyButton.click()
+    // Enter manage mode and open version history
+    await wikiPage.enterManageMode()
+    await wikiPage.clickHistoryButton()
 
     // Wait for modal to open
     await expect(page.locator('[data-testid="version-history-modal"]')).toBeVisible({ timeout: 5000 })

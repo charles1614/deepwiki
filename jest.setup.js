@@ -1,136 +1,49 @@
 import '@testing-library/jest-dom'
 
+// Import custom matchers
+import './tests/unit/utils/matchers'
+
 // Polyfill setImmediate for Jest/Node environment
 global.setImmediate = (fn) => setTimeout(fn, 0)
 
-// Mock marked library globally to prevent ES module issues
-jest.mock('marked', () => {
-  const markedFn = jest.fn((markdown, options) => {
-    // Default markdown parsing
-    let html = markdown
+// Use manual mocks from __mocks__ directory
+// Jest automatically finds and uses __mocks__/marked.js, __mocks__/mermaid.js, etc.
+jest.mock('marked')
+jest.mock('mermaid')
+jest.mock('dompurify')
 
-    // Handle code blocks FIRST (before inline code)
-    html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-      if (lang === 'mermaid') {
-        return `<div class="mermaid my-6">${code.trim()}</div>`
-      }
-      return `<pre class="prose-pre"><code class="prose-code">${code.trim()}</code></pre>`
-    })
-
-    // Handle other markdown elements with proper typography classes
-    html = html
-      .replace(/^#### (.+)$/gm, '<h4 class="heading-4 prose-headings">$1</h4>')
-      .replace(/^##### (.+)$/gm, '<h5 class="heading-5 prose-headings">$1</h5>')
-      .replace(/^###### (.+)$/gm, '<h6 class="heading-6 prose-headings">$1</h6>')
-      .replace(/^### (.+)$/gm, '<h3 class="heading-3 prose-headings">$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2 class="heading-2 prose-headings">$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1 class="heading-1 prose-headings">$1</h1>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code class="prose-code">$1</code>')
-      .replace(/^> (.+)$/gm, '<blockquote class="prose-blockquote">$1</blockquote>')
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="prose-a" data-hover-styles>$1</a>')
-
-    // Handle complex patterns after basic replacements
-
-    // Handle tables - simple implementation for tests
-    html = html.replace(/^\|(.+)\|$\n^\|(.+)\|$\n((?:\|.+\|$)*)/gm, (match, header, separator, rows) => {
-      const headerCells = header.split('|').map(cell => cell.trim()).filter(cell => cell)
-      const bodyRows = rows.split('\n').filter(row => row.trim()).map(row => {
-        const cells = row.replace(/^\|(.+)\|$/, '$1').split('|').map(cell => cell.trim()).filter(cell => cell)
-        return '<tr>' + cells.map(cell => `<td class="prose-td">${cell}</td>`).join('') + '</tr>'
-      }).join('')
-      const headerRow = '<thead><tr>' + headerCells.map(cell => `<th class="prose-th">${cell}</th>`).join('') + '</tr></thead>'
-      const tbody = bodyRows ? `<tbody>${bodyRows}</tbody>` : ''
-      return `<table class="prose-table">${headerRow}${tbody}</table>`
-    })
-
-    // Handle ordered lists
-    html = html.replace(/^(\d+\..+(?:\n\d+\..+)*)$/gm, (match) => {
-      const items = match.split('\n').map(item =>
-        item.replace(/^\d+\.\s/, '<li class="prose-li">') + '</li>'
-      ).join('')
-      return `<ol class="prose-ol">${items}</ol>`
-    })
-
-    // Handle unordered lists
-    html = html.replace(/^(-[^*\n].+(?:\n-[^*\n].+)*)$/gm, (match) => {
-      const items = match.split('\n').map(item =>
-        item.replace(/^-\s/, '<li class="prose-li">') + '</li>'
-      ).join('')
-      return `<ul class="prose-ul">${items}</ul>`
-    })
-
-    // Handle paragraphs - wrap remaining text in paragraphs
-    html = html.replace(/\n\n/g, '</p><p class="prose-p">')
-    html = '<p class="prose-p">' + html + '</p>'
-
-    return html
-  })
-
-  markedFn.use = jest.fn()
-  markedFn.parse = jest.fn((markdown) => markedFn(markdown)) // Add parse method alias
-  markedFn.Marked = jest.fn().mockImplementation(() => ({
-    parse: jest.fn((markdown) => markedFn(markdown)),
-    use: jest.fn()
-  }))
-
-  return {
-    marked: markedFn,
-    Marked: jest.fn().mockImplementation(() => ({
-      parse: jest.fn((markdown) => markedFn(markdown)),
-      use: jest.fn()
-    }))
-  }
-})
-
-// Mock mermaid library
-jest.mock('mermaid', () => ({
-  default: {
-    initialize: jest.fn(),
-    run: jest.fn().mockResolvedValue(undefined),
-    init: jest.fn(),
-    render: jest.fn().mockResolvedValue({ svg: '<svg>Mock SVG</svg>' })
-  }
-}))
-
-// Mock DOMPurify
-jest.mock('dompurify', () => ({
-  sanitize: jest.fn((html) => html)
-}))
-
-// Mock next-auth/react
+// Mock next-auth/react (can be overridden in individual tests)
 jest.mock('next-auth/react', () => ({
   SessionProvider: ({ children }) => children,
   useSession: jest.fn(() => ({
-    data: { user: { name: 'Test User', email: 'test@example.com' } },
+    data: { 
+      user: { 
+        id: 'test-user-id',
+        name: 'Test User', 
+        email: 'test@example.com',
+        role: 'USER'
+      } 
+    },
     status: 'authenticated',
   })),
   signIn: jest.fn(),
   signOut: jest.fn(),
 }))
 
-// Mock next/navigation
+// Mock next/navigation (can be overridden in individual tests)
+const mockRouter = {
+  push: jest.fn(),
+  replace: jest.fn(),
+  prefetch: jest.fn(),
+  back: jest.fn(),
+  refresh: jest.fn(),
+}
+
 jest.mock('next/navigation', () => ({
-  useRouter() {
-    return {
-      push: jest.fn(),
-      replace: jest.fn(),
-      prefetch: jest.fn(),
-      back: jest.fn(),
-      refresh: jest.fn(),
-    }
-  },
-  useSearchParams() {
-    return new URLSearchParams()
-  },
-  usePathname() {
-    return ''
-  },
-  useParams() {
-    return {}
-  }
+  useRouter: () => mockRouter,
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => '',
+  useParams: () => ({}),
 }))
 
 // Mock ReadableStream first

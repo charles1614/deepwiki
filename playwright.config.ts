@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { test as base } from './tests/e2e/helpers/fixtures'
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -12,19 +13,38 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Run tests in parallel - use more workers for faster execution */
-  workers: process.env.CI ? 1 : 8, // Use 8 workers in development, 1 in CI for stability
+  workers: process.env.CI ? 1 : 4, // Reduced from 8 to 4 for better stability
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter: process.env.CI 
+    ? [['html'], ['json', { outputFile: 'test-results/results.json' }]]
+    : 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: 'http://localhost:3000',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    trace: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
+    
+    /* Screenshot on failure */
+    screenshot: 'only-on-failure',
+    
+    /* Video on failure */
+    video: 'retain-on-failure',
+    
+    /* Action timeout */
+    actionTimeout: 10000,
+    
+    /* Navigation timeout */
+    navigationTimeout: 30000,
   },
   /* Global setup to handle polyfills */
   globalSetup: require.resolve('./tests/e2e/setup.ts'),
+  
+  /* Expect timeout */
+  expect: {
+    timeout: 10000,
+  },
   
   /* Configure projects for major browsers */
   projects: [
