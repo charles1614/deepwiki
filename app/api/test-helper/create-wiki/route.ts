@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, slug, content } = body
+    const { title, slug, content, isPublic } = body
 
     if (!title || !slug || !content) {
       return NextResponse.json(
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
         title,
         slug,
         description: `Test Wiki: ${title}`,
+        isPublic: isPublic ?? false, // Default to private for test wikis
         ownerId: session.user.id,
       }
     })
@@ -73,11 +74,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      slug: wiki.slug, // For compatibility with tests
       data: {
         wiki: {
           id: wiki.id,
           title: wiki.title,
           slug: wiki.slug,
+          isPublic: wiki.isPublic,
         },
         file: {
           id: file.id,
@@ -87,7 +90,13 @@ export async function POST(request: NextRequest) {
           id: version.id,
           versionNumber: version.versionNumber,
         }
-      }
+      },
+      files: [ // For compatibility with existing tests
+        {
+          id: file.id,
+          filename: file.filename,
+        }
+      ]
     })
 
   } catch (error) {

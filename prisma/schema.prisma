@@ -34,6 +34,7 @@ model Wiki {
   title       String
   slug        String   @unique
   description String?
+  isPublic    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   ownerId     String
@@ -42,6 +43,7 @@ model Wiki {
   files       WikiFile[]
 
   @@map("wikis")
+  @@index([isPublic])
 }
 
 model WikiFile {

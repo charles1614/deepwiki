@@ -5,7 +5,9 @@ import {
   TrashIcon,
   CheckIcon,
   ExclamationTriangleIcon,
-  DocumentIcon
+  DocumentIcon,
+  GlobeAltIcon,
+  LockClosedIcon
 } from '@heroicons/react/24/outline'
 
 interface Wiki {
@@ -13,6 +15,8 @@ interface Wiki {
   title: string
   slug: string
   description: string
+  isPublic: boolean
+  ownerId?: string
   createdAt: string
   updatedAt: string
   _count: {
@@ -441,9 +445,32 @@ export function WikiList({
 
                     {/* Wiki Metadata */}
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className="flex items-center space-x-1">
-                        <DocumentIcon className="h-3 w-3" />
-                        <span>{wiki._count.files} files</span>
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-1">
+                          <DocumentIcon className="h-3 w-3" />
+                          <span>{wiki._count.files} files</span>
+                        </div>
+                        <div
+                          data-testid={`wiki-card-${wiki.slug}`}
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                            wiki.isPublic
+                              ? 'bg-green-100 text-green-800 border border-green-200'
+                              : 'bg-gray-100 text-gray-800 border border-gray-200'
+                          }`}
+                          data-testid="wiki-privacy-indicator"
+                        >
+                          {wiki.isPublic ? (
+                            <>
+                              <GlobeAltIcon className="w-3 h-3 mr-0.5" />
+                              <span>Public</span>
+                            </>
+                          ) : (
+                            <>
+                              <LockClosedIcon className="w-3 h-3 mr-0.5" />
+                              <span>Private</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <div>
                         {formatDate(wiki.createdAt)}
@@ -470,9 +497,32 @@ export function WikiList({
 
                   {/* Wiki Metadata */}
                   <div className="flex items-center justify-between text-xs text-gray-500">
-                    <div className="flex items-center space-x-1">
-                      <DocumentIcon className="h-3 w-3" />
-                      <span>{wiki._count.files} files</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
+                        <DocumentIcon className="h-3 w-3" />
+                        <span>{wiki._count.files} files</span>
+                      </div>
+                      <div
+                        data-testid={`wiki-card-${wiki.slug}`}
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                          wiki.isPublic
+                            ? 'bg-green-100 text-green-800 border border-green-200'
+                            : 'bg-gray-100 text-gray-800 border border-gray-200'
+                        }`}
+                        data-testid="wiki-privacy-indicator"
+                      >
+                        {wiki.isPublic ? (
+                          <>
+                            <GlobeAltIcon className="w-3 h-3 mr-0.5" />
+                            <span>Public</span>
+                          </>
+                        ) : (
+                          <>
+                            <LockClosedIcon className="w-3 h-3 mr-0.5" />
+                            <span>Private</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div>
                       {formatDate(wiki.createdAt)}

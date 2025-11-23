@@ -11,6 +11,8 @@ interface Wiki {
   title: string
   slug: string
   description: string
+  isPublic: boolean
+  ownerId?: string
   createdAt: string
   updatedAt: string
 }
@@ -22,10 +24,11 @@ export default function WikiViewPage() {
   const [files, setFiles] = useState<any[]>([])
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [requireAuth, setRequireAuth] = useState(false)
 
   const fetchWiki = useCallback(async () => {
     if (!params.slug) return
-    
+
     try {
       setInitialLoading(true)
       setError(null)
@@ -41,6 +44,9 @@ export default function WikiViewPage() {
       if (!response.ok) {
         if (response.status === 404) {
           setError('Wiki not found')
+        } else if (response.status === 403) {
+          setError('Access denied: This wiki is private')
+          setRequireAuth(true)
         } else {
           setError('Failed to load wiki')
         }
@@ -53,6 +59,10 @@ export default function WikiViewPage() {
       if (result.success) {
         setWiki(result.wiki)
         setFiles(result.wiki.files || [])
+        // If wiki is private, require authentication
+        if (!result.wiki.isPublic) {
+          setRequireAuth(true)
+        }
         // Immediately render WikiViewer once we have wiki and files metadata
         setInitialLoading(false)
       } else {
@@ -75,55 +85,61 @@ export default function WikiViewPage() {
 
   // Show error state
   if (error) {
-    return (
-      <ProtectedRoute>
-        <WithNavigation>
-          <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
-            <div className="px-4 py-2 sm:px-0">
-              <div className="text-center py-12">
-                <div className="text-red-600 mb-4">{error}</div>
-                <button
-                  onClick={handleBack}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-                >
-                  ← Back to Wikis
-                </button>
+    const isAccessDenied = error.includes('Access denied')
+    const Content = () => (
+      <WithNavigation>
+        <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+          <div className="px-4 py-2 sm:px-0">
+            <div className="text-center py-12">
+              <div
+                className={`mb-4 ${isAccessDenied ? 'text-orange-600' : 'text-red-600'}`}
+                data-testid={isAccessDenied ? "access-denied" : "error-message"}
+              >
+                {error}
               </div>
+              <button
+                onClick={handleBack}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+              >
+                ← Back to Wikis
+              </button>
             </div>
           </div>
-        </WithNavigation>
-      </ProtectedRoute>
+        </div>
+      </WithNavigation>
     )
+
+    return requireAuth ? <ProtectedRoute><Content /></ProtectedRoute> : <Content />
   }
 
   // Show loading skeleton only for initial metadata load
   if (initialLoading || !wiki) {
-    return (
-      <ProtectedRoute>
-        <WithNavigation>
-          <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
-            <div className="px-4 py-2 sm:px-0">
-              <div className="flex justify-center items-center py-12">
-                <div className="text-gray-500">Loading wiki...</div>
-              </div>
+    const LoadingContent = () => (
+      <WithNavigation>
+        <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+          <div className="px-4 py-2 sm:px-0">
+            <div className="flex justify-center items-center py-12">
+              <div className="text-gray-500">Loading wiki...</div>
             </div>
           </div>
-        </WithNavigation>
-      </ProtectedRoute>
+        </div>
+      </WithNavigation>
     )
+
+    return requireAuth ? <ProtectedRoute><LoadingContent /></ProtectedRoute> : <LoadingContent />
   }
 
   // Render WikiViewer immediately once we have wiki and files metadata
   // Content loading will be handled inside WikiViewer
-  return (
-    <ProtectedRoute>
-      <WithNavigation>
-        <div className="max-w-7xl mx-auto py-2 px-4 sm:px-6 lg:px-8 w-full overflow-x-hidden">
-          <div className="w-full max-w-full overflow-x-hidden">
-            <WikiViewer wiki={wiki} files={files} onBack={handleBack} onFilesRefresh={fetchWiki} />
-          </div>
+  const WikiContent = () => (
+    <WithNavigation>
+      <div className="max-w-7xl mx-auto py-2 px-4 sm:px-6 lg:px-8 w-full overflow-x-hidden">
+        <div className="w-full max-w-full overflow-x-hidden">
+          <WikiViewer wiki={wiki} files={files} onBack={handleBack} onFilesRefresh={fetchWiki} />
         </div>
-      </WithNavigation>
-    </ProtectedRoute>
+      </div>
+    </WithNavigation>
   )
+
+  return requireAuth ? <ProtectedRoute><WikiContent /></ProtectedRoute> : <WikiContent />
 }

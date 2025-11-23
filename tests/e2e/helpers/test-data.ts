@@ -20,14 +20,15 @@ export function generateTestUser(prefix: string = 'testuser') {
 /**
  * Generate unique wiki data
  */
-export function generateTestWiki(prefix: string = 'test-wiki') {
+export function generateTestWiki(prefix: string = 'test-wiki', options: { isPublic?: boolean } = {}) {
   const timestamp = Date.now()
   const random = Math.random().toString(36).substr(2, 9)
-  
+
   return {
     title: `Test Wiki ${timestamp}`,
     slug: `${prefix}-${timestamp}-${random}`,
     description: `Test wiki description ${timestamp}`,
+    isPublic: options.isPublic ?? false, // Default to private
     content: `# Test Wiki ${timestamp}
 
 This is a test wiki created for E2E testing.

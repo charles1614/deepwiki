@@ -16,6 +16,12 @@ export class WikiPage {
   readonly manageButton: Locator
   readonly exitManageButton: Locator
   readonly addPageButton: Locator
+  readonly privacyToggle: Locator
+  readonly privacyStatus: Locator
+  readonly privacyIndicator: Locator
+  readonly confirmPrivacyDialog: Locator
+  readonly privacySuccessToast: Locator
+  readonly accessDeniedMessage: Locator
 
   constructor(page: Page) {
     this.page = page
@@ -29,6 +35,14 @@ export class WikiPage {
     this.manageButton = page.locator('button:has-text("Manage")')
     this.exitManageButton = page.locator('button:has-text("Exit Manage")')
     this.addPageButton = page.locator('button:has-text("+ Add Page"), button:has-text("Add Page")')
+
+    // Privacy-related selectors
+    this.privacyToggle = page.locator('[data-testid=privacy-toggle]')
+    this.privacyStatus = page.locator('[data-testid=privacy-status]')
+    this.privacyIndicator = page.locator('[data-testid=privacy-indicator]')
+    this.confirmPrivacyDialog = page.locator('[data-testid=confirm-privacy-dialog]')
+    this.privacySuccessToast = page.locator('[data-testid=privacy-success-toast]')
+    this.accessDeniedMessage = page.locator('[data-testid=access-denied]')
   }
 
   /**
@@ -158,6 +172,74 @@ export class WikiPage {
    */
   async isInManageMode(): Promise<boolean> {
     return await this.exitManageButton.isVisible().catch(() => false)
+  }
+
+  /**
+   * Get current privacy status
+   */
+  async getPrivacyStatus(): Promise<string> {
+    return await this.privacyStatus.textContent() || ''
+  }
+
+  /**
+   * Check if wiki is public
+   */
+  async isPublic(): Promise<boolean> {
+    const status = await this.getPrivacyStatus()
+    return status.toLowerCase() === 'public'
+  }
+
+  /**
+   * Check if wiki is private
+   */
+  async isPrivate(): Promise<boolean> {
+    const status = await this.getPrivacyStatus()
+    return status.toLowerCase() === 'private'
+  }
+
+  /**
+   * Toggle privacy setting
+   */
+  async togglePrivacy(confirm: boolean = true): Promise<void> {
+    await this.privacyToggle.click()
+
+    if (confirm) {
+      // Wait for confirmation dialog
+      await this.page.waitForSelector('[data-testid="confirm-privacy-dialog"]', { timeout: 5000 })
+
+      // Determine which button to click based on desired state
+      const currentStatus = await this.getPrivacyStatus()
+      if (currentStatus.toLowerCase() === 'private') {
+        // Making it public
+        const confirmButton = this.page.locator('[data-testid="confirm-public-button"]')
+        await confirmButton.click()
+      } else {
+        // Making it private
+        const confirmButton = this.page.locator('[data-testid="confirm-private-button"]')
+        await confirmButton.click()
+      }
+    }
+  }
+
+  /**
+   * Wait for privacy success toast
+   */
+  async waitForPrivacySuccess(): Promise<void> {
+    await this.privacySuccessToast.waitFor({ state: 'visible', timeout: 10000 })
+  }
+
+  /**
+   * Check if access denied message is shown
+   */
+  async isAccessDenied(): Promise<boolean> {
+    return await this.accessDeniedMessage.isVisible().catch(() => false)
+  }
+
+  /**
+   * Check if privacy controls are visible
+   */
+  async arePrivacyControlsVisible(): Promise<boolean> {
+    return await this.privacyToggle.isVisible().catch(() => false)
   }
 }
 

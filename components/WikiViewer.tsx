@@ -7,13 +7,17 @@ import { AddPageModal } from '@/components/AddPageModal'
 import { EditPageModal } from '@/components/EditPageModal'
 import { DeletePageModal } from '@/components/DeletePageModal'
 import { VersionHistoryModal } from '@/components/VersionHistoryModal'
+import { PrivacyToggle } from '@/components/wiki/PrivacyToggle'
 import { useBreadcrumbRightContent } from '@/components/layout/BreadcrumbsRightContent'
+import { useSession } from 'next-auth/react'
 
 interface Wiki {
   id: string
   title: string
   slug: string
   description: string
+  isPublic: boolean
+  ownerId?: string
   createdAt: string
   updatedAt: string
 }
@@ -45,9 +49,16 @@ export const resetWikiViewerCache = () => {
 const PREFETCH_DELAY = 300 // 300ms delay before prefetch on hover
 
 export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefresh }: WikiViewerProps) {
+  const { data: session } = useSession()
   const searchParams = useSearchParams()
   const router = useRouter()
   const { setContent: setBreadcrumbRightContent } = useBreadcrumbRightContent()
+
+  // Privacy state
+  const [currentPrivacy, setCurrentPrivacy] = useState(wiki.isPublic)
+
+  // Check if user is owner
+  const isOwner = session?.user?.id === wiki.ownerId
   const [selectedFile, setSelectedFile] = useState<WikiFile | null>(null)
   const [content, setContent] = useState<string>('')
   const [contentLoading, setContentLoading] = useState(false)
@@ -501,26 +512,68 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
     setSelectedFiles(new Set()) // Clear selection when toggling
   }, [])
 
-  // Set Manage button in breadcrumb
+  // Set Manage button and privacy controls in breadcrumb
   useEffect(() => {
-    const manageButton = (
-      <button
-        onClick={toggleManageMode}
-        className={isManageMode
-          ? "text-red-600 hover:text-red-800 px-3 py-1 hover:bg-red-50 rounded transition-colors"
-          : "text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
-        }
-      >
-        {isManageMode ? 'Exit Manage' : 'Manage'}
-      </button>
+    const breadcrumbContent = (
+      <div className="flex items-center gap-2">
+        {/* Privacy toggle - only show to owners */}
+        {isOwner && (
+          <PrivacyToggle
+            wikiSlug={wiki.slug}
+            currentPrivacy={currentPrivacy}
+            isOwner={isOwner}
+            onPrivacyChange={(newPrivacy) => setCurrentPrivacy(newPrivacy)}
+          />
+        )}
+
+        {/* Privacy indicator - show to everyone */}
+        {!isOwner && (
+          <div
+            data-testid="privacy-indicator"
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              currentPrivacy
+                ? 'bg-green-100 text-green-800 border border-green-200'
+                : 'bg-gray-100 text-gray-800 border border-gray-200'
+            }`}
+          >
+            <span className="mr-1">
+              {currentPrivacy ? (
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              )}
+            </span>
+            <span data-testid="privacy-status">
+              {currentPrivacy ? 'Public' : 'Private'}
+            </span>
+          </div>
+        )}
+
+        {/* Manage button - only show to owners */}
+        {isOwner && (
+          <button
+            onClick={toggleManageMode}
+            className={isManageMode
+              ? "text-red-600 hover:text-red-800 px-3 py-1 hover:bg-red-50 rounded transition-colors"
+              : "text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
+            }
+          >
+            {isManageMode ? 'Exit Manage' : 'Manage'}
+          </button>
+        )}
+      </div>
     )
-    setBreadcrumbRightContent(manageButton)
+    setBreadcrumbRightContent(breadcrumbContent)
 
     // Cleanup: clear breadcrumb content when component unmounts
     return () => {
       setBreadcrumbRightContent(null)
     }
-  }, [isManageMode, setBreadcrumbRightContent, toggleManageMode])
+  }, [isManageMode, setBreadcrumbRightContent, toggleManageMode, isOwner, wiki.slug, currentPrivacy])
 
   // Handle file selection for bulk operations
   const toggleFileSelection = (fileId: string) => {
@@ -904,7 +957,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
 
             {/* Content Display/Edit Area */}
             {!contentLoading && !contentError && content && (
-              <div className="markdown-content" data-testid="markdown-content">
+              <div className="markdown-content" data-testid="wiki-content">
                 {isEditMode ? (
                   isPreviewMode ? (
                     /* Preview Mode */
