@@ -201,6 +201,21 @@ export function Navigation({ className = '' }: NavigationProps) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isUserMenuOpen])
+
+
   const tabs = [
     { id: 'home', label: 'Dashboard', icon: HomeIcon, href: '/dashboard' },
     { id: 'wiki', label: 'Wiki', icon: BookOpenIcon, href: '/wiki' },
@@ -244,8 +259,90 @@ export function Navigation({ className = '' }: NavigationProps) {
             </button>
           </div>
           <h1 className="text-lg font-semibold text-gray-900">{siteName}</h1>
-          <div className="w-10" /> {/* Spacer for centering */}
+
+          {/* User menu for mobile */}
+          {session && (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center justify-center w-10 h-10 bg-blue-500 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                aria-expanded={isUserMenuOpen}
+                aria-haspopup="true"
+                data-testid="mobile-user-menu-button"
+              >
+                <span className="text-white text-sm font-medium">
+                  {session.user?.email?.charAt(0).toUpperCase()}
+                </span>
+              </button>
+
+              {/* Dropdown menu for mobile */}
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Signed in as</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{session.user?.email}</p>
+                  </div>
+
+                  <div className="py-1">
+                    {/* Admin Links */}
+                    <div className="px-4 py-2">
+                      <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Admin</p>
+
+                      <button
+                        onClick={() => {
+                          if (isAdmin) {
+                            router.push('/admin/users')
+                            setIsUserMenuOpen(false)
+                            setIsMobileMenuOpen(false)
+                          }
+                        }}
+                        disabled={!isAdmin}
+                        className={`group flex w-full items-center px-2 py-2 text-sm rounded-md ${isAdmin
+                          ? 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                          : 'text-gray-400 cursor-not-allowed opacity-60'
+                          }`}
+                        title={!isAdmin ? "Only administrators can manage users" : ""}
+                      >
+                        <UsersIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" aria-hidden="true" />
+                        Manage Users
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (isAdmin) {
+                            router.push('/admin/settings')
+                            setIsUserMenuOpen(false)
+                            setIsMobileMenuOpen(false)
+                          }
+                        }}
+                        disabled={!isAdmin}
+                        className={`group flex w-full items-center px-2 py-2 text-sm rounded-md ${isAdmin
+                          ? 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                          : 'text-gray-400 cursor-not-allowed opacity-60'
+                          }`}
+                        title={!isAdmin ? "Only administrators can access system settings" : ""}
+                      >
+                        <Cog6ToothIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" aria-hidden="true" />
+                        System Settings
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-100 py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="group flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 text-red-400 group-hover:text-red-500" aria-hidden="true" />
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
 
         {/* Desktop navigation */}
         <div className="hidden md:flex items-center justify-between h-16">

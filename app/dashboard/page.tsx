@@ -104,16 +104,16 @@ export default function DashboardPage() {
           <div className="px-4 pt-6 pb-2 sm:px-0">
             {/* Welcome Message */}
             <div className="mb-8" data-testid="dashboard-welcome">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                     {getPersonalizedGreeting()}
                   </h1>
-                  <p className="text-lg text-gray-600">
+                  <p className="text-base sm:text-lg text-gray-600">
                     Here's your wiki activity overview.
                   </p>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="hidden sm:flex items-center space-x-4">
                   <button
                     onClick={handleRefresh}
                     disabled={isRefreshing}
@@ -139,6 +139,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
+
             {/* Enhanced Stats Cards */}
             <DashboardStats className="mb-8" />
 
@@ -156,9 +157,9 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
               {/* Quick Actions Section */}
               <div className="lg:col-span-2">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-[300px] flex flex-col">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-auto sm:h-[300px] flex flex-col">
                   <h2 className="text-xl font-semibold text-gray-900 mb-5">Quick Actions</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
                     <button
                       onClick={() => handleQuickAction('view_wikis', '/wiki')}
                       className="flex items-center p-4 bg-gradient-to-br from-blue-50 to-blue-100/30 hover:from-blue-100 hover:to-blue-100/50 rounded-xl border border-blue-200/50 hover:border-blue-300/60 hover:shadow-sm transition-all duration-200 group"
@@ -239,7 +240,7 @@ export default function DashboardPage() {
 
               {/* Enhanced Recent Activity Sidebar */}
               <div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-[300px] flex flex-col" data-testid="dashboard-sidebar">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-auto sm:h-[300px] flex flex-col" data-testid="dashboard-sidebar">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-semibold text-gray-900">Recent Activity</h3>
                     <select
