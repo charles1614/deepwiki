@@ -14,9 +14,7 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   // Allow build to proceed for now
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+
   typescript: {
     ignoreBuildErrors: true,
   },

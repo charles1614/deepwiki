@@ -15,7 +15,7 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
   testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/', '<rootDir>/__tests__/setup.js', '<rootDir>/tests/e2e/'],
   transformIgnorePatterns: [
-    'node_modules/(?!(marked|mermaid|dompurify|react-syntax-highlighter|prismjs|@heroicons|file-type|@mermaid-js|@mermaid-js/mermaid)/)',
+    'node_modules/(?!(marked|mermaid|dompurify|react-syntax-highlighter|prismjs|@heroicons|file-type|@mermaid-js|@mermaid-js/mermaid|next-auth)/)',
   ],
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
 }

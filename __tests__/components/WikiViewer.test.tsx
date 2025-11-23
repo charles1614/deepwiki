@@ -1,6 +1,7 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@/testing/test-utils'
 import userEvent from '@testing-library/user-event'
 import { WikiViewer } from '@/components/WikiViewer'
+import { createWiki, createWikiFile } from '@/testing/factories/wiki-factory'
 
 // Mock MarkdownRenderer to avoid ES module issues
 jest.mock('@/lib/markdown/MarkdownRenderer', () => ({
@@ -10,9 +11,9 @@ jest.mock('@/lib/markdown/MarkdownRenderer', () => ({
 
     // Convert basic markdown to HTML elements for testing with proper accessibility
     let html = processedContent
-      .replace(/^# (.+)$/gm, (match, text) => `<h1 role="heading" aria-level="1">${text}</h1>`)
-      .replace(/^## (.+)$/gm, (match, text) => `<h2 role="heading" aria-level="2">${text}</h2>`)
-      .replace(/^### (.+)$/gm, (match, text) => `<h3 role="heading" aria-level="3">${text}</h3>`)
+      .replace(/^# (.+)$/gm, (match: string, text: string) => `<h1 role="heading" aria-level="1">${text}</h1>`)
+      .replace(/^## (.+)$/gm, (match: string, text: string) => `<h2 role="heading" aria-level="2">${text}</h2>`)
+      .replace(/^### (.+)$/gm, (match: string, text: string) => `<h3 role="heading" aria-level="3">${text}</h3>`)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -39,41 +40,39 @@ const mockFetch = fetch as jest.MockedFunction<typeof fetch>
 describe('WikiViewer', () => {
   const user = userEvent.setup()
 
-  const mockWiki = {
-    id: '1',
-    title: 'Test Wiki',
-    slug: 'test-wiki',
-    description: 'Wiki: Test Wiki',
-    createdAt: '2024-01-01T00:00:00.000Z',
-    updatedAt: '2024-01-01T00:00:00.000Z'
-  }
+  const mockWiki = createWiki()
 
   const mockWikiFiles = [
-    {
+    createWikiFile({
       id: '1',
-      fileName: 'index.md',
+      filename: 'index.md',
       filePath: 'test-wiki/index.md',
       fileSize: 1024,
       contentType: 'text/markdown'
-    },
-    {
+    }),
+    createWikiFile({
       id: '2',
-      fileName: 'overview.md',
+      filename: 'overview.md',
       filePath: 'test-wiki/overview.md',
       fileSize: 2048,
       contentType: 'text/markdown'
-    },
-    {
+    }),
+    createWikiFile({
       id: '3',
-      fileName: 'guide.md',
+      filename: 'guide.md',
       filePath: 'test-wiki/guide.md',
       fileSize: 3072,
       contentType: 'text/markdown'
-    }
+    })
   ]
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, content: '# Test Content' }),
+      text: async () => '# Test Content'
+    } as Response)
   })
 
   it('should render loading state initially', () => {
@@ -92,13 +91,13 @@ describe('WikiViewer', () => {
       })
     })
 
-    render(<WikiViewer wiki={mockWiki} />)
+    render(<WikiViewer wiki={mockWiki} files={mockWikiFiles} />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Wiki')).toBeInTheDocument()
-      expect(screen.getByText('index.md')).toBeInTheDocument()
-      expect(screen.getByText('overview.md')).toBeInTheDocument()
-      expect(screen.getByText('guide.md')).toBeInTheDocument()
+      expect(screen.getByText('index')).toBeInTheDocument()
+      expect(screen.getByText('overview')).toBeInTheDocument()
+      expect(screen.getByText('guide')).toBeInTheDocument()
     })
   })
 
@@ -121,7 +120,7 @@ describe('WikiViewer', () => {
       })
     })
 
-    render(<WikiViewer wiki={mockWiki} />)
+    render(<WikiViewer wiki={mockWiki} files={mockWikiFiles} />)
 
     await waitFor(() => {
       expect(screen.getAllByText('Test Wiki')).toHaveLength(2) // One in header, one in content
@@ -157,7 +156,7 @@ describe('WikiViewer', () => {
       })
     })
 
-    render(<WikiViewer wiki={mockWiki} />)
+    render(<WikiViewer wiki={mockWiki} files={mockWikiFiles} />)
 
     await waitFor(() => {
       expect(screen.getByText('Main content.')).toBeInTheDocument()
@@ -191,7 +190,7 @@ describe('WikiViewer', () => {
       })
     })
 
-    render(<WikiViewer wiki={mockWiki} />)
+    render(<WikiViewer wiki={mockWiki} files={mockWikiFiles} />)
 
     await waitFor(() => {
       expect(screen.getByText(/failed to load wiki content/i)).toBeInTheDocument()
@@ -210,7 +209,7 @@ describe('WikiViewer', () => {
       })
     })
 
-    render(<WikiViewer wiki={mockWiki} />)
+    render(<WikiViewer wiki={mockWiki} files={mockWikiFiles} />)
 
     await waitFor(() => {
       expect(screen.getByText(/failed to load wiki files/i)).toBeInTheDocument()
@@ -221,7 +220,7 @@ describe('WikiViewer', () => {
     // Mock file list fetch error
     mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
-    render(<WikiViewer wiki={mockWiki} />)
+    render(<WikiViewer wiki={mockWiki} files={mockWikiFiles} />)
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
@@ -271,7 +270,7 @@ describe('WikiViewer', () => {
       })
     })
 
-    render(<WikiViewer wiki={mockWiki} />)
+    render(<WikiViewer wiki={mockWiki} files={mockWikiFiles} />)
 
     await waitFor(() => {
       // index.md should be active by default - check for Tailwind active classes
@@ -330,7 +329,7 @@ describe('WikiViewer', () => {
       })
     })
 
-    render(<WikiViewer wiki={mockWiki} />)
+    render(<WikiViewer wiki={mockWiki} files={mockWikiFiles} />)
 
     await waitFor(() => {
       expect(screen.getByText('index.md')).toBeInTheDocument()
@@ -388,14 +387,17 @@ console.log('Hello World');
       })
     })
 
-    render(<WikiViewer wiki={mockWiki} />)
+    console.log('mockWikiFiles length:', mockWikiFiles.length)
+    render(<WikiViewer wiki={mockWiki} files={mockWikiFiles} />)
 
     await waitFor(() => {
       // Check that the component rendered successfully
+      // screen.debug()
       expect(screen.getByText('Files')).toBeInTheDocument()
-      expect(screen.getByText('index.md')).toBeInTheDocument()
-      expect(screen.getByText('overview.md')).toBeInTheDocument()
-      expect(screen.getByText('guide.md')).toBeInTheDocument()
+      // Filenames are displayed without extension
+      expect(screen.getByText('index')).toBeInTheDocument()
+      expect(screen.getByText('overview')).toBeInTheDocument()
+      expect(screen.getByText('guide')).toBeInTheDocument()
     })
 
     // Wait for content to load and check basic rendering
@@ -427,7 +429,7 @@ console.log('Hello World');
       })
     })
 
-    render(<WikiViewer wiki={mockWiki} onBack={mockOnBack} />)
+    render(<WikiViewer wiki={mockWiki} onBack={mockOnBack} files={mockWikiFiles} />)
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /back to wikis/i })).toBeInTheDocument()

@@ -70,6 +70,7 @@ jest.mock('marked', () => {
   })
 
   markedFn.use = jest.fn()
+  markedFn.parse = jest.fn((markdown) => markedFn(markdown)) // Add parse method alias
   markedFn.Marked = jest.fn().mockImplementation(() => ({
     parse: jest.fn((markdown) => markedFn(markdown)),
     use: jest.fn()
@@ -89,7 +90,8 @@ jest.mock('mermaid', () => ({
   default: {
     initialize: jest.fn(),
     run: jest.fn().mockResolvedValue(undefined),
-    init: jest.fn()
+    init: jest.fn(),
+    render: jest.fn().mockResolvedValue({ svg: '<svg>Mock SVG</svg>' })
   }
 }))
 
@@ -98,9 +100,42 @@ jest.mock('dompurify', () => ({
   sanitize: jest.fn((html) => html)
 }))
 
+// Mock next-auth/react
+jest.mock('next-auth/react', () => ({
+  SessionProvider: ({ children }) => children,
+  useSession: jest.fn(() => ({
+    data: { user: { name: 'Test User', email: 'test@example.com' } },
+    status: 'authenticated',
+  })),
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+}))
+
+// Mock next/navigation
+jest.mock('next/navigation', () => ({
+  useRouter() {
+    return {
+      push: jest.fn(),
+      replace: jest.fn(),
+      prefetch: jest.fn(),
+      back: jest.fn(),
+      refresh: jest.fn(),
+    }
+  },
+  useSearchParams() {
+    return new URLSearchParams()
+  },
+  usePathname() {
+    return ''
+  },
+  useParams() {
+    return {}
+  }
+}))
+
 // Mock ReadableStream first
 global.ReadableStream = class ReadableStream {
-  constructor() {}
+  constructor() { }
 }
 
 Object.defineProperty(ReadableStream.prototype, 'pipeTo', {

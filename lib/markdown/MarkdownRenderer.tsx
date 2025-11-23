@@ -59,16 +59,8 @@ export function MarkdownRenderer({
               const mermaidModule = await import('mermaid/dist/mermaid.esm.min.mjs')
               mermaid = mermaidModule.default || mermaidModule
             } catch (e2) {
-              console.warn('ESM import failed, trying node_modules direct:', e2)
-
-              try {
-                // Strategy 3: Try direct module access
-                const mermaidModule = await import('/node_modules/mermaid/dist/mermaid.esm.min.mjs')
-                mermaid = mermaidModule.default || mermaidModule
-              } catch (e3) {
-                console.error('All import strategies failed:', e3)
-                throw new Error('Could not import mermaid library')
-              }
+              console.error('All import strategies failed:', e2)
+              throw new Error('Could not import mermaid library')
             }
           }
 
@@ -214,11 +206,11 @@ export function MarkdownRenderer({
                 }
 
                 svgElement.addEventListener('click', handleDiagramClick)
-                ;(svgElement as any)._mermaidClickHandler = handleDiagramClick
+                  ; (svgElement as any)._mermaidClickHandler = handleDiagramClick
               }
 
               // Store the rendered content on the element to prevent reset
-              ;(element as any)._renderedSvg = savedSvg
+              ; (element as any)._renderedSvg = savedSvg
               console.log('SVG restored successfully with click handlers')
             }
             continue
@@ -246,8 +238,8 @@ export function MarkdownRenderer({
               }
 
               svgElement.addEventListener('click', handleDiagramClick)
-              ;(svgElement as any)._mermaidClickHandler = handleDiagramClick
-              ;(element as any)._renderedSvg = renderedSvg
+                ; (svgElement as any)._mermaidClickHandler = handleDiagramClick
+                ; (element as any)._renderedSvg = renderedSvg
             }
             continue // Skip re-rendering
           }
@@ -334,11 +326,11 @@ export function MarkdownRenderer({
               }
 
               svgElement.addEventListener('click', handleDiagramClick)
-              // Store click handler reference for cleanup
-              ;(svgElement as any)._mermaidClickHandler = handleDiagramClick
+                // Store click handler reference for cleanup
+                ; (svgElement as any)._mermaidClickHandler = handleDiagramClick
 
-              // Store the rendered content on the element to prevent reset
-              ;(element as any)._renderedSvg = renderedSvg
+                // Store the rendered content on the element to prevent reset
+                ; (element as any)._renderedSvg = renderedSvg
             }
           } catch (runError) {
             // If mermaid.run() fails, try mermaid.render() as fallback
@@ -387,14 +379,14 @@ export function MarkdownRenderer({
                   setZoomedDiagram({
                     code: originalText,
                     svg: svgContent // Use the rendered SVG content from mermaid.render()
-                })
+                  })
                 }
 
                 svgElement.addEventListener('click', handleDiagramClick)
-                ;(svgElement as any)._mermaidClickHandler = handleDiagramClick
+                  ; (svgElement as any)._mermaidClickHandler = handleDiagramClick
 
-                // Store the rendered content on the element to prevent reset
-                ;(element as any)._renderedSvg = svgContent
+                  // Store the rendered content on the element to prevent reset
+                  ; (element as any)._renderedSvg = svgContent
               }
             } catch (renderError) {
               console.error('Both mermaid.run() and mermaid.render() failed:', renderError)
@@ -528,7 +520,7 @@ export function MarkdownRenderer({
               }
 
               svgElement.addEventListener('click', handleDiagramClick)
-              ;(svgElement as any)._mermaidClickHandler = handleDiagramClick
+                ; (svgElement as any)._mermaidClickHandler = handleDiagramClick
             }
           }
         }
@@ -653,49 +645,7 @@ export function MarkdownRenderer({
         hasHtmlContent: !!htmlContent,
         htmlContentLength: htmlContent?.length || 0
       })
-      if (mermaidModule && htmlContent) {
-        console.log('Starting markdown preprocessing for mermaid diagrams...')
-        const mermaidMatches = htmlContent.match(/```mermaid\n([\s\S]*?)```/g)
-        console.log('Found mermaid code blocks in markdown:', mermaidMatches?.length || 0)
 
-        htmlContent = htmlContent.replace(/```mermaid\n([\s\S]*?)```/g, (match, mermaidCode) => {
-          const diagramKey = mermaidCode.trim().substring(0, 50)
-
-          console.log('Processing mermaid code block:', {
-            diagramKey,
-            codeLength: mermaidCode.length,
-            alreadyProcessed: processedMermaid.has(diagramKey)
-          })
-
-          // If we already processed this diagram, use the cached SVG
-          if (processedMermaid.has(diagramKey) && renderedDiagrams.has(diagramKey)) {
-            const cachedSvg = renderedDiagrams.get(diagramKey)!
-            console.log('Using cached SVG for diagram:', diagramKey)
-            return `<div class="mermaid" data-mermaid-rendered="true">${cachedSvg}</div>`
-          }
-
-          // Process new mermaid diagram
-          try {
-            const uniqueId = `mermaid-diagram-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`
-            const { svg } = mermaidModule.render(uniqueId, mermaidCode.trim())
-
-            console.log('Successfully rendered mermaid diagram:', {
-              diagramKey,
-              svgLength: svg.length
-            })
-
-            // Cache the rendered SVG
-            setRenderedDiagrams(prev => new Map(prev.set(diagramKey, svg)))
-            setProcessedMermaid(prev => new Set(prev.add(diagramKey)))
-
-            // Return the SVG wrapped in a mermaid div
-            return `<div class="mermaid" data-mermaid-rendered="true">${svg}</div>`
-          } catch (error) {
-            console.error('Failed to render mermaid diagram:', error)
-            return `<div class="mermaid-error"><p>Failed to render diagram: ${error instanceof Error ? error.message : 'Unknown error'}</p></div>`
-          }
-        })
-      }
       if (containerRef.current && typeof window !== 'undefined') {
         const renderedMermaidElements = containerRef.current.querySelectorAll('.mermaid[data-mermaid-rendered="true"]')
         renderedMermaidElements.forEach((element) => {

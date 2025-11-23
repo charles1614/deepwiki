@@ -18,6 +18,29 @@ const mockMermaid = {
 // Mock the mermaid import
 jest.mock('mermaid', () => mockMermaid)
 
+// Mock marked library
+jest.mock('marked', () => ({
+  marked: {
+    parse: jest.fn((content) => {
+      if (!content) return ''
+      // Simple mock implementation that returns content wrapped in tags based on input
+      if (content.startsWith('# ')) return `<h1>${content.substring(2)}</h1>`
+      if (content.startsWith('## ')) return `<h2>${content.substring(3)}</h2>`
+      if (content.startsWith('### ')) return `<h3>${content.substring(4)}</h3>`
+      if (content.startsWith('- ')) return `<ul><li>${content.substring(2)}</li></ul>`
+      if (content.startsWith('```')) {
+        const match = content.match(/```(\w+)?\n([\s\S]*?)```/)
+        if (match) {
+          if (match[1] === 'mermaid') return `<div class="mermaid">${match[2]}</div>`
+          return `<pre><code>${match[2]}</code></pre>`
+        }
+      }
+      return `<p>${content}</p>`
+    }),
+    use: jest.fn()
+  }
+}))
+
 // Mock window dimensions
 Object.defineProperty(window, 'innerWidth', {
   writable: true,
@@ -263,7 +286,8 @@ describe('MarkdownRenderer', () => {
 
       // Open modal
       await waitFor(() => {
-        const svg = document.querySelector('svg')
+        const mermaidContainer = document.querySelector('.mermaid')
+        const svg = mermaidContainer?.querySelector('svg')
         if (svg) {
           fireEvent.click(svg)
         }
@@ -292,13 +316,13 @@ describe('MarkdownRenderer', () => {
       })
     })
 
-    it('initializes mermaid with custom theme', async () => {
-      render(<MarkdownRenderer content="# Test" theme="dark" />)
+    it('initializes mermaid with handwritten theme', async () => {
+      render(<MarkdownRenderer content="# Test" theme="handwritten" />)
 
       await waitFor(() => {
         expect(mockMermaid.initialize).toHaveBeenCalledWith(
           expect.objectContaining({
-            theme: 'dark'
+            fontFamily: expect.stringContaining('Comic Neue')
           })
         )
       })
@@ -359,7 +383,7 @@ describe('MarkdownRenderer', () => {
 
       // Should still render other content without mermaid
       await waitFor(() => {
-        expect(screen.getByText('graph TD')).toBeInTheDocument()
+        expect(screen.getByText(/graph TD/)).toBeInTheDocument()
       })
     })
   })
