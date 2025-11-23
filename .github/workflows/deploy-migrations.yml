@@ -10,6 +10,7 @@ on:
 jobs:
   database-migration:
     runs-on: ubuntu-latest
+    environment: Production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,8 +24,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Debug environment variables
+        run: |
+          echo "DATABASE_URL is set: ${{ secrets.DATABASE_URL != '' }}"
+          echo "Environment: Production"
+
       - name: Generate Prisma client
         run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Check migration status
         run: npx prisma migrate status
@@ -39,6 +47,8 @@ jobs:
 
       - name: Generate Prisma client (post-migration)
         run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Verify migration success
         run: npx prisma migrate status
