@@ -30,6 +30,7 @@ jest.mock('next-auth', () => {
 
 // Mock next-auth/react (can be overridden in individual tests)
 jest.mock('next-auth/react', () => ({
+  SessionProvider: ({ children }) => children,
   useSession: jest.fn(() => ({
     data: null,
     status: 'unauthenticated'

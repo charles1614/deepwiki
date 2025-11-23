@@ -95,7 +95,6 @@ export function createUploadRequest(
     method: 'POST',
     body: formData,
     headers: {
-      'Content-Type': 'multipart/form-data',
       ...options.headers,
     },
   })
@@ -137,7 +136,10 @@ export function createRequest(
     }
   }
 
-  return new NextRequest(url, requestInit as any)
+  // Ensure URL is absolute
+  const fullUrl = url.startsWith('http') ? url : `http://localhost:3000${url.startsWith('/') ? '' : '/'}${url}`
+
+  return new NextRequest(fullUrl, requestInit as any)
 }
 
 /**

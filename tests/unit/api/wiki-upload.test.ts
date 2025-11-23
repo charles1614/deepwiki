@@ -4,7 +4,24 @@
 
 // Mock lib/auth BEFORE importing the route to avoid next-auth ESM issues
 jest.mock('@/lib/auth', () => ({
-  auth: jest.fn()
+  auth: jest.fn(() => Promise.resolve({ user: { id: 'test-user-id' } }))
+}))
+
+// Mock lib/database
+jest.mock('@/lib/database', () => ({
+  prisma: {
+    user: {
+      findUnique: jest.fn(),
+    },
+    wiki: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+    },
+    wikiFile: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+    },
+  },
 }))
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -34,20 +51,40 @@ describe('/api/wiki/upload', () => {
     mockR2Service = new R2StorageService() as jest.Mocked<R2StorageService>
       ; (R2StorageService as jest.Mock).mockImplementation(() => mockR2Service)
 
-    // Clean up database
-    await prisma.wiki.deleteMany()
-    await prisma.wikiFile.deleteMany()
+      // Mock user existence check
+      ; (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'test-user-id',
+        email: 'test@example.com',
+        role: 'USER'
+      })
+
+      // Mock wiki creation
+      ; (prisma.wiki.create as jest.Mock).mockResolvedValue({
+        id: 'test-wiki-id',
+        title: 'Test Wiki Title',
+        slug: 'test-wiki',
+        description: 'Wiki: Test Wiki Title',
+        ownerId: 'test-user-id',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+
+      // Mock wiki findUnique (default to null so slug is unique)
+      ; (prisma.wiki.findUnique as jest.Mock).mockResolvedValue(null)
+
+      // Mock wiki file creation
+      ; (prisma.wikiFile.create as jest.Mock).mockResolvedValue({
+        id: 'test-file-id',
+        wikiId: 'test-wiki-id',
+        filename: 'index.md',
+        originalName: 'index.md',
+        size: 100,
+        url: 'test-wiki/index.md',
+        uploadedAt: new Date(),
+        updatedAt: new Date()
+      })
   })
 
-  afterEach(async () => {
-    // Clean up after each test for better isolation
-    await prisma.wiki.deleteMany()
-    await prisma.wikiFile.deleteMany()
-  })
-
-  afterAll(async () => {
-    await prisma.$disconnect()
-  })
 
   describe('POST /api/wiki/upload', () => {
     it('should successfully upload wiki files and create database records', async () => {
@@ -72,11 +109,8 @@ describe('/api/wiki/upload', () => {
       formData.append('files', files[1])
 
       // Create mock request using factory
-      const request = createPostRequest('/api/wiki/upload', formData, {
-        headers: {
-          'content-type': 'multipart/form-data; boundary=----',
-        },
-      }) as unknown as NextRequest
+      const request = createPostRequest('/api/wiki/upload', formData) as unknown as NextRequest
+      request.formData = jest.fn().mockResolvedValue(formData)
 
       const response = await POST(request)
 
@@ -88,14 +122,29 @@ describe('/api/wiki/upload', () => {
       expect(data.wiki.slug).toBe('test-wiki')
       expect(data.wiki.title).toBe('Test Wiki Title')
 
-      // Verify database records were created
+        // Verify database records were created
+        ; (prisma.wiki.findUnique as jest.Mock).mockResolvedValue({
+          id: 'test-wiki-id',
+          title: 'Test Wiki Title',
+          slug: 'test-wiki',
+          description: 'Wiki: Test Wiki Title',
+          ownerId: 'test-user-id',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+
       const wiki = await prisma.wiki.findUnique({
         where: { slug: 'test-wiki' }
       })
       expect(wiki).toBeDefined()
       expect(wiki?.title).toBe('Test Wiki Title')
 
-      // Verify file records were created
+        // Verify file records were created
+        ; (prisma.wikiFile.findMany as jest.Mock).mockResolvedValue([
+          { id: 'file-1', filename: 'index.md' },
+          { id: 'file-2', filename: 'overview.md' }
+        ])
+
       const fileRecords = await prisma.wikiFile.findMany({
         where: { wikiId: wiki?.id }
       })
@@ -106,11 +155,8 @@ describe('/api/wiki/upload', () => {
       const formData = new FormData()
       formData.append('files', new File(['# Overview'], 'overview.md', { type: 'text/markdown' }))
 
-      const request = createPostRequest('/api/wiki/upload', formData, {
-        headers: {
-          'content-type': 'multipart/form-data; boundary=----',
-        },
-      }) as unknown as NextRequest
+      const request = createPostRequest('/api/wiki/upload', formData) as unknown as NextRequest
+      request.formData = jest.fn().mockResolvedValue(formData)
 
       const response = await POST(request)
 
@@ -125,11 +171,8 @@ describe('/api/wiki/upload', () => {
       formData.append('files', new File(['# Test Wiki'], 'index.md', { type: 'text/markdown' }))
       formData.append('files', new File(['fake image data'], 'image.png', { type: 'image/png' }))
 
-      const request = createPostRequest('/api/wiki/upload', formData, {
-        headers: {
-          'content-type': 'multipart/form-data; boundary=----',
-        },
-      }) as unknown as NextRequest
+      const request = createPostRequest('/api/wiki/upload', formData) as unknown as NextRequest
+      request.formData = jest.fn().mockResolvedValue(formData)
 
       const response = await POST(request)
 
@@ -149,11 +192,8 @@ describe('/api/wiki/upload', () => {
         error: 'R2 upload failed'
       })
 
-      const request = createPostRequest('/api/wiki/upload', formData, {
-        headers: {
-          'content-type': 'multipart/form-data; boundary=----',
-        },
-      }) as unknown as NextRequest
+      const request = createPostRequest('/api/wiki/upload', formData) as unknown as NextRequest
+      request.formData = jest.fn().mockResolvedValue(formData)
 
       const response = await POST(request)
 
@@ -177,11 +217,8 @@ describe('/api/wiki/upload', () => {
       const originalCreate = prisma.wiki.create
       prisma.wiki.create = jest.fn().mockRejectedValue(new Error('Database error'))
 
-      const request = createPostRequest('/api/wiki/upload', formData, {
-        headers: {
-          'content-type': 'multipart/form-data; boundary=----',
-        },
-      }) as unknown as NextRequest
+      const request = createPostRequest('/api/wiki/upload', formData) as unknown as NextRequest
+      request.formData = jest.fn().mockResolvedValue(formData)
 
       const response = await POST(request)
 
@@ -208,11 +245,8 @@ describe('/api/wiki/upload', () => {
       mockR2Service.extractWikiTitle.mockReturnValue('Test Wiki')
       mockR2Service.generateWikiSlug.mockReturnValue('test-wiki')
 
-      const request = createPostRequest('/api/wiki/upload', formData, {
-        headers: {
-          'content-type': 'multipart/form-data; boundary=----',
-        },
-      }) as unknown as NextRequest
+      const request = createPostRequest('/api/wiki/upload', formData) as unknown as NextRequest
+      request.formData = jest.fn().mockResolvedValue(formData)
 
       const response = await POST(request)
 

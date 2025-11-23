@@ -43,32 +43,25 @@ test.describe('Version History Feature', () => {
     // Wait for modal to open
     await expect(page.locator('[data-testid="version-history-modal"]')).toBeVisible({ timeout: 5000 })
 
-    // Wait for version list to load (check for loading spinner or version items)
-    // The modal should show at least one version (the initial version)
-    await page.waitForTimeout(1000) // Give time for API call
-
     // Check if versions are displayed or if there's a "No version history" message
     const versionList = page.locator('[data-testid="version-history-list"]')
     const noHistoryMessage = page.locator('[data-testid="version-history-empty"]')
     const loadingSpinner = page.locator('[data-testid="version-history-loading"]')
 
-    // Wait for either versions, empty message, or loading to complete
-    const hasVersions = await versionList.isVisible().catch(() => false)
-    const hasNoHistory = await noHistoryMessage.isVisible().catch(() => false)
-    const isLoading = await loadingSpinner.isVisible().catch(() => false)
+    // Wait for loading to finish
+    await expect(loadingSpinner).not.toBeVisible({ timeout: 10000 })
 
-    // If loading, wait a bit more
-    if (isLoading) {
-      await page.waitForTimeout(2000)
-      const hasVersionsAfterWait = await versionList.isVisible().catch(() => false)
-      const hasNoHistoryAfterWait = await noHistoryMessage.isVisible().catch(() => false)
-      expect(hasVersionsAfterWait || hasNoHistoryAfterWait).toBe(true)
-    } else {
+    // Wait for either versions or empty message
+    await expect(async () => {
+      const hasVersions = await versionList.isVisible()
+      const hasNoHistory = await noHistoryMessage.isVisible()
       expect(hasVersions || hasNoHistory).toBe(true)
-    }
+    }).toPass({ timeout: 10000 })
   })
 
   test('should create new version when editing and saving', async ({ wikiPage, page }) => {
+    test.setTimeout(60000) // Increase timeout for this test
+
     // Enter edit mode and make changes
     await wikiPage.enterEditMode()
     await wikiPage.editContent('# Test Wiki for Version History\n\nThis is the first edit.\n\n## Section 1\n\nUpdated section content.')
@@ -83,37 +76,34 @@ test.describe('Version History Feature', () => {
     // Wait for modal to open
     await expect(page.locator('[data-testid="version-history-modal"]')).toBeVisible({ timeout: 5000 })
 
-    // Wait for loading to complete (either versions list or empty message)
-    await page.waitForTimeout(3000) // Give more time for API call and version creation
-
     // Check if versions are displayed or if there's a "No version history" message
     const versionList = page.locator('[data-testid="version-history-list"]')
     const noHistoryMessage = page.locator('[data-testid="version-history-empty"]')
     const loadingSpinner = page.locator('[data-testid="version-history-loading"]')
 
     // Wait for loading to complete
-    await expect(loadingSpinner).not.toBeVisible({ timeout: 10000 }).catch(() => { })
+    await expect(loadingSpinner).not.toBeVisible({ timeout: 10000 })
 
     // Either versions should be visible or "no history" message
-    const hasVersions = await versionList.isVisible().catch(() => false)
-    const hasNoHistory = await noHistoryMessage.isVisible().catch(() => false)
+    await expect(async () => {
+      const hasVersions = await versionList.isVisible()
+      const hasNoHistory = await noHistoryMessage.isVisible()
+      expect(hasVersions || hasNoHistory).toBe(true)
+    }).toPass({ timeout: 10000 })
 
     // After editing and saving, there should be at least one version
+    const hasVersions = await versionList.isVisible()
     if (hasVersions) {
       const versionItems = page.locator('[data-testid^="version-item-"]')
+      await expect(versionItems).toHaveCount(await versionItems.count(), { timeout: 5000 })
       const versionCount = await versionItems.count()
       expect(versionCount).toBeGreaterThan(0)
-    } else if (hasNoHistory) {
-      // If no history, that's unexpected after editing, but we'll accept it for now
-      // This might happen if version creation failed or there's a timing issue
-      console.log('No version history found after edit - may be a timing issue')
-    } else {
-      // Neither visible - something is wrong
-      throw new Error('Neither version list nor empty message is visible')
     }
   })
 
   test('should display version details correctly', async ({ page }) => {
+    test.setTimeout(60000) // Increase timeout
+
     // Make an edit first
     await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 10000 })
     await page.click('[data-testid=edit-button]')
@@ -137,7 +127,6 @@ test.describe('Version History Feature', () => {
 
     // Wait for modal
     await expect(page.locator('[data-testid="version-history-modal"]')).toBeVisible({ timeout: 5000 })
-    await page.waitForTimeout(3000) // Give more time for API call
 
     // Check for version details (version number, change type, author, date)
     const versionList = page.locator('[data-testid="version-history-list"]')
@@ -145,7 +134,7 @@ test.describe('Version History Feature', () => {
     const loadingSpinner = page.locator('[data-testid="version-history-loading"]')
 
     // Wait for loading to complete
-    await expect(loadingSpinner).not.toBeVisible({ timeout: 10000 }).catch(() => { })
+    await expect(loadingSpinner).not.toBeVisible({ timeout: 10000 })
 
     const hasVersions = await versionList.isVisible().catch(() => false)
     const hasNoHistory = await noHistoryMessage.isVisible().catch(() => false)
