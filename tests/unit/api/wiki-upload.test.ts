@@ -1,3 +1,12 @@
+/**
+ * @jest-environment node
+ */
+
+// Mock lib/auth BEFORE importing the route to avoid next-auth ESM issues
+jest.mock('@/lib/auth', () => ({
+  auth: jest.fn()
+}))
+
 import { NextRequest, NextResponse } from 'next/server'
 import { POST } from '@/app/api/wiki/upload/route'
 import { prisma } from '@/lib/database'
@@ -23,7 +32,7 @@ describe('/api/wiki/upload', () => {
 
     // Create mock R2 service
     mockR2Service = new R2StorageService() as jest.Mocked<R2StorageService>
-    ;(R2StorageService as jest.Mock).mockImplementation(() => mockR2Service)
+      ; (R2StorageService as jest.Mock).mockImplementation(() => mockR2Service)
 
     // Clean up database
     await prisma.wiki.deleteMany()

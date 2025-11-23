@@ -37,6 +37,11 @@ interface WikiViewerProps {
 // Global cache for file contents (shared across all WikiViewer instances)
 const fileContentCache = new Map<string, { content: string; timestamp: number }>()
 const CACHE_TTL = 30 * 60 * 1000 // 30 minutes cache TTL
+
+export const resetWikiViewerCache = () => {
+  fileContentCache.clear()
+}
+
 const PREFETCH_DELAY = 300 // 300ms delay before prefetch on hover
 
 export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefresh }: WikiViewerProps) {
@@ -72,9 +77,9 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
     if (initialFiles.length > 0) {
       // Get file name from URL parameter
       const urlFileParam = searchParams?.get('file')
-      
+
       let fileToSelect: WikiFile | null = null
-      
+
       // Priority 1: URL parameter file
       if (urlFileParam) {
         const normalizedParam = urlFileParam.toLowerCase().replace(/\.md$/, '')
@@ -83,7 +88,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
           return name === normalizedParam
         }) || null
       }
-      
+
       // Priority 2: index.md
       if (!fileToSelect) {
         fileToSelect = initialFiles.find(file => {
@@ -91,12 +96,12 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
           return name === 'index'
         }) || null
       }
-      
+
       // Priority 3: First file
       if (!fileToSelect) {
         fileToSelect = initialFiles[0]
       }
-      
+
       if (fileToSelect) {
         setSelectedFile(fileToSelect)
       }
@@ -146,7 +151,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
 
       // Clear cache for this file to force fresh fetch on next load
       fileContentCache.delete(selectedFile.id)
-      
+
       // Update the content and cache with new content
       const savedContent = editContent.trim()
       setContent(savedContent)
@@ -211,53 +216,36 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
   }, [isEditMode, hasUnsavedChanges, isSaving, handleSaveEdit, handleCancelEdit])
 
   const fetchFileContent = useCallback(async (file: WikiFile, useCache = true) => {
+    if (!file) return
+
     // Check cache first
-    if (useCache) {
+    if (useCache && fileContentCache.has(file.id)) {
       const cached = fileContentCache.get(file.id)
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL && cached.content !== undefined && cached.content !== null) {
-        setContent(cached.content)
-        setContentLoading(false)
-        setContentError(null)
+      // Cache for 5 minutes
+      if (Date.now() - cached!.timestamp < CACHE_TTL) {
+        setContent(cached!.content)
         return
       }
     }
 
-    try {
-      setContentLoading(true)
-      setContentError(null)
+    setContentLoading(true)
+    setContentError(null)
 
-      // Try alternative route first (slug + filename) as it's more reliable
-      // Fallback to fileId route if slug/filename not available
-      let apiResponse: Response | null = null
+    try {
+      // Try to fetch by slug/filename first (cleaner URLs)
+      let apiResponse: Response
       let usedAlternativeRoute = false
 
-      if (wiki.slug && file.filename) {
-        try {
-          console.log(`Fetching file content via slug route: slug=${wiki.slug}, filename=${file.filename}`)
-          apiResponse = await fetch(`/api/wiki/${wiki.slug}/file/${encodeURIComponent(file.filename)}`, {
-            cache: 'no-store', // Always fetch fresh content, bypass browser cache
-            headers: {
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache'
-            }
-          })
-          usedAlternativeRoute = true
-        } catch (altErr) {
-          console.warn('Alternative route failed, trying fileId route:', altErr)
-        }
-      }
-
-      // Fallback to fileId route
-      if (!apiResponse || !apiResponse.ok) {
-        console.log(`Fetching file content via fileId route: fileId=${file.id}, filename=${file.filename}`)
-        apiResponse = await fetch(`/api/wiki/file/${file.id}`, {
-          cache: 'no-store', // Always fetch fresh content, bypass browser cache
+      try {
+        apiResponse = await fetch(`/api/wiki/${wiki.slug}/file/${encodeURIComponent(file.filename)}`, {
           headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
+            'Cache-Control': 'no-cache'
           }
         })
-        usedAlternativeRoute = false
+        usedAlternativeRoute = true
+      } catch (e) {
+        // Fallback to ID-based route
+        apiResponse = await fetch(`/api/wiki/file/${file.id}`)
       }
 
       if (apiResponse.ok) {
@@ -270,83 +258,41 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
             timestamp: Date.now()
           })
           setContent(fileContent)
-          if (usedAlternativeRoute) {
-            console.log(`Successfully loaded file via slug route: ${file.filename}`)
-          }
         } else {
           const errorMsg = result.error || 'Failed to load wiki content'
-          console.error('API returned error:', errorMsg, result, { fileId: file.id, filename: file.filename, route: usedAlternativeRoute ? 'slug' : 'fileId' })
+          console.error('API returned error:', errorMsg)
           setContentError(errorMsg)
         }
       } else {
-        // Try to parse error response
-        let errorMessage = `Failed to load wiki content (HTTP ${apiResponse.status})`
-        let errorResult: any = null
-        try {
-          const responseText = await apiResponse.text()
-          if (responseText) {
-            errorResult = JSON.parse(responseText)
-            if (errorResult && errorResult.error) {
-              errorMessage = errorResult.error
-            }
-          }
-          console.error('API error response:', { 
-            status: apiResponse.status, 
-            statusText: apiResponse.statusText,
-            responseText,
-            parsed: errorResult,
-            fileId: file.id, 
-            filename: file.filename 
-          })
-        } catch (parseErr) {
-          // If JSON parsing fails, use default error message
-          console.error('Failed to parse error response:', parseErr, { 
-            fileId: file.id, 
-            filename: file.filename, 
-            status: apiResponse.status,
-            statusText: apiResponse.statusText
-          })
-        }
-        
-        // If both API routes failed, try direct URL (for legacy compatibility)
-        if (file.url) {
+        // If slug route failed with 404, try ID route
+        if (usedAlternativeRoute && apiResponse.status === 404) {
           try {
-            const response = await fetch(file.url, {
-              cache: 'no-store',
-              headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache'
+            const fallbackResponse = await fetch(`/api/wiki/file/${file.id}`)
+            if (fallbackResponse.ok) {
+              const result = await fallbackResponse.json()
+              if (result.success && result.content !== undefined) {
+                const fileContent = result.content || ''
+                fileContentCache.set(file.id, {
+                  content: fileContent,
+                  timestamp: Date.now()
+                })
+                setContent(fileContent)
+                return
               }
-            })
-
-            if (response.ok) {
-              const text = await response.text()
-              // Store in cache
-              fileContentCache.set(file.id, {
-                content: text,
-                timestamp: Date.now()
-              })
-              setContent(text)
-            } else {
-              console.error('Direct URL fetch failed:', response.status, response.statusText)
-              setContentError(`Failed to load wiki content (HTTP ${response.status})`)
             }
-          } catch (urlErr) {
-            console.error('Direct URL fetch error:', urlErr)
-            setContentError('Failed to load wiki content from direct URL')
+          } catch (e) {
+            // Ignore fallback error, throw original
           }
-        } else {
-          console.error('API failed and no direct URL available:', apiResponse.status, apiResponse.statusText)
-          setContentError(errorMessage)
         }
+        throw new Error('Failed to load wiki content')
       }
-    } catch (err) {
-      console.error('Fetch file content error:', err)
-      setContentError('Failed to load wiki content. Please try again later.')
+    } catch (error) {
+      console.error('Error fetching file content:', error)
+      setContentError('Failed to load content. Please try again later.')
     } finally {
       setContentLoading(false)
     }
-  }, [])
+  }, [wiki.slug])
 
   // Background prefetch function - loads file content and stores in cache
   const prefetchFileContent = useCallback(async (file: WikiFile) => {
@@ -363,14 +309,14 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
 
     try {
       setPrefetchingFile(file.id)
-        // Use low priority fetch, but still bypass cache to get fresh content
-        const apiResponse = await fetch(`/api/wiki/file/${file.id}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          }
-        })
+      // Use low priority fetch, but still bypass cache to get fresh content
+      const apiResponse = await fetch(`/api/wiki/file/${file.id}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
 
       if (apiResponse.ok) {
         const result = await apiResponse.json()
@@ -452,7 +398,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
       const name = file.filename.replace(/\.md$/, '').toLowerCase()
       return name === 'overview'
     })
-    
+
     const otherFiles = files.filter(file => {
       const name = file.filename.replace(/\.md$/, '').toLowerCase()
       return name !== 'index' && name !== 'overview'
@@ -461,12 +407,12 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
       const nameB = b.filename.replace(/\.md$/, '').toLowerCase()
       return nameA.localeCompare(nameB)
     })
-    
+
     const sorted: WikiFile[] = []
     if (indexFile) sorted.push(indexFile)
     if (overviewFile) sorted.push(overviewFile)
     sorted.push(...otherFiles)
-    
+
     return sorted
   }, [initialFiles])
 
@@ -477,7 +423,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
       // Use requestIdleCallback if available, otherwise use setTimeout
       const schedulePrefetch = () => {
         const filesToPrefetch: WikiFile[] = []
-        
+
         // Find overview file if it exists and is not the current file
         const overviewFile = sortedFiles.find(file => {
           const name = file.filename.replace(/\.md$/, '').toLowerCase()
@@ -486,7 +432,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
         if (overviewFile) {
           filesToPrefetch.push(overviewFile)
         }
-        
+
         // Find index file if it exists and is not the current file
         const indexFile = sortedFiles.find(file => {
           const name = file.filename.replace(/\.md$/, '').toLowerCase()
@@ -495,7 +441,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
         if (indexFile) {
           filesToPrefetch.push(indexFile)
         }
-        
+
         // Prefetch files with low priority
         filesToPrefetch.forEach((file, index) => {
           // Stagger prefetch requests to avoid overwhelming the server
@@ -514,7 +460,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
 
       // Wait a bit before starting prefetch to ensure main content is fully rendered
       const timeoutId = setTimeout(schedulePrefetch, 1000)
-      
+
       return () => {
         clearTimeout(timeoutId)
       }
@@ -532,7 +478,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
     }
   }, [contentError, selectedFile, fetchFileContent])
 
-  
+
   if (initialFiles.length === 0) {
     return (
       <div className="text-center py-12">
@@ -560,7 +506,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
     const manageButton = (
       <button
         onClick={toggleManageMode}
-        className={isManageMode 
+        className={isManageMode
           ? "text-red-600 hover:text-red-800 px-3 py-1 hover:bg-red-50 rounded transition-colors"
           : "text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
         }
@@ -569,7 +515,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
       </button>
     )
     setBreadcrumbRightContent(manageButton)
-    
+
     // Cleanup: clear breadcrumb content when component unmounts
     return () => {
       setBreadcrumbRightContent(null)
@@ -694,7 +640,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
                   </button>
                 )}
               </div>
-              
+
               {/* Second row: Action buttons (only shown in manage mode) */}
               {isManageMode && (
                 <div className="flex items-center gap-2 flex-wrap">
@@ -717,281 +663,278 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
               )}
             </div>
 
-          {initialFiles.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-gray-500 text-sm">No files found in this wiki</div>
-            </div>
-          ) : (
-            <ul className="space-y-0.5" data-testid="file-list">
-              {sortedFiles.map((file) => {
-                const isCached = fileContentCache.has(file.id)
-                const isPrefetching = prefetchingFile === file.id
-                const isSelected = selectedFiles.has(file.id)
+            {initialFiles.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-500 text-sm">No files found in this wiki</div>
+              </div>
+            ) : (
+              <ul className="space-y-0.5" data-testid="file-list">
+                {sortedFiles.map((file) => {
+                  const isCached = fileContentCache.has(file.id)
+                  const isPrefetching = prefetchingFile === file.id
+                  const isSelected = selectedFiles.has(file.id)
 
-                return (
-                  <li key={file.id}>
-                    <div className={`flex items-center gap-2 w-full p-1 rounded transition-colors ${
-                      isManageMode && isSelected ? 'bg-blue-50' : ''
-                    }`}>
-                      {isManageMode && (
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleFileSelection(file.id)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
-                          data-testid={`checkbox-${file.id}`}
-                        />
-                      )}
-                      <button
-                        onClick={() => isManageMode ? toggleFileSelection(file.id) : handleFileSelect(file)}
-                        onMouseEnter={() => !isManageMode && handleFileHover(file)}
-                        className={`flex-1 text-left px-3 py-1.5 rounded text-sm transition-all relative
+                  return (
+                    <li key={file.id}>
+                      <div className={`flex items-center gap-2 w-full p-1 rounded transition-colors ${isManageMode && isSelected ? 'bg-blue-50' : ''
+                        }`}>
+                        {isManageMode && (
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleFileSelection(file.id)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                            data-testid={`checkbox-${file.id}`}
+                          />
+                        )}
+                        <button
+                          onClick={() => isManageMode ? toggleFileSelection(file.id) : handleFileSelect(file)}
+                          onMouseEnter={() => !isManageMode && handleFileHover(file)}
+                          className={`flex-1 text-left px-3 py-1.5 rounded text-sm transition-all relative
                           ${selectedFile?.id === file.id && !isManageMode
-                            ? 'bg-blue-100 text-blue-700 font-medium'
-                            : isManageMode && isSelected
-                            ? 'bg-blue-100 text-blue-700 font-medium border border-blue-300'
-                            : 'hover:bg-gray-100 text-gray-700'
-                          }`}
-                        data-testid={`file-${file.filename}`}
-                      >
-                        <span>{file.filename.replace(/\.md$/, '')}</span>
-                        {isCached && selectedFile?.id !== file.id && !isManageMode && (
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400" title="Cached">
-                            ●
-                          </span>
-                        )}
-                        {isPrefetching && selectedFile?.id !== file.id && !isManageMode && (
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-400 animate-pulse" title="Loading...">
-                            ○
-                          </span>
-                        )}
-                      </button>
-                      {isManageMode && (
-                        <>
-                          <button
-                            onClick={() => handleEditPage(file)}
-                            className={`p-1.5 rounded transition-colors ${
-                              isSelected 
-                                ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-100' 
+                              ? 'bg-blue-100 text-blue-700 font-medium'
+                              : isManageMode && isSelected
+                                ? 'bg-blue-100 text-blue-700 font-medium border border-blue-300'
+                                : 'hover:bg-gray-100 text-gray-700'
+                            }`}
+                          data-testid={`file-${file.filename}`}
+                        >
+                          <span>{file.filename.replace(/\.md$/, '')}</span>
+                          {isCached && selectedFile?.id !== file.id && !isManageMode && (
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400" title="Cached">
+                              ●
+                            </span>
+                          )}
+                          {isPrefetching && selectedFile?.id !== file.id && !isManageMode && (
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-400 animate-pulse" title="Loading...">
+                              ○
+                            </span>
+                          )}
+                        </button>
+                        {isManageMode && (
+                          <>
+                            <button
+                              onClick={() => handleEditPage(file)}
+                              className={`p-1.5 rounded transition-colors ${isSelected
+                                ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-100'
                                 : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
-                            }`}
-                            title="Edit page"
-                            data-testid={`edit-${file.id}`}
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleViewVersionHistory(file)}
-                            className={`p-1.5 rounded transition-colors ${
-                              isSelected 
-                                ? 'text-purple-600 hover:text-purple-700 hover:bg-purple-100' 
+                                }`}
+                              title="Edit page"
+                              data-testid={`edit-${file.id}`}
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleViewVersionHistory(file)}
+                              className={`p-1.5 rounded transition-colors ${isSelected
+                                ? 'text-purple-600 hover:text-purple-700 hover:bg-purple-100'
                                 : 'text-gray-500 hover:text-purple-600 hover:bg-purple-50'
-                            }`}
-                            title="View version history"
-                            data-testid={`history-${file.id}`}
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
+                                }`}
+                              title="View version history"
+                              data-testid={`history-${file.id}`}
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Content Area */}
-      <div className="flex-1 min-w-0 w-full">
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 w-full max-w-full">
-          {selectedFile && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                    {isEditMode ? (
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => handleTitleChange(e.target.value)}
-                        className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600 w-full max-w-md"
-                        placeholder="Page title"
-                      />
+        {/* Content Area */}
+        <div className="flex-1 min-w-0 w-full">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 w-full max-w-full">
+            {selectedFile && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                      {isEditMode ? (
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => handleTitleChange(e.target.value)}
+                          className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600 w-full max-w-md"
+                          placeholder="Page title"
+                        />
+                      ) : (
+                        wiki.title
+                      )}
+                    </h1>
+                    <div className="text-sm text-gray-500">
+                      {isEditMode ? 'Editing:' : 'Viewing:'} {selectedFile.filename.replace(/\.md$/, '')}
+                    </div>
+                  </div>
+
+                  {/* Edit/Preview Controls */}
+                  <div className="flex items-center gap-2">
+                    {!isEditMode ? (
+                      <button
+                        onClick={handleStartEdit}
+                        data-testid="edit-button"
+                        className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors flex items-center gap-2"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit
+                      </button>
                     ) : (
-                      wiki.title
+                      <>
+                        {/* Edit/Preview Toggle */}
+                        <button
+                          onClick={togglePreview}
+                          data-testid="preview-toggle"
+                          className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={isSaving}
+                        >
+                          {isPreviewMode ? (
+                            <>
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit
+                            </>
+                          ) : (
+                            <>
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              Preview
+                            </>
+                          )}
+                        </button>
+
+                        {/* Cancel Button */}
+                        <button
+                          onClick={handleCancelEdit}
+                          disabled={isSaving}
+                          data-testid="cancel-edit"
+                          className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Cancel
+                        </button>
+
+                        {/* Save Button */}
+                        <button
+                          onClick={handleSaveEdit}
+                          disabled={isSaving || !hasUnsavedChanges}
+                          data-testid="save-edit"
+                          className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSaving ? (
+                            <>
+                              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Save
+                            </>
+                          )}
+                        </button>
+                      </>
                     )}
-                  </h1>
-                  <div className="text-sm text-gray-500">
-                    {isEditMode ? 'Editing:' : 'Viewing:'} {selectedFile.filename.replace(/\.md$/, '')}
                   </div>
                 </div>
 
-                {/* Edit/Preview Controls */}
-                <div className="flex items-center gap-2">
-                  {!isEditMode ? (
+                {/* Save Error */}
+                {saveError && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div className="text-red-700 text-sm">{saveError}</div>
+                  </div>
+                )}
+
+                {/* Unsaved Changes Indicator */}
+                {isEditMode && hasUnsavedChanges && (
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <div className="text-yellow-700 text-sm">You have unsaved changes</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {contentLoading && (
+              <div className="flex justify-center items-center py-12" data-testid="content-loading">
+                <div className="text-gray-500">Loading content...</div>
+              </div>
+            )}
+
+            {contentError && (
+              <div className="text-center py-12">
+                <div className="text-red-600 mb-4">{contentError}</div>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={handleRetry}
+                    className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
+                  >
+                    Retry
+                  </button>
+                  {selectedFile && (
                     <button
-                      onClick={handleStartEdit}
-                      data-testid="edit-button"
-                      className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors flex items-center gap-2"
+                      onClick={() => {
+                        // Clear cache for this file and retry
+                        fileContentCache.delete(selectedFile.id)
+                        fetchFileContent(selectedFile, false)
+                      }}
+                      className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
                     >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit
+                      Clear Cache & Retry
                     </button>
-                  ) : (
-                    <>
-                      {/* Edit/Preview Toggle */}
-                      <button
-                        onClick={togglePreview}
-                        data-testid="preview-toggle"
-                        className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={isSaving}
-                      >
-                        {isPreviewMode ? (
-                          <>
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Edit
-                          </>
-                        ) : (
-                          <>
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            Preview
-                          </>
-                        )}
-                      </button>
-
-                      {/* Cancel Button */}
-                      <button
-                        onClick={handleCancelEdit}
-                        disabled={isSaving}
-                        data-testid="cancel-edit"
-                        className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Cancel
-                      </button>
-
-                      {/* Save Button */}
-                      <button
-                        onClick={handleSaveEdit}
-                        disabled={isSaving || !hasUnsavedChanges}
-                        data-testid="save-edit"
-                        className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isSaving ? (
-                          <>
-                            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Save
-                          </>
-                        )}
-                      </button>
-                    </>
                   )}
                 </div>
               </div>
+            )}
 
-              {/* Save Error */}
-              {saveError && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <div className="text-red-700 text-sm">{saveError}</div>
-                </div>
-              )}
+            {/* Content Display/Edit Area */}
+            {!contentLoading && !contentError && content && (
+              <div className="markdown-content" data-testid="markdown-content">
+                {isEditMode ? (
+                  isPreviewMode ? (
+                    /* Preview Mode */
+                    <div className="border rounded-md p-4 bg-gray-50">
+                      <MarkdownRenderer content={editContent} theme="handwritten" />
+                    </div>
+                  ) : (
+                    /* Edit Mode */
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => handleContentChange(e.target.value)}
+                      className="w-full h-96 p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-y"
+                      placeholder="Enter your markdown content here..."
+                      data-testid="content-textarea"
+                    />
+                  )
+                ) : (
+                  /* View Mode */
+                  <MarkdownRenderer content={content} theme="handwritten" />
+                )}
+              </div>
+            )}
 
-              {/* Unsaved Changes Indicator */}
-              {isEditMode && hasUnsavedChanges && (
-                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <div className="text-yellow-700 text-sm">You have unsaved changes</div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {contentLoading && (
-            <div className="flex justify-center items-center py-12" data-testid="content-loading">
-              <div className="text-gray-500">Loading content...</div>
-            </div>
-          )}
-
-          {contentError && (
-            <div className="text-center py-12">
-              <div className="text-red-600 mb-4">{contentError}</div>
-          <div className="flex gap-2 justify-center">
-            <button
-              onClick={handleRetry}
-              className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
-            >
-              Retry
-            </button>
-            {selectedFile && (
-              <button
-                onClick={() => {
-                  // Clear cache for this file and retry
-                  fileContentCache.delete(selectedFile.id)
-                  fetchFileContent(selectedFile, false)
-                }}
-                className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
-              >
-                Clear Cache & Retry
-              </button>
+            {!contentLoading && !contentError && !content && selectedFile && (
+              <div className="text-center py-12">
+                <div className="text-gray-500">No content available for {selectedFile.filename.replace(/\.md$/, '')}</div>
+              </div>
             )}
           </div>
-            </div>
-          )}
-
-          {/* Content Display/Edit Area */}
-          {!contentLoading && !contentError && content && (
-            <div className="markdown-content" data-testid="markdown-content">
-              {isEditMode ? (
-                isPreviewMode ? (
-                  /* Preview Mode */
-                  <div className="border rounded-md p-4 bg-gray-50">
-                    <MarkdownRenderer content={editContent} theme="handwritten" />
-                  </div>
-                ) : (
-                  /* Edit Mode */
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => handleContentChange(e.target.value)}
-                    className="w-full h-96 p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-y"
-                    placeholder="Enter your markdown content here..."
-                    data-testid="content-textarea"
-                  />
-                )
-              ) : (
-                /* View Mode */
-                <MarkdownRenderer content={content} theme="handwritten" />
-              )}
-            </div>
-          )}
-
-          {!contentLoading && !contentError && !content && selectedFile && (
-            <div className="text-center py-12">
-              <div className="text-gray-500">No content available for {selectedFile.filename.replace(/\.md$/, '')}</div>
-            </div>
-          )}
         </div>
-      </div>
       </div>
 
       {/* Add Page Modal */}

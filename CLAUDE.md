@@ -8,7 +8,7 @@ DeepWiki is a Next.js 15 application with a complete authentication system, buil
 - Next.js 15 with App Router
 - TypeScript
 - Tailwind CSS for styling
-- Prisma ORM with SQLite (dev) / PostgreSQL (prod)
+- Prisma ORM with PostgreSQL
 - NextAuth.js v5 for authentication
 - React Hook Form + Zod for form validation
 - Jest & React Testing Library for unit tests
@@ -152,7 +152,7 @@ enum Role {
 ```
 
 ### Database Configuration
-- **Development**: SQLite (`file:./dev.db`)
+- **Development & Production**: PostgreSQL
 - **Production**: PostgreSQL (configure via DATABASE_URL)
 - **Seeded users**:
   - Admin: `admin@deepwiki.com` / `Admin123!`
@@ -260,7 +260,7 @@ npx playwright test --debug    # Debug mode
 ### Required Environment Variables (`.env.local`)
 ```bash
 # Database
-DATABASE_URL="file:./dev.db"    # SQLite for development
+DATABASE_URL="postgresql://deepwiki:devpassword@localhost:5432/deepwiki"    # PostgreSQL for all environments
 # DATABASE_URL="postgresql://..."  # PostgreSQL for production
 
 # NextAuth.js

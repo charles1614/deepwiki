@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 // Mock dependencies before imports
 jest.mock('@/lib/database', () => ({
   prisma: {
@@ -12,30 +15,12 @@ jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
 }))
 
-jest.mock('next/server', () => ({
-  NextRequest: class {
-    constructor(url, options) {
-      this.url = url
-      this.method = options.method || 'GET'
-      this.headers = options.headers || {}
-      this.body = options.body
-    }
+// No manual mock for next/server needed as we use globals
 
-    async json() {
-      return typeof this.body === 'string' ? JSON.parse(this.body) : this.body
-    }
-  },
-  NextResponse: {
-    json: jest.fn().mockImplementation((data, init = {}) => ({
-      status: init.status || 200,
-      json: async () => data,
-      headers: new Map(),
-    })),
-  },
-}))
 
 // Now import after mocking
 import { POST } from '@/app/api/auth/register/route'
+import { NextRequest } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/database'
 import { createPostRequest } from '@/tests/unit/factories/request-factory'

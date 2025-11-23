@@ -1,7 +1,13 @@
 import '@testing-library/jest-dom'
+import 'whatwg-fetch'
+import { TextEncoder, TextDecoder } from 'util'
 
 // Import custom matchers
 import './tests/unit/utils/matchers'
+
+// Polyfill TextEncoder/TextDecoder for jsdom
+global.TextEncoder = TextEncoder
+global.TextDecoder = TextDecoder
 
 // Polyfill setImmediate for Jest/Node environment
 global.setImmediate = (fn) => setTimeout(fn, 0)
@@ -12,19 +18,21 @@ jest.mock('marked')
 jest.mock('mermaid')
 jest.mock('dompurify')
 
+// Mock next-auth (server-side auth)
+jest.mock('next-auth', () => {
+  return jest.fn(() => ({
+    handlers: { GET: jest.fn(), POST: jest.fn() },
+    auth: jest.fn(),
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+  }))
+})
+
 // Mock next-auth/react (can be overridden in individual tests)
 jest.mock('next-auth/react', () => ({
-  SessionProvider: ({ children }) => children,
   useSession: jest.fn(() => ({
-    data: { 
-      user: { 
-        id: 'test-user-id',
-        name: 'Test User', 
-        email: 'test@example.com',
-        role: 'USER'
-      } 
-    },
-    status: 'authenticated',
+    data: null,
+    status: 'unauthenticated'
   })),
   signIn: jest.fn(),
   signOut: jest.fn(),
@@ -46,45 +54,23 @@ jest.mock('next/navigation', () => ({
   useParams: () => ({}),
 }))
 
-// Mock ReadableStream first
-global.ReadableStream = class ReadableStream {
-  constructor() { }
-}
-
-Object.defineProperty(ReadableStream.prototype, 'pipeTo', {
-  value: jest.fn(),
-  writable: true,
-})
-
-
-// Mock Request and Response classes for Next.js API routes
-global.Request = class Request {
-  constructor(url, options = {}) {
-    this.url = url
-    this.method = options.method || 'GET'
-    this.headers = new Map(Object.entries(options.headers || {}))
-    this.body = options.body
-    this.json = async () => {
-      return typeof this.body === 'string' ? JSON.parse(this.body) : this.body
-    }
+// Mock ReadableStream if not available (jsdom might have it now, but safety check)
+if (typeof global.ReadableStream === 'undefined') {
+  global.ReadableStream = class ReadableStream {
+    constructor() { }
   }
 }
 
-global.Response = class Response {
-  constructor(body, options = {}) {
-    this.body = body
-    this.status = options.status || 200
-    this.headers = new Map(Object.entries(options.headers || {}))
-  }
+// Mock NextResponse
+// We still need to mock NextResponse as it's a Next.js specific extension of Response
+// But we can base it on the native Response now available via whatwg-fetch or jsdom
+import { NextResponse } from 'next/server'
 
-  async json() {
-    if (typeof this.body === 'string') {
-      return JSON.parse(this.body)
-    }
-    return this.body
-  }
-
-  static json(body, options = {}) {
+// Since we can't import NextResponse in jest.setup.js easily without transforming, 
+// and we want to avoid complex transforms for setup, we can mock the static methods we use.
+// However, if we are in a test environment, we might want to just mock it simply.
+global.NextResponse = {
+  json: (body, options = {}) => {
     return new Response(JSON.stringify(body), {
       ...options,
       headers: {
@@ -92,99 +78,15 @@ global.Response = class Response {
         ...options.headers,
       },
     })
-  }
-}
-
-// Mock NextResponse
-global.NextResponse = {
-  json: (body, options = {}) => Response.json(body, options),
-}
-
-// Mock Blob
-global.Blob = class Blob {
-  constructor(content, options = {}) {
-    this.content = content
-    this.type = options.type || ''
-    // Calculate size based on content
-    if (Array.isArray(content)) {
-      this.size = content.reduce((total, part) => {
-        if (typeof part === 'string') {
-          return total + new TextEncoder().encode(part).length
-        }
-        return total + (part.size || 0)
-      }, 0)
-    } else if (typeof content === 'string') {
-      this.size = new TextEncoder().encode(content).length
-    } else {
-      this.size = 0
-    }
-  }
-}
-
-// Mock File
-global.File = class File {
-  constructor(content, name, options = {}) {
-    this.content = content
-    this.name = name
-    this.type = options.type || ''
-    // Calculate size based on content type
-    if (Array.isArray(content)) {
-      // Handle array of content parts (like real File constructor)
-      this.size = content.reduce((total, part) => {
-        if (typeof part === 'string') {
-          return total + part.length
-        }
-        return total + (part.size || 0)
-      }, 0)
-    } else if (typeof content === 'string') {
-      this.size = content.length
-    } else if (content instanceof Blob) {
-      this.size = content.size
-    } else {
-      this.size = 0
-    }
-  }
-
-  text() {
-    if (typeof this.content === 'string') {
-      return Promise.resolve(this.content)
-    } else if (Array.isArray(this.content)) {
-      return Promise.resolve(this.content.join(''))
-    }
-    return Promise.resolve('')
-  }
-}
-
-// Mock FormData
-global.FormData = class FormData {
-  constructor() {
-    this.data = new Map()
-  }
-
-  append(key, value, filename) {
-    if (!this.data.has(key)) {
-      this.data.set(key, [])
-    }
-    this.data.get(key).push({ value, filename })
-  }
-
-  get(key) {
-    const values = this.data.get(key)
-    return values && values.length > 0 ? values[0] : null
-  }
-
-  getAll(key) {
-    const values = this.data.get(key) || []
-    return values.map(item => item.value)
-  }
-
-  entries() {
-    const result = []
-    for (const [key, values] of this.data) {
-      for (const item of values) {
-        result.push([key, item.value])
-      }
-    }
-    return result
-  }
+  },
+  redirect: (url, options = {}) => {
+    return new Response(null, {
+      status: 307,
+      headers: {
+        Location: url,
+        ...options?.headers,
+      },
+    })
+  },
+  next: () => new Response(null),
 }

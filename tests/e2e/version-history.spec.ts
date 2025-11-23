@@ -51,12 +51,12 @@ test.describe('Version History Feature', () => {
     const versionList = page.locator('[data-testid="version-history-list"]')
     const noHistoryMessage = page.locator('[data-testid="version-history-empty"]')
     const loadingSpinner = page.locator('[data-testid="version-history-loading"]')
-    
+
     // Wait for either versions, empty message, or loading to complete
     const hasVersions = await versionList.isVisible().catch(() => false)
     const hasNoHistory = await noHistoryMessage.isVisible().catch(() => false)
     const isLoading = await loadingSpinner.isVisible().catch(() => false)
-    
+
     // If loading, wait a bit more
     if (isLoading) {
       await page.waitForTimeout(2000)
@@ -82,22 +82,22 @@ test.describe('Version History Feature', () => {
 
     // Wait for modal to open
     await expect(page.locator('[data-testid="version-history-modal"]')).toBeVisible({ timeout: 5000 })
-    
+
     // Wait for loading to complete (either versions list or empty message)
     await page.waitForTimeout(3000) // Give more time for API call and version creation
-    
+
     // Check if versions are displayed or if there's a "No version history" message
     const versionList = page.locator('[data-testid="version-history-list"]')
     const noHistoryMessage = page.locator('[data-testid="version-history-empty"]')
     const loadingSpinner = page.locator('[data-testid="version-history-loading"]')
-    
+
     // Wait for loading to complete
-    await expect(loadingSpinner).not.toBeVisible({ timeout: 10000 }).catch(() => {})
-    
+    await expect(loadingSpinner).not.toBeVisible({ timeout: 10000 }).catch(() => { })
+
     // Either versions should be visible or "no history" message
     const hasVersions = await versionList.isVisible().catch(() => false)
     const hasNoHistory = await noHistoryMessage.isVisible().catch(() => false)
-    
+
     // After editing and saving, there should be at least one version
     if (hasVersions) {
       const versionItems = page.locator('[data-testid^="version-item-"]')
@@ -117,7 +117,7 @@ test.describe('Version History Feature', () => {
     // Make an edit first
     await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 10000 })
     await page.click('[data-testid=edit-button]')
-    
+
     const contentTextarea = page.locator('[data-testid=content-textarea]')
     await contentTextarea.fill('# Updated Content\n\nThis is an updated version.')
     await page.click('[data-testid=save-edit]')
@@ -143,23 +143,23 @@ test.describe('Version History Feature', () => {
     const versionList = page.locator('[data-testid="version-history-list"]')
     const noHistoryMessage = page.locator('[data-testid="version-history-empty"]')
     const loadingSpinner = page.locator('[data-testid="version-history-loading"]')
-    
+
     // Wait for loading to complete
-    await expect(loadingSpinner).not.toBeVisible({ timeout: 10000 }).catch(() => {})
-    
+    await expect(loadingSpinner).not.toBeVisible({ timeout: 10000 }).catch(() => { })
+
     const hasVersions = await versionList.isVisible().catch(() => false)
     const hasNoHistory = await noHistoryMessage.isVisible().catch(() => false)
-    
+
     if (hasVersions) {
       const versionItems = page.locator('[data-testid^="version-item-"]')
       const versionCount = await versionItems.count()
       expect(versionCount).toBeGreaterThan(0)
-      
+
       // Check for change type badge (CREATE, UPDATE, etc.) in the first version
       const firstVersion = versionItems.first()
       const changeTypeBadge = firstVersion.locator('text=/CREATE|UPDATE|DELETE|ROLLBACK/')
       const hasChangeType = await changeTypeBadge.isVisible().catch(() => false)
-      
+
       // Version details should include at least version number
       expect(await firstVersion.isVisible()).toBe(true)
     } else if (hasNoHistory) {
@@ -174,10 +174,10 @@ test.describe('Version History Feature', () => {
     // Step 1: Make initial edit
     await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 10000 })
     await page.click('[data-testid=edit-button]')
-    
+
     const contentTextarea = page.locator('[data-testid=content-textarea]')
     const originalContent = await contentTextarea.inputValue()
-    
+
     // Make first edit
     await contentTextarea.fill('# First Edit\n\nThis is the first edit.')
     await page.click('[data-testid=save-edit]')
@@ -213,7 +213,7 @@ test.describe('Version History Feature', () => {
     // Step 4: Find and click rollback button (should be on version 2 or higher)
     const rollbackButtons = page.locator('[data-testid^="rollback-button-"]')
     const rollbackCount = await rollbackButtons.count()
-    
+
     if (rollbackCount > 0) {
       // Set up dialog handler for confirmation
       page.once('dialog', async dialog => {
@@ -241,7 +241,7 @@ test.describe('Version History Feature', () => {
 
       // Verify content changed (this is a basic check, actual content depends on implementation)
       // The page should have been updated after rollback
-      await expect(page.locator('[data-testid=markdown-content]')).toBeVisible()
+      await expect(page.locator('[data-testid=markdown-content]').first()).toBeVisible()
     } else {
       // If no rollback buttons, there might not be enough versions yet
       // This is acceptable - the test verifies the UI structure
@@ -252,7 +252,7 @@ test.describe('Version History Feature', () => {
   test('should show confirmation dialog when rolling back', async ({ page }) => {
     // Make multiple edits to create versions
     await expect(page.locator('[data-testid=edit-button]')).toBeVisible({ timeout: 10000 })
-    
+
     // First edit
     await page.click('[data-testid=edit-button]')
     const contentTextarea = page.locator('[data-testid=content-textarea]')
@@ -291,13 +291,13 @@ test.describe('Version History Feature', () => {
     // Try to click rollback
     const rollbackButtons = page.locator('[data-testid^="rollback-button-"]')
     const rollbackCount = await rollbackButtons.count()
-    
+
     if (rollbackCount > 0) {
       await rollbackButtons.first().click()
-      
+
       // Wait a bit for dialog
       await page.waitForTimeout(1000)
-      
+
       // Verify dialog was shown (if rollback button triggers it)
       // Note: The dialog might be a browser confirm() which Playwright handles
       expect(dialogHandled).toBe(true)
@@ -356,11 +356,11 @@ test.describe('Version History Feature', () => {
 
     // Wait for error to appear
     await page.waitForTimeout(2000)
-    
+
     // Check for error message
     const errorMessage = page.locator('[data-testid="version-history-error"]')
     const hasError = await errorMessage.isVisible().catch(() => false)
-    
+
     // Error should be displayed
     expect(hasError).toBe(true)
   })
@@ -393,10 +393,10 @@ test.describe('Version History Feature', () => {
     // Check for loading spinner (might be very brief)
     const loadingSpinner = page.locator('[data-testid="version-history-loading"]')
     const hasLoading = await loadingSpinner.isVisible().catch(() => false)
-    
+
     // Loading state might be too fast to catch, but modal should open
     expect(await page.locator('[data-testid="version-history-modal"]').isVisible()).toBe(true)
-    
+
     // Clean up route
     await page.unrouteAll({ behavior: 'ignoreErrors' })
   })

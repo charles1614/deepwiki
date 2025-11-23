@@ -15,7 +15,7 @@ export default defineConfig({
   /* Run tests in parallel - use more workers for faster execution */
   workers: process.env.CI ? 1 : 4, // Reduced from 8 to 4 for better stability
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: process.env.CI 
+  reporter: process.env.CI
     ? [['html'], ['json', { outputFile: 'test-results/results.json' }]]
     : 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -25,27 +25,27 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
-    
+
     /* Screenshot on failure */
     screenshot: 'only-on-failure',
-    
+
     /* Video on failure */
     video: 'retain-on-failure',
-    
+
     /* Action timeout */
     actionTimeout: 10000,
-    
+
     /* Navigation timeout */
     navigationTimeout: 30000,
   },
   /* Global setup to handle polyfills */
   globalSetup: require.resolve('./tests/e2e/setup.ts'),
-  
+
   /* Expect timeout */
   expect: {
     timeout: 10000,
   },
-  
+
   /* Configure projects for major browsers */
   projects: [
     {
@@ -86,13 +86,12 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
+    command: 'dotenv -e .env.local -- npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000, // 2 minutes timeout for server to start
     env: {
-      // Use test database for e2e tests
-      DATABASE_URL: process.env.DATABASE_URL || 'postgresql://deepwiki:devpassword123@localhost:5432/deepwiki-dev',
+      // Additional env vars for E2E testing
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-secret-key',
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
       NODE_ENV: 'test',

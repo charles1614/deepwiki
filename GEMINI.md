@@ -5,7 +5,7 @@ This is a Next.js 15 project called "DeepWiki", a comprehensive wiki management 
 **Key Technologies:**
 
 *   **Framework:** Next.js 15
-*   **Database:** Prisma (defaults to SQLite for development)
+*   **Database:** Prisma with PostgreSQL
 *   **Authentication:** NextAuth.js
 *   **Styling:** Tailwind CSS
 *   **Markdown:** `marked`, `gray-matter`, `react-syntax-highlighter`, `mermaid`

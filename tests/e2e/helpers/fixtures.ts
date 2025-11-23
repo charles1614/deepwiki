@@ -60,21 +60,9 @@ export const test = base.extend<TestFixtures>({
     await page.fill('[data-testid=confirmPassword]', testUser.confirmPassword)
     await page.click('[data-testid=register-button]')
 
-    // Wait for registration success
-    await page.waitForSelector('text=/Account created successfully/i', {
-      timeout: 10000,
-    })
-
-    // Navigate to login if not auto-redirected
-    try {
-      await page.waitForURL('/wiki', { timeout: 3000 })
-    } catch {
-      await page.goto('/login')
-      await page.fill('[data-testid=email]', testUser.email)
-      await page.fill('[data-testid=password]', testUser.password)
-      await page.click('[data-testid=login-button]')
-      await page.waitForURL(/\/(dashboard|wiki)/, { timeout: 10000 })
-    }
+    // Wait for successful registration and auto-redirect to dashboard
+    // RegisterForm auto-redirects after 2 seconds, so wait for the redirect
+    await page.waitForURL(/\/(dashboard|wiki)/, { timeout: 15000 })
 
     await use(page)
 
@@ -85,7 +73,7 @@ export const test = base.extend<TestFixtures>({
   /**
    * Test user data
    */
-  testUser: async ({}, use) => {
+  testUser: async ({ }, use) => {
     const user = generateTestUser()
     await use(user)
   },
@@ -93,7 +81,7 @@ export const test = base.extend<TestFixtures>({
   /**
    * Test wiki data
    */
-  testWiki: async ({}, use) => {
+  testWiki: async ({ }, use) => {
     const wiki = generateTestWiki()
     await use(wiki)
   },
