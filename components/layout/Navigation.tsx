@@ -266,7 +266,7 @@ export function Navigation({ className = '' }: NavigationProps) {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center justify-center w-10 h-10 bg-blue-500 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="flex items-center justify-center w-10 h-10 bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 rounded-full shadow-sm focus:outline-none border border-white/10"
                 aria-expanded={isUserMenuOpen}
                 aria-haspopup="true"
                 aria-label="User menu"
@@ -402,12 +402,12 @@ export function Navigation({ className = '' }: NavigationProps) {
             <div className="relative ml-4" ref={userMenuRef} data-testid="user-menu">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-colors focus:outline-none"
                 aria-expanded={isUserMenuOpen}
                 aria-haspopup="true"
                 aria-label="User menu"
               >
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-2 shadow-sm">
+                <div className="w-8 h-8 bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-2 shadow-sm border border-white/10">
                   <span className="text-white text-xs font-medium">
                     {session.user?.email?.charAt(0).toUpperCase()}
                   </span>

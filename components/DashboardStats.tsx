@@ -143,9 +143,9 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
   }
 
   return (
-    <div className={`grid grid-cols-1 ${!isMobile ? 'md:grid-cols-2' : ''} ${!isMobile && !isTablet ? 'lg:grid-cols-4' : ''} gap-6 ${className}`} data-testid="stats-grid">
+    <div className={`grid grid-cols-1 ${!isMobile ? 'md:grid-cols-2' : ''} ${!isMobile && !isTablet ? 'lg:grid-cols-4' : ''} gap-4 ${className}`} data-testid="stats-grid">
       {/* Total Wikis */}
-      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-total-wikis">
+      <div className={`bg-white ${isMobile ? 'p-4' : 'p-5'} rounded-lg border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-total-wikis">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
@@ -170,7 +170,7 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
       </div>
 
       {/* Recent Uploads */}
-      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-recent-uploads">
+      <div className={`bg-white ${isMobile ? 'p-4' : 'p-5'} rounded-lg border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-recent-uploads">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
@@ -195,7 +195,7 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
       </div>
 
       {/* Total Documents */}
-      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-total-documents">
+      <div className={`bg-white ${isMobile ? 'p-4' : 'p-5'} rounded-lg border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-total-documents">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
@@ -220,7 +220,7 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
       </div>
 
       {/* Engagement Metrics */}
-      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-engagement">
+      <div className={`bg-white ${isMobile ? 'p-4' : 'p-5'} rounded-lg border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-engagement">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">

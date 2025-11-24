@@ -103,7 +103,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto pt-6 pb-2 sm:px-6 lg:px-8">
           <div className="px-4 pt-6 pb-2 sm:px-0">
             {/* Welcome Message */}
-            <div className="mb-8" data-testid="dashboard-welcome">
+            <div className="mb-4" data-testid="dashboard-welcome">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
@@ -141,20 +141,20 @@ export default function DashboardPage() {
 
 
             {/* Enhanced Stats Cards */}
-            <DashboardStats className="mb-8" />
+            <DashboardStats className="mb-4" />
 
             {/* Admin Panel Removed */}
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
               {/* Quick Actions Section */}
               <div className="lg:col-span-2">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-auto sm:h-[300px] flex flex-col">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-5 h-auto sm:h-[280px] flex flex-col">
                   <h2 className="text-xl font-semibold text-gray-900 mb-5">Quick Actions</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
                     <button
                       onClick={() => handleQuickAction('view_wikis', '/wiki')}
-                      className="flex items-center p-4 bg-gradient-to-br from-blue-50 to-blue-100/30 hover:from-blue-100 hover:to-blue-100/50 rounded-xl border border-blue-200/50 hover:border-blue-300/60 hover:shadow-sm transition-all duration-200 group"
+                      className="flex items-center p-3.5 bg-gradient-to-br from-blue-50 to-blue-100/30 hover:from-blue-100 hover:to-blue-100/50 rounded-lg border border-blue-200/50 hover:border-blue-300/60 hover:shadow-sm transition-all duration-200 group"
                       data-testid="action-view-wikis"
                     >
                       <div className="p-2 bg-white/60 rounded-lg mr-3 group-hover:bg-white/80 transition-colors">
@@ -168,7 +168,7 @@ export default function DashboardPage() {
 
                     <button
                       onClick={() => handleQuickAction('upload_wiki', '/upload')}
-                      className="flex items-center p-4 bg-gradient-to-br from-blue-50 to-blue-100/30 hover:from-blue-100 hover:to-blue-100/50 rounded-xl border border-blue-200/50 hover:border-blue-300/60 hover:shadow-sm transition-all duration-200 group"
+                      className="flex items-center p-3.5 bg-gradient-to-br from-blue-50 to-blue-100/30 hover:from-blue-100 hover:to-blue-100/50 rounded-lg border border-blue-200/50 hover:border-blue-300/60 hover:shadow-sm transition-all duration-200 group"
                       data-testid="action-upload-wiki"
                     >
                       <div className="p-2 bg-white/60 rounded-lg mr-3 group-hover:bg-white/80 transition-colors">
@@ -184,7 +184,7 @@ export default function DashboardPage() {
                     <button
                       onClick={() => isAdmin && handleQuickAction('manage_users', '/admin/users')}
                       disabled={!isAdmin}
-                      className={`flex items-center p-4 rounded-xl border transition-all duration-200 group ${isAdmin
+                      className={`flex items-center p-3.5 rounded-lg border transition-all duration-200 group ${isAdmin
                         ? 'bg-gradient-to-br from-gray-50 to-gray-100/30 hover:from-gray-100 hover:to-gray-100/50 border-gray-200/50 hover:border-gray-300/60 hover:shadow-sm cursor-pointer'
                         : 'bg-gray-100/40 border-gray-300/50 cursor-not-allowed'
                         }`}
@@ -207,7 +207,7 @@ export default function DashboardPage() {
                     <button
                       onClick={() => isAdmin && handleQuickAction('system_settings', '/admin/settings')}
                       disabled={!isAdmin}
-                      className={`flex items-center p-4 rounded-xl border transition-all duration-200 group ${isAdmin
+                      className={`flex items-center p-3.5 rounded-lg border transition-all duration-200 group ${isAdmin
                         ? 'bg-gradient-to-br from-gray-50 to-gray-100/30 hover:from-gray-100 hover:to-gray-100/50 border-gray-200/50 hover:border-gray-300/60 hover:shadow-sm cursor-pointer'
                         : 'bg-gray-100/40 border-gray-300/50 cursor-not-allowed'
                         }`}
@@ -232,7 +232,7 @@ export default function DashboardPage() {
 
               {/* Enhanced Recent Activity Sidebar */}
               <div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-6 h-auto sm:h-[300px] flex flex-col" data-testid="dashboard-sidebar">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200/60 p-5 h-auto sm:h-[280px] flex flex-col" data-testid="dashboard-sidebar">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-semibold text-gray-900">Recent Activity</h3>
                     <select
@@ -258,7 +258,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Recent Wikis Section */}
-            <div className="mt-8">
+            <div className="mt-4">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <WikiList
                   key={refreshKey}

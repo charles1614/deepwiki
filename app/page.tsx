@@ -75,7 +75,7 @@ export default function Home() {
       <WithNavigation>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
           {/* Welcome Message */}
-          <div className="mb-8" data-testid="welcome-message">
+          <div className="mb-4" data-testid="welcome-message">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               {welcomeMessage}
             </h1>
@@ -87,17 +87,17 @@ export default function Home() {
           {/* Admin Panel Removed */}
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             {/* Main Content - 3 columns on desktop */}
-            <div className="lg:col-span-3 space-y-8">
+            <div className="lg:col-span-3 space-y-4">
               {/* Wiki Upload Section */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-400 transition-colors duration-200">
+              <div className="bg-white rounded-lg border border-gray-200 p-5 hover:border-gray-400 transition-colors duration-200">
                 <h2 className="text-xl font-semibold text-black mb-4">Upload Wiki</h2>
                 <WikiUpload onUploadSuccess={handleUploadSuccess} />
               </div>
 
               {/* Wiki List Section */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-400 transition-colors duration-200">
+              <div className="bg-white rounded-lg border border-gray-200 p-5 hover:border-gray-400 transition-colors duration-200">
                 <WikiList
                   key={refreshKey}
                   onWikiSelect={handleWikiSelect}
@@ -109,7 +109,7 @@ export default function Home() {
             {/* Sidebar - 1 column on desktop */}
             <div className="lg:col-span-1">
               {/* Quick Access Sidebar */}
-              <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-6" data-testid="wiki-sidebar">
+              <div className="bg-white rounded-lg border border-gray-200 p-4 sticky top-6" data-testid="wiki-sidebar">
                 <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Quick Access</h3>
                 <div className="space-y-2" data-testid="quick-access">
                   <button

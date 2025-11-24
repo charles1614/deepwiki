@@ -332,7 +332,7 @@ export function WikiList({
             {showRefreshButton && !isManageMode && (
               <button
                 onClick={handleRefresh}
-                className="text-gray-500 hover:text-gray-700 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
+                className="text-gray-500 hover:text-black px-2 py-1 text-sm transition-colors"
                 aria-label="Refresh wiki list"
                 data-testid="refresh-button"
               >
@@ -342,7 +342,7 @@ export function WikiList({
             {enableManagement && !isManageMode && (
               <button
                 onClick={toggleManageMode}
-                className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
+                className="text-gray-500 hover:text-black px-2 py-1 text-sm transition-colors"
                 data-testid="manage-wikis-button"
                 aria-label="Manage wikis"
               >
@@ -355,20 +355,20 @@ export function WikiList({
                   <button
                     onClick={() => setDeleteDialogOpen(true)}
                     disabled={deleting}
-                    className="bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm flex items-center"
+                    className="bg-red-600 text-white px-3 py-1.5 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs font-medium flex items-center"
                     data-testid="delete-selected-button"
                   >
-                    <TrashIcon className="h-4 w-4 mr-1.5" />
+                    <TrashIcon className="h-3 w-3 mr-1.5" />
                     Delete ({selectedWikis.size})
                   </button>
                 )}
                 <button
                   onClick={toggleManageMode}
-                  className="text-red-600 hover:text-red-800 px-3 py-1 hover:bg-red-50 rounded transition-colors"
+                  className="text-gray-500 hover:text-black px-2 py-1 text-sm transition-colors"
                   data-testid="manage-wikis-button"
                   aria-label="Cancel management mode"
                 >
-                  Cancel
+                  Done
                 </button>
               </>
             )}
@@ -508,20 +508,20 @@ export function WikiList({
                       </div>
                       <div
                         data-testid={`wiki-card-${wiki.slug}`}
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${wiki.isPublic
-                          ? 'bg-green-100 text-green-800 border border-green-200'
-                          : 'bg-gray-100 text-gray-800 border border-gray-200'
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${wiki.isPublic
+                          ? 'bg-gray-200 text-gray-800 border border-gray-300'
+                          : 'bg-gray-100 text-gray-600 border border-gray-200'
                           }`}
                       >
                         <span className="flex items-center" data-testid="wiki-privacy-indicator">
                           {wiki.isPublic ? (
                             <>
-                              <GlobeAltIcon className="w-3 h-3 mr-0.5" />
+                              <GlobeAltIcon className="w-3 h-3 mr-1" />
                               <span>Public</span>
                             </>
                           ) : (
                             <>
-                              <LockClosedIcon className="w-3 h-3 mr-0.5" />
+                              <LockClosedIcon className="w-3 h-3 mr-1" />
                               <span>Private</span>
                             </>
                           )}
@@ -546,22 +546,12 @@ export function WikiList({
         {/* See More button - show if maxItems is set and there are more items */}
         {maxItems && wikis.length > maxItems && (
           <div
-            className="group relative bg-white border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-150 cursor-pointer"
+            className="group relative bg-white border border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-all duration-150 cursor-pointer flex items-center justify-center p-4"
             onClick={() => onSeeMore?.()}
             data-testid="see-more-wiki"
           >
-            <div className="p-4 h-full flex flex-col justify-center">
-              <div className="mb-3 text-center">
-                <div className="text-gray-400 group-hover:text-gray-600 mb-2">
-                  <DocumentIcon className="h-5 w-5 mx-auto" />
-                </div>
-                <h3 className="text-base font-semibold text-gray-700 mb-1">
-                  See More
-                </h3>
-                <p className="text-sm text-gray-500">
-                  {wikis.length - maxItems} more wiki{wikis.length - maxItems > 1 ? 's' : ''}
-                </p>
-              </div>
+            <div className="text-sm font-medium text-gray-500 group-hover:text-black transition-colors">
+              See {wikis.length - maxItems} more wiki{wikis.length - maxItems > 1 ? 's' : ''} →
             </div>
           </div>
         )}
@@ -569,17 +559,17 @@ export function WikiList({
 
       {/* Pagination Controls - only show if not using maxItems (dashboard mode) */}
       {!maxItems && itemsPerPage && wikis.length > itemsPerPage && (
-        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-6">
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 pt-6">
           {/* Items per page selector */}
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-700">Items per page:</label>
+            <label className="text-xs text-gray-500">Rows per page:</label>
             <select
               value={itemsPerPage}
               onChange={(e) => {
                 setItemsPerPage(Number(e.target.value))
                 setCurrentPage(1) // Reset to first page when changing items per page
               }}
-              className="text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="text-xs border-none bg-transparent text-gray-600 focus:ring-0 cursor-pointer hover:text-black"
               data-testid="items-per-page-select"
             >
               <option value={15}>15</option>
@@ -590,56 +580,27 @@ export function WikiList({
 
           {/* Page info and navigation */}
           <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-700">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, wikis.length)} of {wikis.length} wikis
+            <div className="text-xs text-gray-500">
+              {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, wikis.length)} of {wikis.length}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1 text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 data-testid="prev-page-button"
+                aria-label="Previous page"
               >
-                Previous
+                ←
               </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.ceil(wikis.length / itemsPerPage) }, (_, i) => i + 1)
-                  .filter(page => {
-                    // Show first page, last page, current page, and pages around current
-                    const totalPages = Math.ceil(wikis.length / itemsPerPage)
-                    return page === 1 ||
-                      page === totalPages ||
-                      (page >= currentPage - 1 && page <= currentPage + 1)
-                  })
-                  .map((page, index, array) => {
-                    // Add ellipsis if there's a gap
-                    const showEllipsisBefore = index > 0 && array[index - 1] < page - 1
-                    return (
-                      <React.Fragment key={page}>
-                        {showEllipsisBefore && (
-                          <span className="px-2 text-gray-500">...</span>
-                        )}
-                        <button
-                          onClick={() => setCurrentPage(page)}
-                          className={`px-3 py-1.5 text-sm border rounded-md transition-colors ${currentPage === page
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'border-gray-300 hover:bg-gray-50'
-                            }`}
-                          data-testid={`page-button-${page}`}
-                        >
-                          {page}
-                        </button>
-                      </React.Fragment>
-                    )
-                  })}
-              </div>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(Math.ceil(wikis.length / itemsPerPage), prev + 1))}
                 disabled={currentPage >= Math.ceil(wikis.length / itemsPerPage)}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1 text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 data-testid="next-page-button"
+                aria-label="Next page"
               >
-                Next
+                →
               </button>
             </div>
           </div>

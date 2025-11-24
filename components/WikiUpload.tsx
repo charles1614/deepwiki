@@ -367,15 +367,9 @@ export function WikiUpload({
   }, [fileProgress, updateFileProgress, enableProgressTracking])
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 w-full">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-          <CloudArrowUpIcon className="h-6 w-6 text-blue-600" />
-          Upload Wiki Files
-        </h2>
-        <p className="text-sm text-gray-500">
-          Upload your markdown documentation files to create a new wiki
-        </p>
+    <div className="w-full">
+      <div className="mb-4">
+        {/* Header removed for conciseness as it's often redundant with page title, or keep minimal */}
       </div>
 
       <div className="space-y-4">
@@ -386,10 +380,10 @@ export function WikiUpload({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`
-            relative border-2 border-dashed rounded-lg p-6 text-center transition-all block
+            relative border border-dashed rounded-lg p-8 text-center transition-all block
             ${isDragging
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
+              ? 'border-black bg-gray-50'
+              : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
             }
             ${uploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}
@@ -406,23 +400,20 @@ export function WikiUpload({
             className="hidden"
           />
 
-          <div className="flex flex-col items-center justify-center space-y-3">
-            <div className={`
-              p-3 rounded-full transition-colors
-              ${isDragging ? 'bg-blue-100' : 'bg-gray-100'}
-            `}>
-              <CloudArrowUpIcon className={`h-10 w-10 ${isDragging ? 'text-blue-600' : 'text-gray-400'}`} />
+          <div className="flex flex-col items-center justify-center space-y-2">
+            <div className="p-2 rounded-full bg-gray-100">
+              <CloudArrowUpIcon className="h-6 w-6 text-gray-600" />
             </div>
 
             <div>
-              <p className="text-base font-medium text-gray-900 mb-1">
+              <p className="text-sm font-medium text-black">
                 {isDragging ? 'Drop files here' : 'Drag and drop files here'}
               </p>
-              <p className="text-sm text-gray-500 mb-2">
-                or <span className="text-blue-600 font-medium">browse</span> to select files
+              <p className="text-xs text-gray-500 mt-1">
+                or <span className="text-black underline decoration-gray-300 hover:decoration-black transition-all">browse</span> to select files
               </p>
-              <p className="text-xs text-gray-400">
-                Select multiple {allowedFileTypes.join(', ')} files • index.md is required • Max {(maxFileSize / 1024 / 1024).toFixed(1)}MB per file
+              <p className="text-[10px] text-gray-400 mt-2 uppercase tracking-wide">
+                Max {(maxFileSize / 1024 / 1024).toFixed(0)}MB • {allowedFileTypes.join(', ')}
               </p>
             </div>
           </div>
@@ -456,8 +447,8 @@ export function WikiUpload({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center space-x-2 flex-1 min-w-0">
                         <DocumentIcon className={`h-4 w-4 flex-shrink-0 ${fp.status === 'error' ? 'text-red-500' :
-                            fp.status === 'completed' ? 'text-green-500' :
-                              'text-gray-400'
+                          fp.status === 'completed' ? 'text-green-500' :
+                            'text-gray-400'
                           }`} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -604,9 +595,9 @@ export function WikiUpload({
         <button
           onClick={handleUpload}
           disabled={uploading || files.length === 0}
-          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-5 rounded-lg hover:from-blue-700 hover:to-indigo-700
+          className="w-full bg-black text-white py-2.5 px-4 rounded-md hover:bg-gray-800
                      disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200
-                     font-semibold text-sm shadow-md hover:shadow-lg
+                     font-medium text-sm border border-transparent
                      flex items-center justify-center gap-2"
           data-testid="upload-button"
         >
@@ -616,11 +607,10 @@ export function WikiUpload({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Uploading Files...
+              Uploading...
             </>
           ) : (
             <>
-              <CloudArrowUpIcon className="h-4 w-4" />
               Upload Wiki
             </>
           )}
