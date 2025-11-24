@@ -20,9 +20,9 @@ export default function WikiPage() {
     if (pathname === '/dashboard') {
       // Check if we came from trying to access /wiki
       const referrer = document.referrer
-      const shouldBeOnWiki = referrer.includes('/wiki') || 
-                             sessionStorage.getItem('intendedWikiPage') === 'true'
-      
+      const shouldBeOnWiki = referrer.includes('/wiki') ||
+        sessionStorage.getItem('intendedWikiPage') === 'true'
+
       if (shouldBeOnWiki) {
         // Clear the flag and redirect to wiki
         sessionStorage.removeItem('intendedWikiPage')
@@ -30,7 +30,7 @@ export default function WikiPage() {
         return
       }
     }
-    
+
     // If we successfully reached /wiki, clear any flags
     if (pathname === '/wiki') {
       sessionStorage.removeItem('intendedWikiPage')
@@ -44,7 +44,7 @@ export default function WikiPage() {
     }
   }, [session, refreshKey])
 
-  
+
   const handleWikiSelect = (wiki: { slug: string }) => {
     // Navigate to the individual wiki view
     router.push(`/wiki/${wiki.slug}`)

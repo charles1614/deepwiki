@@ -37,6 +37,9 @@ export default defineConfig({
 
     /* Navigation timeout */
     navigationTimeout: 30000,
+
+    /* Ignore HTTPS errors */
+    ignoreHTTPSErrors: true,
   },
   /* Global setup to handle polyfills */
   globalSetup: require.resolve('./tests/e2e/setup.ts'),

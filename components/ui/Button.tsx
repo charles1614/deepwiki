@@ -15,6 +15,7 @@ interface ButtonProps {
   id?: string
   'data-testid'?: string
   fullWidth?: boolean
+  ariaLabel?: string
 }
 
 export function Button({
@@ -29,6 +30,7 @@ export function Button({
   id,
   'data-testid': dataTestId,
   fullWidth = false,
+  ariaLabel,
 }: ButtonProps) {
   // Variant styles
   const variants: Record<ButtonVariant, string> = {
@@ -59,6 +61,7 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       data-testid={dataTestId || id}
+      aria-label={ariaLabel}
       className={classes}
       onClick={onClick}
     >

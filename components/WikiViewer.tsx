@@ -530,11 +530,10 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
         {!isOwner && (
           <div
             data-testid="privacy-indicator"
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              currentPrivacy
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${currentPrivacy
                 ? 'bg-green-100 text-green-800 border border-green-200'
                 : 'bg-gray-100 text-gray-800 border border-gray-200'
-            }`}
+              }`}
           >
             <span className="mr-1">
               {currentPrivacy ? (
@@ -738,6 +737,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
                             onChange={() => toggleFileSelection(file.id)}
                             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
                             data-testid={`checkbox-${file.id}`}
+                            aria-label={`Select ${file.filename}`}
                           />
                         )}
                         <button
@@ -774,6 +774,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
                                 }`}
                               title="Edit page"
                               data-testid={`edit-${file.id}`}
+                              aria-label={`Edit ${file.filename}`}
                             >
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -787,6 +788,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
                                 }`}
                               title="View version history"
                               data-testid={`history-${file.id}`}
+                              aria-label={`View version history for ${file.filename}`}
                             >
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

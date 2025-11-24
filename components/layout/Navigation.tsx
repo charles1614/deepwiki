@@ -240,6 +240,7 @@ export function Navigation({ className = '' }: NavigationProps) {
                 onClick={handleBackNavigation}
                 className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 mr-2"
                 data-testid="nav-back-button"
+                aria-label="Go back"
               >
                 <ChevronLeftIcon className="h-5 w-5" />
               </button>
@@ -268,6 +269,7 @@ export function Navigation({ className = '' }: NavigationProps) {
                 className="flex items-center justify-center w-10 h-10 bg-blue-500 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 aria-expanded={isUserMenuOpen}
                 aria-haspopup="true"
+                aria-label="User menu"
                 data-testid="mobile-user-menu-button"
               >
                 <span className="text-white text-sm font-medium">
@@ -388,6 +390,7 @@ export function Navigation({ className = '' }: NavigationProps) {
                   placeholder="Search wikis..."
                   className="w-64 pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   data-testid="desktop-search-input"
+                  aria-label="Search wikis"
                 />
                 <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </form>
@@ -402,6 +405,7 @@ export function Navigation({ className = '' }: NavigationProps) {
                 className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 aria-expanded={isUserMenuOpen}
                 aria-haspopup="true"
+                aria-label="User menu"
               >
                 <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-2 shadow-sm">
                   <span className="text-white text-xs font-medium">
@@ -528,6 +532,7 @@ export function Navigation({ className = '' }: NavigationProps) {
                 placeholder="Search wikis..."
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 data-testid="search-input"
+                aria-label="Search wikis"
               />
               <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             </form>

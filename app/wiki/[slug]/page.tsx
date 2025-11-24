@@ -45,8 +45,7 @@ export default function WikiViewPage() {
         if (response.status === 404) {
           setError('Wiki not found')
         } else if (response.status === 403) {
-          setError('Access denied: This wiki is private')
-          setRequireAuth(true)
+          setError('Access Denied: This wiki is private')
         } else {
           setError('Failed to load wiki')
         }

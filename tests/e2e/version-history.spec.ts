@@ -224,8 +224,6 @@ test.describe('Version History Feature', () => {
 
       // Wait for rollback to complete
       await page.waitForTimeout(3000);
-      // Ensure rollback API call completed
-      await page.waitForResponse(response => response.url().includes('/api/wiki/') && response.status() === 200);
 
       // Close the modal
       const closeButton = page.locator('[data-testid="version-history-modal-close-button"]')

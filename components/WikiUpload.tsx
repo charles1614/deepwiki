@@ -74,7 +74,7 @@ export function WikiUpload({
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || [])
     processFiles(selectedFiles)
-    
+
     // Reset input value after processing to allow selecting the same file again in Chrome
     // Chrome doesn't trigger onChange if the same file is selected
     // Use setTimeout to ensure files are processed before resetting
@@ -106,7 +106,7 @@ export function WikiUpload({
     const validFiles = droppedFiles.filter(file =>
       allowedFileTypes.some(ext => file.name.endsWith(ext))
     )
-    
+
     if (validFiles.length > 0) {
       processFiles(validFiles)
     } else {
@@ -168,7 +168,7 @@ export function WikiUpload({
 
   // Simulate individual file progress during batch upload
   const simulateIndividualFileProgress = useCallback(() => {
-    if (!enableProgressTracking) return () => {}
+    if (!enableProgressTracking) return () => { }
 
     let currentFileIndex = 0
     const interval = setInterval(() => {
@@ -387,8 +387,8 @@ export function WikiUpload({
           onDrop={handleDrop}
           className={`
             relative border-2 border-dashed rounded-lg p-6 text-center transition-all block
-            ${isDragging 
-              ? 'border-blue-500 bg-blue-50' 
+            ${isDragging
+              ? 'border-blue-500 bg-blue-50'
               : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
             }
             ${uploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -405,7 +405,7 @@ export function WikiUpload({
             disabled={uploading}
             className="hidden"
           />
-          
+
           <div className="flex flex-col items-center justify-center space-y-3">
             <div className={`
               p-3 rounded-full transition-colors
@@ -413,7 +413,7 @@ export function WikiUpload({
             `}>
               <CloudArrowUpIcon className={`h-10 w-10 ${isDragging ? 'text-blue-600' : 'text-gray-400'}`} />
             </div>
-            
+
             <div>
               <p className="text-base font-medium text-gray-900 mb-1">
                 {isDragging ? 'Drop files here' : 'Drag and drop files here'}
@@ -441,25 +441,24 @@ export function WikiUpload({
               {enableProgressTracking ? (
                 // Enhanced file list with progress
                 fileProgress.map((fp, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className={`
                       border rounded-lg p-3 transition-all
-                      ${fp.status === 'error' 
-                        ? 'border-red-200 bg-red-50' 
+                      ${fp.status === 'error'
+                        ? 'border-red-200 bg-red-50'
                         : fp.status === 'completed'
-                        ? 'border-green-200 bg-green-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+                          ? 'border-green-200 bg-green-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                       }
                     `}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center space-x-2 flex-1 min-w-0">
-                        <DocumentIcon className={`h-4 w-4 flex-shrink-0 ${
-                          fp.status === 'error' ? 'text-red-500' :
-                          fp.status === 'completed' ? 'text-green-500' :
-                          'text-gray-400'
-                        }`} />
+                        <DocumentIcon className={`h-4 w-4 flex-shrink-0 ${fp.status === 'error' ? 'text-red-500' :
+                            fp.status === 'completed' ? 'text-green-500' :
+                              'text-gray-400'
+                          }`} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium text-gray-900 truncate">
@@ -491,7 +490,7 @@ export function WikiUpload({
                             }}
                             className="p-1 text-gray-400 hover:text-red-600 transition-colors rounded"
                             data-testid={`remove-file-${index}`}
-                            aria-label="Remove file"
+                            aria-label={`Remove ${fp.file.name}`}
                           >
                             <XMarkIcon className="h-4 w-4" />
                           </button>
@@ -508,8 +507,8 @@ export function WikiUpload({
                           className="text-xs"
                           message={
                             fp.status === 'uploading' ? 'Uploading...' :
-                            fp.status === 'completed' ? 'Completed' :
-                            fp.status === 'error' ? 'Failed' : 'Pending'
+                              fp.status === 'completed' ? 'Completed' :
+                                fp.status === 'error' ? 'Failed' : 'Pending'
                           }
                         />
                       </div>
@@ -519,8 +518,8 @@ export function WikiUpload({
               ) : (
                 // Simple file list without progress
                 files.map((file, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg p-2.5 hover:bg-gray-100 transition-colors"
                   >
                     <div className="flex items-center space-x-2 flex-1 min-w-0">
@@ -563,9 +562,9 @@ export function WikiUpload({
               showPercentage={true}
               message={
                 uploadStatus === 'uploading' ? `Uploading ${files.length} files...` :
-                uploadStatus === 'processing' ? 'Processing uploaded files...' :
-                uploadStatus === 'completed' ? 'Upload completed successfully!' :
-                uploadStatus === 'error' ? 'Upload failed' : ''
+                  uploadStatus === 'processing' ? 'Processing uploaded files...' :
+                    uploadStatus === 'completed' ? 'Upload completed successfully!' :
+                      uploadStatus === 'error' ? 'Upload failed' : ''
               }
             />
 

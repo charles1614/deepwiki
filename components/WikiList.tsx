@@ -319,6 +319,7 @@ export function WikiList({
                   onChange={selectAllWikis}
                   className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   data-testid="select-all-checkbox"
+                  aria-label="Select all wikis"
                 />
                 <span className="text-sm text-gray-700">
                   {selectedWikis.size > 0 ? `${selectedWikis.size} selected` : 'Select all'}
@@ -343,6 +344,7 @@ export function WikiList({
                 onClick={toggleManageMode}
                 className="text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
                 data-testid="manage-wikis-button"
+                aria-label="Manage wikis"
               >
                 Manage
               </button>
@@ -364,6 +366,7 @@ export function WikiList({
                   onClick={toggleManageMode}
                   className="text-red-600 hover:text-red-800 px-3 py-1 hover:bg-red-50 rounded transition-colors"
                   data-testid="manage-wikis-button"
+                  aria-label="Cancel management mode"
                 >
                   Cancel
                 </button>
@@ -377,8 +380,8 @@ export function WikiList({
       {deleteMessage && (
         <div
           className={`p-4 rounded-lg flex items-center space-x-3 ${deleteMessage.type === 'error'
-              ? 'bg-red-50 border border-red-200 text-red-700'
-              : 'bg-green-50 border border-green-200 text-green-700'
+            ? 'bg-red-50 border border-red-200 text-red-700'
+            : 'bg-green-50 border border-green-200 text-green-700'
             }`}
           data-testid={deleteMessage.type === 'error' ? 'delete-error-message' : 'delete-success-message'}
         >
@@ -412,8 +415,8 @@ export function WikiList({
           <div
             key={wiki.id}
             className={`group relative bg-white border rounded-lg transition-all duration-150 ${isManageMode
-                ? 'border-gray-300 hover:border-gray-400'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              ? 'border-gray-300 hover:border-gray-400'
+              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               } ${selectedWikis.has(wiki.id) ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' : ''} ${!isManageMode ? 'cursor-pointer' : ''
               }`}
             onClick={(e) => handleWikiClick(wiki, e)}
@@ -432,6 +435,7 @@ export function WikiList({
                     className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 mt-0.5 flex-shrink-0"
                     data-testid="wiki-checkbox"
                     onClick={(e) => e.stopPropagation()}
+                    aria-label={`Select ${wiki.title}`}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="mb-3">
@@ -452,24 +456,24 @@ export function WikiList({
                         </div>
                         <div
                           data-testid={`wiki-card-${wiki.slug}`}
-                          className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                            wiki.isPublic
-                              ? 'bg-green-100 text-green-800 border border-green-200'
-                              : 'bg-gray-100 text-gray-800 border border-gray-200'
-                          }`}
-                          data-testid="wiki-privacy-indicator"
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${wiki.isPublic
+                            ? 'bg-green-100 text-green-800 border border-green-200'
+                            : 'bg-gray-100 text-gray-800 border border-gray-200'
+                            }`}
                         >
-                          {wiki.isPublic ? (
-                            <>
-                              <GlobeAltIcon className="w-3 h-3 mr-0.5" />
-                              <span>Public</span>
-                            </>
-                          ) : (
-                            <>
-                              <LockClosedIcon className="w-3 h-3 mr-0.5" />
-                              <span>Private</span>
-                            </>
-                          )}
+                          <span className="flex items-center" data-testid="wiki-privacy-indicator">
+                            {wiki.isPublic ? (
+                              <>
+                                <GlobeAltIcon className="w-3 h-3 mr-0.5" />
+                                <span>Public</span>
+                              </>
+                            ) : (
+                              <>
+                                <LockClosedIcon className="w-3 h-3 mr-0.5" />
+                                <span>Private</span>
+                              </>
+                            )}
+                          </span>
                         </div>
                       </div>
                       <div>
@@ -504,24 +508,24 @@ export function WikiList({
                       </div>
                       <div
                         data-testid={`wiki-card-${wiki.slug}`}
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                          wiki.isPublic
-                            ? 'bg-green-100 text-green-800 border border-green-200'
-                            : 'bg-gray-100 text-gray-800 border border-gray-200'
-                        }`}
-                        data-testid="wiki-privacy-indicator"
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${wiki.isPublic
+                          ? 'bg-green-100 text-green-800 border border-green-200'
+                          : 'bg-gray-100 text-gray-800 border border-gray-200'
+                          }`}
                       >
-                        {wiki.isPublic ? (
-                          <>
-                            <GlobeAltIcon className="w-3 h-3 mr-0.5" />
-                            <span>Public</span>
-                          </>
-                        ) : (
-                          <>
-                            <LockClosedIcon className="w-3 h-3 mr-0.5" />
-                            <span>Private</span>
-                          </>
-                        )}
+                        <span className="flex items-center" data-testid="wiki-privacy-indicator">
+                          {wiki.isPublic ? (
+                            <>
+                              <GlobeAltIcon className="w-3 h-3 mr-0.5" />
+                              <span>Public</span>
+                            </>
+                          ) : (
+                            <>
+                              <LockClosedIcon className="w-3 h-3 mr-0.5" />
+                              <span>Private</span>
+                            </>
+                          )}
+                        </span>
                       </div>
                     </div>
                     <div>
@@ -618,8 +622,8 @@ export function WikiList({
                         <button
                           onClick={() => setCurrentPage(page)}
                           className={`px-3 py-1.5 text-sm border rounded-md transition-colors ${currentPage === page
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'border-gray-300 hover:bg-gray-50'
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 hover:bg-gray-50'
                             }`}
                           data-testid={`page-button-${page}`}
                         >
