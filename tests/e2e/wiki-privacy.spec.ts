@@ -30,10 +30,14 @@ test.describe('Wiki Privacy', () => {
     await authenticatedPage.waitForSelector('[data-testid="wiki-content"]', { timeout: 10000 })
 
     // Enter manage mode to see the privacy toggle
-    const manageButton = authenticatedPage.locator('button:has-text("Manage")')
-    if (await manageButton.isVisible().catch(() => false)) {
+    const manageButton = authenticatedPage.locator('[data-testid="manage-button"]')
+    // Wait for the button to be attached to DOM first
+    await manageButton.waitFor({ state: 'attached', timeout: 10000 })
+
+    if (await manageButton.isVisible()) {
       await manageButton.click()
-      await authenticatedPage.waitForTimeout(500)
+      // Wait for the privacy toggle to appear
+      await authenticatedPage.waitForSelector('[data-testid="privacy-toggle"]', { state: 'visible', timeout: 5000 })
     }
 
     // Verify privacy toggle exists and shows private state
@@ -67,14 +71,17 @@ test.describe('Wiki Privacy', () => {
     await authenticatedPage.waitForSelector('[data-testid="wiki-content"]', { timeout: 10000 })
 
     // Enter manage mode
-    const manageButton = authenticatedPage.locator('button:has-text("Manage")')
-    await expect(manageButton).toBeVisible()
+    // Enter manage mode
+    const manageButton = authenticatedPage.locator('[data-testid="manage-button"]')
+    await expect(manageButton).toBeVisible({ timeout: 10000 })
     await manageButton.click()
-    await authenticatedPage.waitForTimeout(500)
+
+    // Wait for the privacy toggle to be visible and enabled
+    const privacyToggle = authenticatedPage.locator('[data-testid="privacy-toggle"]')
+    await expect(privacyToggle).toBeVisible({ timeout: 5000 })
+    await expect(privacyToggle).toBeEnabled({ timeout: 5000 })
 
     // Click privacy toggle to make public
-    const privacyToggle = authenticatedPage.locator('[data-testid="privacy-toggle"]')
-    await expect(privacyToggle).toBeVisible()
     await privacyToggle.click()
 
     // Handle confirmation dialog
@@ -133,9 +140,12 @@ test.describe('Wiki Privacy', () => {
     await expect(privacyToggle).toContainText('Public', { timeout: 5000 })
 
     // Enter manage mode
-    const manageButton = authenticatedPage.locator('button:has-text("Manage")')
-    await expect(manageButton).toBeVisible()
+    // Enter manage mode
+    const manageButton = authenticatedPage.locator('[data-testid="manage-button"]')
+    await expect(manageButton).toBeVisible({ timeout: 10000 })
     await manageButton.click()
+
+    // Wait for privacy toggle to update
     await authenticatedPage.waitForTimeout(500)
 
     // Click privacy toggle to make private
@@ -255,7 +265,7 @@ test.describe('Wiki Privacy', () => {
       await expect(publicIndicator).toContainText('Public')
 
       // Should NOT see manage controls (not authenticated)
-      const manageButton = newPage.locator('button:has-text("Manage")')
+      const manageButton = newPage.locator('[data-testid="manage-button"]')
       await expect(manageButton).not.toBeVisible()
 
       // Should NOT see privacy toggle (not owner)

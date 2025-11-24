@@ -54,8 +54,9 @@ export function Breadcrumbs({ className = '' }: BreadcrumbProps) {
 
   const breadcrumbs = generateBreadcrumbs()
 
-  // Don't show breadcrumbs if we're on the home page with only "Home"
-  if (breadcrumbs.length <= 1) {
+  // Show breadcrumbs if we have multiple items OR if there's right content to display
+  // (right content includes Manage button, privacy toggle, etc.)
+  if (breadcrumbs.length <= 1 && !rightContent) {
     return null
   }
 

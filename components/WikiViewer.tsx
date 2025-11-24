@@ -531,8 +531,8 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
           <div
             data-testid="privacy-indicator"
             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${currentPrivacy
-                ? 'bg-green-100 text-green-800 border border-green-200'
-                : 'bg-gray-100 text-gray-800 border border-gray-200'
+              ? 'bg-green-100 text-green-800 border border-green-200'
+              : 'bg-gray-100 text-gray-800 border border-gray-200'
               }`}
           >
             <span className="mr-1">
@@ -556,6 +556,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
         {isOwner && (
           <button
             onClick={toggleManageMode}
+            data-testid="manage-button"
             className={isManageMode
               ? "text-red-600 hover:text-red-800 px-3 py-1 hover:bg-red-50 rounded transition-colors"
               : "text-gray-600 hover:text-gray-800 px-3 py-1 hover:bg-gray-50 rounded transition-colors"
