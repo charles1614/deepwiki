@@ -1,24 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Kalam:wght@400;700&family=Gaegu:wght@400;700&family=Caveat:wght@400;700&family=Permanent+Marker&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  /* Vercel Light Theme by default */
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
+  --background-start-rgb: 255, 255, 255;
   --background-end-rgb: 255, 255, 255;
+
+  /* Vercel specific colors */
+  --accents-1: #fafafa;
+  --accents-2: #eaeaea;
+  --accents-3: #999;
+  --accents-4: #888;
+  --accents-5: #666;
+  --accents-6: #444;
+  --accents-7: #333;
+  --accents-8: #111;
 }
 
 @media (prefers-color-scheme: dark) {
+
+  /* Even if user prefers dark mode, we default to Light Mode to match the specific "Vercel website" request 
+     unless we implement a full toggle. For now, enforcing the requested look.
+  */
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    --foreground-rgb: 0, 0, 0;
+    --background-start-rgb: 255, 255, 255;
+    --background-end-rgb: 255, 255, 255;
   }
 }
 
-html, body {
+html,
+body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
@@ -26,12 +40,55 @@ html, body {
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: rgb(var(--background-start-rgb));
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Base typography for Vercel look */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: #000000;
+}
+
+button {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Custom Utilities for Vercel-like Cards */
+.vercel-card {
+  background-color: #ffffff;
+  border: 1px solid #eaeaea;
+  border-radius: 0.75rem;
+  /* 12px */
+  transition: all 0.15s ease;
+}
+
+.vercel-card:hover {
+  border-color: #000000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.vercel-card-subtle {
+  background-color: #ffffff;
+  border: 1px solid #eaeaea;
+  border-radius: 0.5rem;
+  /* 8px */
+  transition: all 0.15s ease;
+}
+
+.vercel-card-subtle:hover {
+  border-color: #a3a3a3;
 }
 
 /* Enhanced Markdown Content Styling */
@@ -56,7 +113,7 @@ body {
   padding: 0;
 }
 
-.markdown-content :not(pre) > code {
+.markdown-content :not(pre)>code {
   background-color: #f3f4f6;
   color: #dc2626;
   padding: 0.125rem 0.375rem;
@@ -178,76 +235,76 @@ body {
 }
 
 /* Spacing between headings and following elements */
-.markdown-content h1 + *,
-.markdown-content.prose h1 + * {
+.markdown-content h1+*,
+.markdown-content.prose h1+* {
   margin-top: 0.75rem !important;
 }
 
-.markdown-content h2 + *,
-.markdown-content.prose h2 + * {
+.markdown-content h2+*,
+.markdown-content.prose h2+* {
   margin-top: 0.75rem !important;
 }
 
-.markdown-content h3 + *,
-.markdown-content h4 + *,
-.markdown-content h5 + *,
-.markdown-content h6 + *,
-.markdown-content.prose h3 + *,
-.markdown-content.prose h4 + *,
-.markdown-content.prose h5 + *,
-.markdown-content.prose h6 + * {
+.markdown-content h3+*,
+.markdown-content h4+*,
+.markdown-content h5+*,
+.markdown-content h6+*,
+.markdown-content.prose h3+*,
+.markdown-content.prose h4+*,
+.markdown-content.prose h5+*,
+.markdown-content.prose h6+* {
   margin-top: 0.625rem !important;
 }
 
 /* Spacing after hr */
-.markdown-content hr + *,
-.markdown-content.prose hr + * {
+.markdown-content hr+*,
+.markdown-content.prose hr+* {
   margin-top: 0.75rem !important;
 }
 
 /* Spacing before hr */
-.markdown-content * + hr,
-.markdown-content.prose * + hr {
+.markdown-content *+hr,
+.markdown-content.prose *+hr {
   margin-top: 1rem !important;
   margin-bottom: 1rem !important;
 }
 
 /* Spacing between paragraphs and headings */
-.markdown-content p + h1,
-.markdown-content.prose p + h1 {
+.markdown-content p+h1,
+.markdown-content.prose p+h1 {
   margin-top: 1.5rem !important;
 }
 
-.markdown-content p + h2,
-.markdown-content.prose p + h2 {
+.markdown-content p+h2,
+.markdown-content.prose p+h2 {
   margin-top: 1.25rem !important;
 }
 
-.markdown-content p + h3,
-.markdown-content p + h4,
-.markdown-content p + h5,
-.markdown-content p + h6,
-.markdown-content.prose p + h3,
-.markdown-content.prose p + h4,
-.markdown-content.prose p + h5,
-.markdown-content.prose p + h6 {
+.markdown-content p+h3,
+.markdown-content p+h4,
+.markdown-content p+h5,
+.markdown-content p+h6,
+.markdown-content.prose p+h3,
+.markdown-content.prose p+h4,
+.markdown-content.prose p+h5,
+.markdown-content.prose p+h6 {
   margin-top: 1rem !important;
 }
 
 /* Spacing between headings */
-.markdown-content h1 + h2,
-.markdown-content.prose h1 + h2 {
+.markdown-content h1+h2,
+.markdown-content.prose h1+h2 {
   margin-top: 0.75rem !important;
 }
 
-.markdown-content h2 + h3,
-.markdown-content h3 + h4,
-.markdown-content h4 + h5,
-.markdown-content h5 + h6,
-.markdown-content.prose h2 + h3,
-.markdown-content.prose h3 + h4,
-.markdown-content.prose h4 + h5,
-.markdown-content.prose h5 + h6 {
+.markdown-content h2+h3,
+.markdown-content h3+h4,
+.markdown-content h4+h5,
+.markdown-content h5+h6,
+.markdown-content.prose h2+h3,
+.markdown-content.prose h3+h4,
+.markdown-content.prose h4+h5,
+.markdown-content.prose h5+h6 {
   margin-top: 0.625rem !important;
 }
 
@@ -294,7 +351,7 @@ body {
 }
 
 /* Add spacing between different clusters */
-.markdown-content .mermaid svg g.cluster + g.cluster {
+.markdown-content .mermaid svg g.cluster+g.cluster {
   margin-top: 22px;
 }
 
@@ -305,19 +362,19 @@ body {
 
 /* Add spacing for standalone text labels above subgraphs (like "Optimization Layers") */
 /* Target text elements that are not inside nodes or clusters */
-.markdown-content .mermaid svg g > text:not(.nodeLabel):not(.edgeLabel):not(.titleText) {
+.markdown-content .mermaid svg g>text:not(.nodeLabel):not(.edgeLabel):not(.titleText) {
   margin-bottom: 20px;
   display: block;
 }
 
 /* Add spacing for text elements that appear before clusters */
-.markdown-content .mermaid svg g:has(text:not(.nodeLabel):not(.edgeLabel):not(.titleText)) + g.cluster {
+.markdown-content .mermaid svg g:has(text:not(.nodeLabel):not(.edgeLabel):not(.titleText))+g.cluster {
   margin-top: 45px;
 }
 
 /* Alternative: Target any text group that comes before a cluster */
-.markdown-content .mermaid svg g[class*="text"] + g.cluster,
-.markdown-content .mermaid svg g:has(> text[class=""]) + g.cluster {
+.markdown-content .mermaid svg g[class*="text"]+g.cluster,
+.markdown-content .mermaid svg g:has(> text[class=""])+g.cluster {
   margin-top: 45px;
 }
 
@@ -343,7 +400,7 @@ body {
 }
 
 /* Wrap tables in responsive container */
-.markdown-content > * {
+.markdown-content>* {
   max-width: 100%;
   overflow-x: auto;
 }
@@ -356,13 +413,13 @@ body {
     white-space: nowrap;
     width: 100%;
   }
-  
+
   .markdown-content table thead,
   .markdown-content table tbody,
   .markdown-content table tr {
     display: table-row;
   }
-  
+
   .markdown-content table td,
   .markdown-content table th {
     white-space: nowrap;

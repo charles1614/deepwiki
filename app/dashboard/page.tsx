@@ -143,15 +143,7 @@ export default function DashboardPage() {
             {/* Enhanced Stats Cards */}
             <DashboardStats className="mb-8" />
 
-            {/* Admin Panel */}
-            {isAdmin && (
-              <div className="mb-8 p-5 bg-gradient-to-r from-red-50/50 via-red-50/30 to-gray-50 border border-red-200/40 rounded-xl shadow-sm" data-testid="admin-panel">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">Admin Panel</h2>
-                <div className="text-sm text-gray-600 leading-relaxed">
-                  You have administrative privileges. You can manage all wikis and user content.
-                </div>
-              </div>
-            )}
+            {/* Admin Panel Removed */}
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">

@@ -84,28 +84,20 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Admin Panel */}
-          {isAdmin && (
-            <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg" data-testid="admin-panel">
-              <h2 className="text-lg font-semibold text-blue-900 mb-2">Admin Panel</h2>
-              <div className="text-sm text-blue-700">
-                You have administrative privileges. You can manage all wikis and user content.
-              </div>
-            </div>
-          )}
+          {/* Admin Panel Removed */}
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Main Content - 3 columns on desktop */}
             <div className="lg:col-span-3 space-y-8">
               {/* Wiki Upload Section */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Wiki</h2>
+              <div className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-400 transition-colors duration-200">
+                <h2 className="text-xl font-semibold text-black mb-4">Upload Wiki</h2>
                 <WikiUpload onUploadSuccess={handleUploadSuccess} />
               </div>
 
               {/* Wiki List Section */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-400 transition-colors duration-200">
                 <WikiList
                   key={refreshKey}
                   onWikiSelect={handleWikiSelect}
@@ -117,19 +109,19 @@ export default function Home() {
             {/* Sidebar - 1 column on desktop */}
             <div className="lg:col-span-1">
               {/* Quick Access Sidebar */}
-              <div className="bg-gray-50 rounded-lg p-4 sticky top-6" data-testid="wiki-sidebar">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Quick Access</h3>
+              <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-6" data-testid="wiki-sidebar">
+                <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Quick Access</h3>
                 <div className="space-y-2" data-testid="quick-access">
                   <button
                     onClick={() => router.push('/upload')}
-                    className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-white hover:shadow-sm rounded-md transition-colors"
+                    className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:text-black hover:bg-gray-50 rounded-md transition-colors"
                   >
                     <CloudArrowUpIcon className="h-4 w-4 mr-2" />
                     Upload New Wiki
                   </button>
                   <button
                     onClick={() => router.push('/dashboard')}
-                    className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:bg-white hover:shadow-sm rounded-md transition-colors"
+                    className="flex items-center w-full px-3 py-2 text-sm text-gray-600 hover:text-black hover:bg-gray-50 rounded-md transition-colors"
                   >
                     <BookOpenIcon className="h-4 w-4 mr-2" />
                     Dashboard
@@ -138,18 +130,18 @@ export default function Home() {
 
                 {/* Recent Wikis */}
                 {recentWikis.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-sm font-medium text-gray-900 mb-3">Recent Wikis</h3>
-                    <div className="space-y-2">
+                  <div className="mt-8">
+                    <h3 className="text-sm font-medium text-gray-500 mb-3 uppercase tracking-wide">Recent Wikis</h3>
+                    <div className="space-y-1">
                       {recentWikis.map((wiki) => (
                         <button
                           key={wiki.id}
                           onClick={() => handleWikiSelect(wiki)}
-                          className="block w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-white hover:shadow-sm rounded-md transition-colors"
+                          className="block w-full text-left px-3 py-2 text-sm text-gray-600 hover:text-black hover:bg-gray-50 rounded-md transition-colors"
                           data-testid={`wiki-link-${wiki.slug}`}
                         >
-                          <div className="font-medium text-gray-900 truncate">{wiki.title}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="font-medium truncate">{wiki.title}</div>
+                          <div className="text-xs text-gray-400 mt-0.5">
                             {new Date(wiki.updatedAt).toLocaleDateString()}
                           </div>
                         </button>

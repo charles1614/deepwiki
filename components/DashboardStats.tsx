@@ -80,11 +80,11 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
   const getTrendIcon = (trend?: { direction: 'up' | 'down' | 'neutral'; percentage: number }, color?: string) => {
     if (!trend) return null
 
-    const textClass = trend.direction === 'up' 
+    const textClass = trend.direction === 'up'
       ? (color || 'text-gray-600')
-      : trend.direction === 'down' 
-      ? 'text-gray-500' 
-      : 'text-gray-500'
+      : trend.direction === 'down'
+        ? 'text-gray-500'
+        : 'text-gray-500'
     const symbol = trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '→'
 
     return <span className={`h-4 w-4 ${textClass}`}>{symbol}</span>
@@ -145,24 +145,23 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
   return (
     <div className={`grid grid-cols-1 ${!isMobile ? 'md:grid-cols-2' : ''} ${!isMobile && !isTablet ? 'lg:grid-cols-4' : ''} gap-6 ${className}`} data-testid="stats-grid">
       {/* Total Wikis */}
-      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl shadow-sm border border-gray-200/60 hover:shadow-md hover:border-blue-200/60 transition-all duration-200`} data-testid="stats-total-wikis">
+      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-total-wikis">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200/50">
-              <BookOpenIcon className="h-6 w-6 text-blue-600" />
+            <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+              <BookOpenIcon className="h-5 w-5 text-black" />
             </div>
             <div className="ml-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Wikis</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalWikis}</p>
+              <p className="text-sm font-medium text-gray-500">Total Wikis</p>
+              <p className="text-2xl font-semibold text-black mt-1">{stats.totalWikis}</p>
             </div>
           </div>
           {trends.totalWikis && (
             <div className="flex items-center space-x-1">
-              {getTrendIcon(trends.totalWikis, 'text-blue-600')}
-              <span className={`text-sm font-semibold ${
-                trends.totalWikis.direction === 'up' ? 'text-blue-600' :
+              {getTrendIcon(trends.totalWikis, 'text-black')}
+              <span className={`text-sm font-medium ${trends.totalWikis.direction === 'up' ? 'text-black' :
                 trends.totalWikis.direction === 'down' ? 'text-gray-500' : 'text-gray-600'
-              }`} data-testid={`trend-${trends.totalWikis.direction}-totalWikis`}>
+                }`} data-testid={`trend-${trends.totalWikis.direction}-totalWikis`}>
                 {getTrendText(trends.totalWikis)}
               </span>
             </div>
@@ -171,24 +170,23 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
       </div>
 
       {/* Recent Uploads */}
-      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl shadow-sm border border-gray-200/60 hover:shadow-md hover:border-blue-200/60 transition-all duration-200`} data-testid="stats-recent-uploads">
+      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-recent-uploads">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200/50">
-              <CloudArrowUpIcon className="h-6 w-6 text-blue-600" />
+            <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+              <CloudArrowUpIcon className="h-5 w-5 text-black" />
             </div>
             <div className="ml-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Recent Uploads</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.recentUploads}</p>
+              <p className="text-sm font-medium text-gray-500">Recent Uploads</p>
+              <p className="text-2xl font-semibold text-black mt-1">{stats.recentUploads}</p>
             </div>
           </div>
           {trends.recentUploads && (
             <div className="flex items-center space-x-1">
-              {getTrendIcon(trends.recentUploads, 'text-blue-600')}
-              <span className={`text-sm font-semibold ${
-                trends.recentUploads.direction === 'up' ? 'text-blue-600' :
-                trends.recentUploads.direction === 'down' ? 'text-blue-600' : 'text-gray-600'
-              }`} data-testid={`trend-${trends.recentUploads.direction}-recentUploads`}>
+              {getTrendIcon(trends.recentUploads, 'text-black')}
+              <span className={`text-sm font-medium ${trends.recentUploads.direction === 'up' ? 'text-black' :
+                trends.recentUploads.direction === 'down' ? 'text-black' : 'text-gray-600'
+                }`} data-testid={`trend-${trends.recentUploads.direction}-recentUploads`}>
                 {getTrendText(trends.recentUploads)}
               </span>
             </div>
@@ -197,24 +195,23 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
       </div>
 
       {/* Total Documents */}
-      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl shadow-sm border border-gray-200/60 hover:shadow-md hover:border-green-200/60 transition-all duration-200`} data-testid="stats-total-documents">
+      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-total-documents">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="p-3 bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl border border-green-200/50">
-              <DocumentTextIcon className="h-6 w-6 text-green-600" />
+            <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+              <DocumentTextIcon className="h-5 w-5 text-black" />
             </div>
             <div className="ml-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Documents</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalDocuments}</p>
+              <p className="text-sm font-medium text-gray-500">Documents</p>
+              <p className="text-2xl font-semibold text-black mt-1">{stats.totalDocuments}</p>
             </div>
           </div>
           {trends.totalDocuments && (
             <div className="flex items-center space-x-1">
-              {getTrendIcon(trends.totalDocuments, 'text-green-600')}
-              <span className={`text-sm font-semibold ${
-                trends.totalDocuments.direction === 'up' ? 'text-green-600' :
-                trends.totalDocuments.direction === 'down' ? 'text-green-600' : 'text-gray-600'
-              }`} data-testid={`trend-${trends.totalDocuments.direction}-totalDocuments`}>
+              {getTrendIcon(trends.totalDocuments, 'text-black')}
+              <span className={`text-sm font-medium ${trends.totalDocuments.direction === 'up' ? 'text-black' :
+                trends.totalDocuments.direction === 'down' ? 'text-gray-500' : 'text-gray-600'
+                }`} data-testid={`trend-${trends.totalDocuments.direction}-totalDocuments`}>
                 {getTrendText(trends.totalDocuments)}
               </span>
             </div>
@@ -223,21 +220,21 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
       </div>
 
       {/* Engagement Metrics */}
-      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl shadow-sm border border-gray-200/60 hover:shadow-md hover:border-purple-200/60 transition-all duration-200`} data-testid="stats-engagement">
+      <div className={`bg-white ${isMobile ? 'p-4' : 'p-6'} rounded-xl border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-engagement">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="p-3 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl border border-purple-200/50">
-              <ChartBarIcon className="h-6 w-6 text-purple-600" />
+            <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+              <ChartBarIcon className="h-5 w-5 text-black" />
             </div>
             <div className="ml-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Avg. Time</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{formatTime(stats.averageTimeOnPage)}</p>
+              <p className="text-sm font-medium text-gray-500">Avg. Time</p>
+              <p className="text-2xl font-semibold text-black mt-1">{formatTime(stats.averageTimeOnPage)}</p>
             </div>
           </div>
           {stats.bounceRate && (
             <div className="flex flex-col items-end">
               <p className="text-xs text-gray-500 font-medium">Bounce</p>
-              <p className="text-sm font-semibold text-purple-600 mt-0.5">{stats.bounceRate}%</p>
+              <p className="text-sm font-semibold text-black mt-0.5">{stats.bounceRate}%</p>
             </div>
           )}
         </div>
