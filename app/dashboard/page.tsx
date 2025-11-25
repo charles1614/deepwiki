@@ -154,10 +154,10 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
                     <button
                       onClick={() => handleQuickAction('view_wikis', '/wiki')}
-                      className="flex items-center p-3.5 bg-gradient-to-br from-blue-50 to-blue-100/30 hover:from-blue-100 hover:to-blue-100/50 rounded-lg border border-blue-200/50 hover:border-blue-300/60 hover:shadow-sm transition-all duration-200 group"
+                      className="flex items-center p-3.5 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200 group"
                       data-testid="action-view-wikis"
                     >
-                      <div className="p-2 bg-white/60 rounded-lg mr-3 group-hover:bg-white/80 transition-colors">
+                      <div className="p-2 rounded-lg mr-3 transition-colors">
                         <BookOpenIcon className="h-5 w-5 text-blue-600" />
                       </div>
                       <div className="text-left">
@@ -168,10 +168,10 @@ export default function DashboardPage() {
 
                     <button
                       onClick={() => handleQuickAction('upload_wiki', '/upload')}
-                      className="flex items-center p-3.5 bg-gradient-to-br from-blue-50 to-blue-100/30 hover:from-blue-100 hover:to-blue-100/50 rounded-lg border border-blue-200/50 hover:border-blue-300/60 hover:shadow-sm transition-all duration-200 group"
+                      className="flex items-center p-3.5 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200 group"
                       data-testid="action-upload-wiki"
                     >
-                      <div className="p-2 bg-white/60 rounded-lg mr-3 group-hover:bg-white/80 transition-colors">
+                      <div className="p-2 rounded-lg mr-3 transition-colors">
                         <CloudArrowUpIcon className="h-5 w-5 text-blue-600" />
                       </div>
                       <div className="text-left">
@@ -185,14 +185,13 @@ export default function DashboardPage() {
                       onClick={() => isAdmin && handleQuickAction('manage_users', '/admin/users')}
                       disabled={!isAdmin}
                       className={`flex items-center p-3.5 rounded-lg border transition-all duration-200 group ${isAdmin
-                        ? 'bg-gradient-to-br from-gray-50 to-gray-100/30 hover:from-gray-100 hover:to-gray-100/50 border-gray-200/50 hover:border-gray-300/60 hover:shadow-sm cursor-pointer'
-                        : 'bg-gray-100/40 border-gray-300/50 cursor-not-allowed'
+                        ? 'border-gray-200 hover:border-gray-300 hover:shadow-sm cursor-pointer'
+                        : 'border-gray-200 opacity-50 cursor-not-allowed'
                         }`}
                       title={!isAdmin ? "Only administrators can manage users" : ""}
                       data-testid="action-manage-users"
                     >
-                      <div className={`p-2 rounded-lg mr-3 transition-colors ${isAdmin ? 'bg-white/60 group-hover:bg-white/80' : 'bg-white/40'
-                        }`}>
+                      <div className={`p-2 rounded-lg mr-3 transition-colors`}>
                         <UsersIcon className={`h-5 w-5 ${isAdmin ? 'text-gray-700' : 'text-gray-400'}`} />
                       </div>
                       <div className="text-left">
@@ -208,14 +207,13 @@ export default function DashboardPage() {
                       onClick={() => isAdmin && handleQuickAction('system_settings', '/admin/settings')}
                       disabled={!isAdmin}
                       className={`flex items-center p-3.5 rounded-lg border transition-all duration-200 group ${isAdmin
-                        ? 'bg-gradient-to-br from-gray-50 to-gray-100/30 hover:from-gray-100 hover:to-gray-100/50 border-gray-200/50 hover:border-gray-300/60 hover:shadow-sm cursor-pointer'
-                        : 'bg-gray-100/40 border-gray-300/50 cursor-not-allowed'
+                        ? 'border-gray-200 hover:border-gray-300 hover:shadow-sm cursor-pointer'
+                        : 'border-gray-200 opacity-50 cursor-not-allowed'
                         }`}
                       title={!isAdmin ? "Only administrators can access system settings" : ""}
                       data-testid="action-system-settings"
                     >
-                      <div className={`p-2 rounded-lg mr-3 transition-colors ${isAdmin ? 'bg-white/60 group-hover:bg-white/80' : 'bg-white/40'
-                        }`}>
+                      <div className={`p-2 rounded-lg mr-3 transition-colors`}>
                         <Cog6ToothIcon className={`h-5 w-5 ${isAdmin ? 'text-gray-700' : 'text-gray-400'}`} />
                       </div>
                       <div className="text-left">

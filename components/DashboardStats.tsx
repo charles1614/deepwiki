@@ -148,7 +148,7 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
       <div className={`bg-white ${isMobile ? 'p-4' : 'p-5'} rounded-lg border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-total-wikis">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="p-2 rounded-lg">
               <BookOpenIcon className="h-5 w-5 text-black" />
             </div>
             <div className="ml-4">
@@ -173,7 +173,7 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
       <div className={`bg-white ${isMobile ? 'p-4' : 'p-5'} rounded-lg border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-recent-uploads">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="p-2 rounded-lg">
               <CloudArrowUpIcon className="h-5 w-5 text-black" />
             </div>
             <div className="ml-4">
@@ -198,7 +198,7 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
       <div className={`bg-white ${isMobile ? 'p-4' : 'p-5'} rounded-lg border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-total-documents">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="p-2 rounded-lg">
               <DocumentTextIcon className="h-5 w-5 text-black" />
             </div>
             <div className="ml-4">
@@ -223,7 +223,7 @@ export function DashboardStats({ className = '' }: DashboardStatsProps) {
       <div className={`bg-white ${isMobile ? 'p-4' : 'p-5'} rounded-lg border border-gray-200 hover:border-gray-400 transition-colors duration-200`} data-testid="stats-engagement">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="p-2 rounded-lg">
               <ChartBarIcon className="h-5 w-5 text-black" />
             </div>
             <div className="ml-4">

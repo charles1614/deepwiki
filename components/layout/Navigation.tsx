@@ -378,9 +378,11 @@ export function Navigation({ className = '' }: NavigationProps) {
                 )
               })}
             </div>
+          </div>
 
+          <div className="flex items-center">
             {/* Search input for desktop */}
-            <div className="ml-4">
+            <div className="">
               <form onSubmit={handleSearchSubmit} className="relative">
                 <input
                   ref={searchInputRef}
@@ -388,99 +390,99 @@ export function Navigation({ className = '' }: NavigationProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search wikis..."
-                  className="w-64 pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-48 pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   data-testid="desktop-search-input"
                   aria-label="Search wikis"
                 />
                 <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </form>
             </div>
-          </div>
 
-          {/* User menu dropdown */}
-          {session && (
-            <div className="relative ml-4" ref={userMenuRef} data-testid="user-menu">
-              <button
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-colors focus:outline-none"
-                aria-expanded={isUserMenuOpen}
-                aria-haspopup="true"
-                aria-label="User menu"
-              >
-                <div className="w-8 h-8 bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-2 shadow-sm border border-white/10">
-                  <span className="text-white text-xs font-medium">
-                    {session.user?.email?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <span className="hidden sm:block text-sm font-medium">
-                  {session.user?.email?.split('@')[0]}
-                </span>
-              </button>
-
-              {/* Dropdown menu */}
-              {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 z-50 origin-top-right transform transition-all duration-200 ease-out">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Signed in as</p>
-                    <p className="text-sm font-medium text-gray-900 truncate">{session.user?.email}</p>
+            {/* User menu dropdown */}
+            {session && (
+              <div className="relative ml-4" ref={userMenuRef} data-testid="user-menu">
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-colors focus:outline-none"
+                  aria-expanded={isUserMenuOpen}
+                  aria-haspopup="true"
+                  aria-label="User menu"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-2 shadow-sm border border-white/10">
+                    <span className="text-white text-xs font-medium">
+                      {session.user?.email?.charAt(0).toUpperCase()}
+                    </span>
                   </div>
+                  <span className="hidden sm:block text-sm font-medium">
+                    {session.user?.email?.split('@')[0]}
+                  </span>
+                </button>
 
-                  <div className="py-1">
-                    {/* Admin Links */}
-                    <div className="px-4 py-2">
-                      <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Admin</p>
+                {/* Dropdown menu */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 z-50 origin-top-right transform transition-all duration-200 ease-out">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Signed in as</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">{session.user?.email}</p>
+                    </div>
 
+                    <div className="py-1">
+                      {/* Admin Links */}
+                      <div className="px-4 py-2">
+                        <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Admin</p>
+
+                        <button
+                          onClick={() => {
+                            if (isAdmin) {
+                              router.push('/admin/users')
+                              setIsUserMenuOpen(false)
+                            }
+                          }}
+                          disabled={!isAdmin}
+                          className={`group flex w-full items-center px-2 py-2 text-sm rounded-md ${isAdmin
+                            ? 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                            : 'text-gray-400 cursor-not-allowed opacity-60'
+                            }`}
+                          title={!isAdmin ? "Only administrators can manage users" : ""}
+                        >
+                          <UsersIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" aria-hidden="true" />
+                          Manage Users
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            if (isAdmin) {
+                              router.push('/admin/settings')
+                              setIsUserMenuOpen(false)
+                            }
+                          }}
+                          disabled={!isAdmin}
+                          className={`group flex w-full items-center px-2 py-2 text-sm rounded-md ${isAdmin
+                            ? 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                            : 'text-gray-400 cursor-not-allowed opacity-60'
+                            }`}
+                          title={!isAdmin ? "Only administrators can access system settings" : ""}
+                        >
+                          <Cog6ToothIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" aria-hidden="true" />
+                          System Settings
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 py-1">
                       <button
-                        onClick={() => {
-                          if (isAdmin) {
-                            router.push('/admin/users')
-                            setIsUserMenuOpen(false)
-                          }
-                        }}
-                        disabled={!isAdmin}
-                        className={`group flex w-full items-center px-2 py-2 text-sm rounded-md ${isAdmin
-                          ? 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                          : 'text-gray-400 cursor-not-allowed opacity-60'
-                          }`}
-                        title={!isAdmin ? "Only administrators can manage users" : ""}
+                        onClick={handleLogout}
+                        className="group flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700"
                       >
-                        <UsersIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" aria-hidden="true" />
-                        Manage Users
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          if (isAdmin) {
-                            router.push('/admin/settings')
-                            setIsUserMenuOpen(false)
-                          }
-                        }}
-                        disabled={!isAdmin}
-                        className={`group flex w-full items-center px-2 py-2 text-sm rounded-md ${isAdmin
-                          ? 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                          : 'text-gray-400 cursor-not-allowed opacity-60'
-                          }`}
-                        title={!isAdmin ? "Only administrators can access system settings" : ""}
-                      >
-                        <Cog6ToothIcon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" aria-hidden="true" />
-                        System Settings
+                        <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 text-red-400 group-hover:text-red-500" aria-hidden="true" />
+                        Sign out
                       </button>
                     </div>
                   </div>
-
-                  <div className="border-t border-gray-100 py-1">
-                    <button
-                      onClick={handleLogout}
-                      className="group flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700"
-                    >
-                      <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 text-red-400 group-hover:text-red-500" aria-hidden="true" />
-                      Sign out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Back button for desktop */}
           {showBackButton && (
