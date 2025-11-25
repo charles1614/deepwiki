@@ -30,7 +30,29 @@ export default function AiPage() {
     const newSocket = io({
       path: '/api/socket',
       addTrailingSlash: false,
+      forceNew: true,
     })
+
+    newSocket.on('connect', () => {
+      console.log('Socket connected:', newSocket.id)
+      // Auto-connect if settings exist
+      const savedSettings = localStorage.getItem('ai_ssh_settings')
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings)
+        setSettings(parsedSettings)
+        isClosing.current = false
+        newSocket.emit('ssh-connect', parsedSettings)
+      }
+    })
+
+    newSocket.on('disconnect', () => {
+      console.log('Socket disconnected')
+    })
+
+    newSocket.on('connect_error', (err) => {
+      console.error('Socket connection error:', err)
+    })
+
     setSocket(newSocket)
 
     newSocket.on('ssh-ready', () => {

@@ -36,95 +36,102 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponse) => {
     let stream: any = null;
 
     socket.on('ssh-connect', (config) => {
-      if (sshClient) {
-        sshClient.end();
-      }
+      console.log('Received ssh-connect request', { ...config, password: '***' });
+      try {
+        if (sshClient) {
+          sshClient.end();
+        }
 
-      sshClient = new Client();
+        sshClient = new Client();
 
-      sshClient.on('ready', () => {
-        // Setup SFTP first
-        sshClient?.sftp((err, sftp) => {
-          if (err) {
-            console.error('SFTP error:', err);
-            socket.emit('ssh-error', 'SFTP failed: ' + err.message);
-            return;
-          }
-
-          // Remove existing listeners to prevent duplicates
-          socket.removeAllListeners('sftp-list');
-          socket.removeAllListeners('sftp-read');
-
-          socket.on('sftp-list', (path) => {
-            sftp.readdir(path, (err, list) => {
-              if (err) {
-                socket.emit('sftp-error', err.message);
-                return;
-              }
-              // Add isDirectory property to help frontend
-              const processedList = list.map(item => ({
-                ...item,
-                isDirectory: item.attrs.mode !== undefined ? (item.attrs.mode & 0o40000) === 0o40000 : false
-              }));
-              socket.emit('sftp-list-result', { path, list: processedList });
-            });
-          });
-
-          socket.on('sftp-read', (path) => {
-            sftp.readFile(path, (err, content) => {
-              if (err) {
-                socket.emit('sftp-error', err.message);
-                return;
-              }
-              socket.emit('sftp-read-result', { path, content: content.toString('utf-8') });
-            });
-          });
-
-          // Setup Shell
-          sshClient?.shell((err, s) => {
+        sshClient.on('ready', () => {
+          // Setup SFTP first
+          sshClient?.sftp((err, sftp) => {
             if (err) {
-              socket.emit('ssh-error', err.message);
+              console.error('SFTP error:', err);
+              socket.emit('ssh-error', 'SFTP failed: ' + err.message);
               return;
             }
 
-            stream = s;
+            // Remove existing listeners to prevent duplicates
+            socket.removeAllListeners('sftp-list');
+            socket.removeAllListeners('sftp-read');
 
-            stream.on('close', () => {
-              socket.emit('ssh-close');
-              sshClient?.end();
+            socket.on('sftp-list', (path) => {
+              sftp.readdir(path, (err, list) => {
+                if (err) {
+                  socket.emit('sftp-error', err.message);
+                  return;
+                }
+                // Add isDirectory property to help frontend
+                const processedList = list.map(item => ({
+                  ...item,
+                  isDirectory: item.attrs.mode !== undefined ? (item.attrs.mode & 0o40000) === 0o40000 : false
+                }));
+                socket.emit('sftp-list-result', { path, list: processedList });
+              });
             });
 
-            stream.on('data', (data: any) => {
-              socket.emit('ssh-data', data.toString('utf-8'));
+            socket.on('sftp-read', (path) => {
+              sftp.readFile(path, (err, content) => {
+                if (err) {
+                  socket.emit('sftp-error', err.message);
+                  return;
+                }
+                socket.emit('sftp-read-result', { path, content: content.toString('utf-8') });
+              });
             });
 
-            stream.stderr.on('data', (data: any) => {
-              socket.emit('ssh-data', data.toString('utf-8'));
-            });
+            // Setup Shell
+            sshClient?.shell((err, s) => {
+              if (err) {
+                socket.emit('ssh-error', err.message);
+                return;
+              }
 
-            // Emit ready only after both SFTP and Shell are set up
-            socket.emit('ssh-ready');
+              stream = s;
+
+              stream.on('close', () => {
+                socket.emit('ssh-close');
+                sshClient?.end();
+              });
+
+              stream.on('data', (data: any) => {
+                socket.emit('ssh-data', data.toString('utf-8'));
+              });
+
+              stream.stderr.on('data', (data: any) => {
+                socket.emit('ssh-data', data.toString('utf-8'));
+              });
+
+              // Emit ready only after both SFTP and Shell are set up
+              socket.emit('ssh-ready');
+            });
           });
+
+        }).on('error', (err) => {
+          console.error('SSH Client Error:', err);
+          socket.emit('ssh-error', err.message);
+        }).on('close', () => {
+          socket.emit('ssh-close');
         });
 
-      }).on('error', (err) => {
-        socket.emit('ssh-error', err.message);
-      }).on('close', () => {
-        socket.emit('ssh-close');
-      });
+        const port = parseInt(config.port);
+        if (isNaN(port) || port < 0 || port >= 65536) {
+          socket.emit('ssh-error', 'Invalid port number');
+          return;
+        }
 
-      const port = parseInt(config.port);
-      if (isNaN(port) || port < 0 || port >= 65536) {
-        socket.emit('ssh-error', 'Invalid port number');
-        return;
+        sshClient.connect({
+          host: config.host,
+          port: port,
+          username: config.username,
+          password: config.password,
+        });
+      } catch (err: any) {
+        console.error('Error in ssh-connect handler:', err);
+        socket.emit('ssh-error', 'Internal server error during connection: ' + err.message);
       }
-
-      sshClient.connect({
-        host: config.host,
-        port: port,
-        username: config.username,
-        password: config.password,
-      });
     });
 
     socket.on('ssh-disconnect', () => {

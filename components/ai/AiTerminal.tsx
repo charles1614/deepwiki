@@ -40,27 +40,21 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     termRef.current = term
     fitAddonRef.current = fitAddon
 
-    // Delay fit
-    requestAnimationFrame(() => {
-      try {
-        fitAddon.fit()
-      } catch (e) {
-        console.error('Failed to fit terminal:', e)
-      }
-    })
-
-    // Handle resize
-    const handleResize = () => {
+    // Handle resize with ResizeObserver
+    const resizeObserver = new ResizeObserver(() => {
       try {
         fitAddon.fit()
         if (socket && term) {
           socket.emit('ssh-resize', { cols: term.cols, rows: term.rows })
         }
       } catch (e) {
-        // Ignore
+        console.error('Resize error:', e)
       }
+    })
+
+    if (terminalRef.current) {
+      resizeObserver.observe(terminalRef.current)
     }
-    window.addEventListener('resize', handleResize)
 
     term.onData((data) => {
       if (socket) {
@@ -75,7 +69,7 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     })
 
     return () => {
-      window.removeEventListener('resize', handleResize)
+      resizeObserver.disconnect()
       term.dispose()
       termRef.current = null
     }
@@ -96,6 +90,8 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     }
 
     const handleClose = () => {
+      // Clear screen and scrollback
+      term.write('\x1b[2J\x1b[3J\x1b[H')
       term.write('\r\n\x1b[33mConnection closed\x1b[0m\r\n')
     }
 
