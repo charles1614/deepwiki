@@ -6,12 +6,15 @@ import { useSession } from 'next-auth/react'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { WithNavigation } from '@/components/layout/WithNavigation'
 import { WikiList } from '@/components/WikiList'
+import { UploadModal } from '@/components/wiki/UploadModal'
+import { CloudArrowUpIcon } from '@heroicons/react/24/outline'
 
 export default function WikiPage() {
   const router = useRouter()
   const pathname = usePathname()
   const { data: session } = useSession()
   const [refreshKey, setRefreshKey] = useState(0)
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
 
   // Fix browser cache redirect issue: if we're on dashboard but should be on wiki
   useEffect(() => {
@@ -55,26 +58,35 @@ export default function WikiPage() {
     setRefreshKey(prev => prev + 1)
   }
 
+  const handleUploadSuccess = (wiki: { slug: string }) => {
+    setIsUploadModalOpen(false)
+    // Refresh the list
+    setRefreshKey(prev => prev + 1)
+    // Optionally navigate to the new wiki
+    // router.push(`/wiki/${wiki.slug}`)
+  }
+
   return (
     <ProtectedRoute>
       <WithNavigation>
         <div className="max-w-7xl mx-auto pt-3 pb-6 sm:px-6 lg:px-8">
           <div className="px-4 pt-3 pb-6 sm:px-0">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">
-                Wiki Documentation
-              </h1>
-              <p className="mt-2 text-sm text-gray-600">
-                Browse and manage your markdown documentation with interactive diagrams.
-                <br />
-                <span className="text-xs">
-                  Need to upload new documentation? Use the{' '}
-                  <a href="/upload" className="text-blue-600 hover:text-blue-800 underline">
-                    Upload page
-                  </a>{' '}
-                  in the navigation.
-                </span>
-              </p>
+            <div className="mb-8 flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Wiki Documentation
+                </h1>
+                <p className="mt-2 text-sm text-gray-600">
+                  Browse and manage your markdown documentation with interactive diagrams.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black hover:bg-gray-800 focus:outline-none self-end"
+              >
+                <CloudArrowUpIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+                Upload
+              </button>
             </div>
 
             {/* Wiki List Section */}
@@ -90,6 +102,12 @@ export default function WikiPage() {
             </div>
           </div>
         </div>
+
+        <UploadModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          onUploadSuccess={handleUploadSuccess}
+        />
       </WithNavigation>
     </ProtectedRoute>
   )

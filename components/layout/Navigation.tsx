@@ -156,9 +156,6 @@ export function Navigation({ className = '' }: NavigationProps) {
         sessionStorage.setItem('intendedWikiPage', 'true')
         router.push('/wiki')
         break
-      case 'upload':
-        router.push('/upload')
-        break
       case 'search':
         router.push('/search')
         break
@@ -219,7 +216,6 @@ export function Navigation({ className = '' }: NavigationProps) {
   const tabs = [
     { id: 'home', label: 'Dashboard', icon: HomeIcon, href: '/dashboard' },
     { id: 'wiki', label: 'Wiki', icon: BookOpenIcon, href: '/wiki' },
-    { id: 'upload', label: 'Upload', icon: CloudArrowUpIcon, href: '/upload' },
     { id: 'search', label: 'Search', icon: MagnifyingGlassIcon, href: '/search' }
   ]
 
