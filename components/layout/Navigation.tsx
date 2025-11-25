@@ -14,14 +14,15 @@ import {
   ArrowRightOnRectangleIcon,
   UsersIcon,
   Cog6ToothIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  CpuChipIcon
 } from '@heroicons/react/24/outline'
 import { signOut } from 'next-auth/react'
 // import { getPublicSystemSettings } from '@/app/actions/public-settings'
 
 // ... existing imports ...
 
-type TabType = 'home' | 'wiki' | 'upload' | 'search'
+type TabType = 'home' | 'wiki' | 'upload' | 'search' | 'ai'
 
 interface Wiki {
   id: string
@@ -88,6 +89,8 @@ export function Navigation({ className = '' }: NavigationProps) {
       setActiveTab('upload')
     } else if (pathname.startsWith('/search')) {
       setActiveTab('search')
+    } else if (pathname.startsWith('/ai')) {
+      setActiveTab('ai')
     }
   }, [pathname])
 
@@ -159,6 +162,9 @@ export function Navigation({ className = '' }: NavigationProps) {
       case 'search':
         router.push('/search')
         break
+      case 'ai':
+        router.push('/ai')
+        break
     }
   }
 
@@ -216,6 +222,7 @@ export function Navigation({ className = '' }: NavigationProps) {
   const tabs = [
     { id: 'home', label: 'Dashboard', icon: HomeIcon, href: '/dashboard' },
     { id: 'wiki', label: 'Wiki', icon: BookOpenIcon, href: '/wiki' },
+    { id: 'ai', label: 'AI', icon: CpuChipIcon, href: '/ai' },
     { id: 'search', label: 'Search', icon: MagnifyingGlassIcon, href: '/search' }
   ]
 
