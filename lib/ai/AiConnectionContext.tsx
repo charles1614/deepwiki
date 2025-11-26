@@ -160,7 +160,9 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         }
         console.log('SSH connection ready, sessionId:', data.sessionId)
         dispatch({ type: 'SET_SESSION_ID', payload: data.sessionId })
+        dispatch({ type: 'SET_ERROR', payload: null }) // Clear any previous errors
         // Status is already set to 'connected' in the socket connect handler; no UI change needed here
+        console.log('SSH connection fully established')
       })
 
       socket.on('ssh-error', (error: string) => {
@@ -187,14 +189,8 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
       // SSH connection timeout - if SSH doesn't connect within 30 seconds, fail
       let sshTimeout: NodeJS.Timeout | null = null
 
-      socket.on('connect', () => {
-        clearTimeout(connectionTimeout)
-        console.log('Socket.io connected, socket.id:', socket.id)
-        dispatch({ type: 'SET_CONNECTED', payload: true })
-        // Consider the connection active as soon as Socket.IO is connected
-        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
-        console.log('State updated to connected (socket active); SSH tunnel will finish in background if configured')
-
+      // Helper function to emit SSH connect and set timeout
+      const emitSshConnect = () => {
         if (settings) {
           console.log('Emitting ssh-connect with settings:', { ...settings, password: '***' })
           socket.emit('ssh-connect', settings)
@@ -209,19 +205,26 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         } else {
           console.log('No SSH settings, leaving connection in connected state')
         }
+      }
+
+      socket.on('connect', () => {
+        clearTimeout(connectionTimeout)
+        console.log('Socket.io connected, socket.id:', socket.id)
+        dispatch({ type: 'SET_CONNECTED', payload: true })
+        // Consider the connection active as soon as Socket.IO is connected
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+        console.log('State updated to connected (socket active); SSH tunnel will finish in background if configured')
+
+        emitSshConnect()
       })
 
       // Check if socket is already connected (race condition)
       if (socket.connected) {
         console.log('Socket already connected when handlers were set up')
+        clearTimeout(connectionTimeout)
         dispatch({ type: 'SET_CONNECTED', payload: true })
-        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' })
-        if (settings) {
-          console.log('Socket already connected, emitting ssh-connect immediately')
-          socket.emit('ssh-connect', settings)
-        } else {
-          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
-        }
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+        emitSshConnect()
       }
 
       socket.on('connect_error', (error: Error) => {

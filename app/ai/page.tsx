@@ -37,6 +37,8 @@ function AiPageContent() {
   } = useAiConnection()
 
   // Initialize settings on mount with error handling
+  // Note: imported helpers like retrieveConnectionSettings are NOT included in deps
+  // to avoid unnecessary re-runs; we only depend on connection state.
   useEffect(() => {
     try {
       const savedSettings = retrieveConnectionSettings()
@@ -51,7 +53,7 @@ function AiPageContent() {
     } catch (error) {
       console.error('Error initializing AI page:', error)
     }
-  }, [retrieveConnectionSettings, connectionState.isConnected, connectionState.isConnecting])
+  }, [connectionState.isConnected, connectionState.isConnecting])
 
   // Auto-connect with saved settings
   const handleAutoConnect = async (savedSettings: any) => {
@@ -144,13 +146,17 @@ function AiPageContent() {
   }
 
   const handleSettingsSave = async (newSettings: any) => {
+    console.log('AiPage: handleSettingsSave called', { ...newSettings, password: '***' })
     setSettings(newSettings)
 
     // If connected, reconnect with new settings; otherwise connect immediately
     if (connectionState.isConnected) {
+      console.log('AiPage: Already connected, disconnecting first')
       await handleDisconnect()
+      console.log('AiPage: Connecting with new settings')
       await connect(newSettings)
     } else {
+      console.log('AiPage: Not connected, connecting with new settings')
       await connect(newSettings)
     }
   }
@@ -189,6 +195,9 @@ function AiPageContent() {
     }
   }
 
+  const isActiveConnection =
+    connectionState.isConnected || connectionState.connectionStatus === 'preserved'
+
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
       <div className="flex-none px-6 py-4 border-b border-gray-200 bg-white flex justify-between items-center">
@@ -209,21 +218,26 @@ function AiPageContent() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={connectionState.isConnected && connectionState.connectionStatus === 'connected' ? handleDisconnect : handleConnect}
-            disabled={connectionState.isConnecting || connectionState.connectionStatus === 'restoring' || connectionState.connectionStatus === 'connecting'}
+            onClick={isActiveConnection ? handleDisconnect : handleConnect}
+            disabled={
+              connectionState.isConnecting ||
+              connectionState.connectionStatus === 'restoring' ||
+              connectionState.connectionStatus === 'connecting'
+            }
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              connectionState.isConnected && connectionState.connectionStatus === 'connected' || connectionState.connectionStatus === 'preserved'
+              isActiveConnection
                 ? 'bg-red-100 text-red-700 hover:bg-red-200'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
             data-testid="ai-connect-button"
           >
-            {connectionState.isConnecting || connectionState.connectionStatus === 'restoring' || connectionState.connectionStatus === 'connecting'
+            {connectionState.isConnecting ||
+            connectionState.connectionStatus === 'restoring' ||
+            connectionState.connectionStatus === 'connecting'
               ? 'Connecting...'
-              : connectionState.isConnected && connectionState.connectionStatus === 'connected' || connectionState.connectionStatus === 'preserved'
+              : isActiveConnection
                 ? 'Disconnect'
-                : 'Connect'
-            }
+                : 'Connect'}
           </button>
 
           {connectionState.connectionStatus === 'preserved' && (

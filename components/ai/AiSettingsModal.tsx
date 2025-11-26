@@ -35,9 +35,13 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('AiSettingsModal: Form submitted', { host, port, username, password: '***' })
     const settings = { host, port: Number(port), username, password }
+    console.log('AiSettingsModal: Saving settings', { ...settings, password: '***' })
     preserveConnectionSettings(settings)
+    console.log('AiSettingsModal: Calling onSave callback')
     onSave(settings)
+    console.log('AiSettingsModal: Closing modal')
     onClose()
   }
 
