@@ -106,8 +106,9 @@ const sessionManager = new AiSessionManager()
 sessionManager.startCleanupInterval()
 
 const SocketHandler = (req: NextApiRequest, res: NextApiResponse) => {
-  if (!res.socket) {
-    res.end();
+  // Handle regular HTTP requests (like GET) gracefully
+  if (req.method !== 'GET' || !res.socket) {
+    res.status(400).json({ error: 'This endpoint only accepts WebSocket connections' });
     return;
   }
 

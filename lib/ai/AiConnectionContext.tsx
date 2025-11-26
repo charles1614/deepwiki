@@ -63,7 +63,13 @@ function aiConnectionReducer(state: AiConnectionState, action: AiConnectionActio
     case 'SET_CONNECTING':
       return { ...state, isConnecting: action.payload }
     case 'SET_CONNECTION_STATUS':
-      return { ...state, connectionStatus: action.payload }
+      // Keep isConnecting in sync with connectionStatus
+      const isConnecting = action.payload === 'connecting' || action.payload === 'restoring'
+      return { 
+        ...state, 
+        connectionStatus: action.payload,
+        isConnecting: isConnecting
+      }
     case 'SET_CONNECTED':
       return {
         ...state,
@@ -120,16 +126,8 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
       dispatch({ type: 'RESET_RECONNECT_ATTEMPTS' })
       dispatch({ type: 'SET_ERROR', payload: null })
 
-      // Initialize socket.io server by making a request to the API route first
-      // This ensures the server is set up before we try to connect
-      try {
-        await fetch('/api/socket', { method: 'GET' })
-      } catch (err) {
-        console.warn('Failed to initialize socket server:', err)
-        // Continue anyway - the server might already be initialized
-      }
-
       // Try connecting with the custom path
+      // Note: The socket.io server will be initialized automatically when the first client connects
       const socket = io(window.location.origin, {
         path: '/api/socket',
         transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
@@ -145,58 +143,94 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         if (!socket.connected) {
           socket.disconnect()
           dispatch({ type: 'SET_ERROR', payload: 'Connection timeout: Unable to reach server' })
+          // Set status to 'error' - reducer will automatically set isConnecting to false
           dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
-          dispatch({ type: 'SET_CONNECTING', payload: false })
         }
       }, 10000)
 
-      socket.on('connect', () => {
-        clearTimeout(connectionTimeout)
-        console.log('Socket.io connected')
-        dispatch({ type: 'SET_CONNECTED', payload: true })
-        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' }) // Still connecting until SSH is ready
-
-        if (settings) {
-          console.log('Emitting ssh-connect with settings')
-          socket.emit('ssh-connect', settings)
-        } else {
-          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
-          dispatch({ type: 'SET_CONNECTING', payload: false })
-        }
-      })
-
-      socket.on('connect_error', (error: Error) => {
-        clearTimeout(connectionTimeout)
-        console.error('Socket.io connection error:', error)
-        dispatch({ type: 'SET_ERROR', payload: `Connection failed: ${error.message || 'Unable to connect to server'}` })
-        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
-        dispatch({ type: 'SET_CONNECTING', payload: false })
-        socket.disconnect()
-      })
-
+      // Set up ALL event handlers BEFORE the socket might connect
+      // This ensures we don't miss any events
+      
       socket.on('ssh-ready', (data: { sessionId: string }) => {
+        console.log('Received ssh-ready event:', data)
         clearTimeout(connectionTimeout)
+        if (sshTimeout) {
+          clearTimeout(sshTimeout)
+          sshTimeout = null
+        }
         console.log('SSH connection ready, sessionId:', data.sessionId)
         dispatch({ type: 'SET_SESSION_ID', payload: data.sessionId })
-        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
-        dispatch({ type: 'SET_CONNECTING', payload: false })
+        // Status is already set to 'connected' in the socket connect handler; no UI change needed here
       })
 
       socket.on('ssh-error', (error: string) => {
         clearTimeout(connectionTimeout)
+        if (sshTimeout) {
+          clearTimeout(sshTimeout)
+          sshTimeout = null
+        }
         console.error('SSH error:', error)
         dispatch({ type: 'SET_ERROR', payload: error })
+        // Set status to 'error' - reducer will automatically set isConnecting to false
         dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
-        dispatch({ type: 'SET_CONNECTING', payload: false })
       })
 
       socket.on('ssh-close', () => {
         clearTimeout(connectionTimeout)
         console.log('SSH connection closed')
         dispatch({ type: 'SET_CONNECTED', payload: false })
+        // Set status to 'disconnected' - reducer will automatically set isConnecting to false
         dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
         dispatch({ type: 'SET_SESSION_ID', payload: null })
-        dispatch({ type: 'SET_CONNECTING', payload: false })
+      })
+
+      // SSH connection timeout - if SSH doesn't connect within 30 seconds, fail
+      let sshTimeout: NodeJS.Timeout | null = null
+
+      socket.on('connect', () => {
+        clearTimeout(connectionTimeout)
+        console.log('Socket.io connected, socket.id:', socket.id)
+        dispatch({ type: 'SET_CONNECTED', payload: true })
+        // Consider the connection active as soon as Socket.IO is connected
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+        console.log('State updated to connected (socket active); SSH tunnel will finish in background if configured')
+
+        if (settings) {
+          console.log('Emitting ssh-connect with settings:', { ...settings, password: '***' })
+          socket.emit('ssh-connect', settings)
+          console.log('ssh-connect event emitted; SSH connection establishing in background')
+
+          // Set SSH timeout for better error feedback
+          sshTimeout = setTimeout(() => {
+            console.error('SSH connection timeout - no ssh-ready or ssh-error received')
+            dispatch({ type: 'SET_ERROR', payload: 'SSH connection timeout: Server did not respond' })
+            // Keep status as 'connected' (socket is still up), but surface error text in UI
+          }, 30000) // 30 seconds for SSH connection
+        } else {
+          console.log('No SSH settings, leaving connection in connected state')
+        }
+      })
+
+      // Check if socket is already connected (race condition)
+      if (socket.connected) {
+        console.log('Socket already connected when handlers were set up')
+        dispatch({ type: 'SET_CONNECTED', payload: true })
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' })
+        if (settings) {
+          console.log('Socket already connected, emitting ssh-connect immediately')
+          socket.emit('ssh-connect', settings)
+        } else {
+          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+        }
+      }
+
+      socket.on('connect_error', (error: Error) => {
+        clearTimeout(connectionTimeout)
+        console.error('Socket.io connection error:', error)
+        dispatch({ type: 'SET_ERROR', payload: `Connection failed: ${error.message || 'Unable to connect to server'}` })
+        // Set status to 'error' - reducer will automatically set isConnecting to false
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+        socket.disconnect()
       })
 
       socket.on('disconnect', (reason: string) => {
@@ -206,8 +240,8 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         
         // Only attempt reconnection if it was an unexpected disconnect
         if (reason === 'io server disconnect' || reason === 'transport close') {
+          // Set status to 'disconnected' - reducer will automatically set isConnecting to false
           dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
-          dispatch({ type: 'SET_CONNECTING', payload: false })
         } else if (state.connectionStatus !== 'disconnected' && state.reconnectAttempts < 5) {
           dispatch({ type: 'INCREMENT_RECONNECT_ATTEMPTS' })
           const timeout = Math.min(1000 * Math.pow(2, state.reconnectAttempts), 16000)
@@ -221,8 +255,8 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
     } catch (error) {
       console.error('Error in connect function:', error)
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Connection failed' })
+      // Set status to 'error' - reducer will automatically set isConnecting to false
       dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
-      dispatch({ type: 'SET_CONNECTING', payload: false })
     }
   }
 

@@ -209,18 +209,18 @@ function AiPageContent() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={connectionState.isConnected ? handleDisconnect : handleConnect}
-            disabled={connectionState.isConnecting || connectionState.connectionStatus === 'restoring'}
+            onClick={connectionState.isConnected && connectionState.connectionStatus === 'connected' ? handleDisconnect : handleConnect}
+            disabled={connectionState.isConnecting || connectionState.connectionStatus === 'restoring' || connectionState.connectionStatus === 'connecting'}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              connectionState.isConnected || connectionState.connectionStatus === 'preserved'
+              connectionState.isConnected && connectionState.connectionStatus === 'connected' || connectionState.connectionStatus === 'preserved'
                 ? 'bg-red-100 text-red-700 hover:bg-red-200'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
             data-testid="ai-connect-button"
           >
-            {connectionState.isConnecting || connectionState.connectionStatus === 'restoring'
+            {connectionState.isConnecting || connectionState.connectionStatus === 'restoring' || connectionState.connectionStatus === 'connecting'
               ? 'Connecting...'
-              : connectionState.isConnected || connectionState.connectionStatus === 'preserved'
+              : connectionState.isConnected && connectionState.connectionStatus === 'connected' || connectionState.connectionStatus === 'preserved'
                 ? 'Disconnect'
                 : 'Connect'
             }
