@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { FolderIcon, DocumentTextIcon, ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { MarkdownRenderer } from '@/lib/markdown/MarkdownRenderer'
+import { useAiConnection } from '@/lib/ai/AiConnectionContext'
+import { preserveFileBrowserState, retrieveFileBrowserState, clearFileBrowserState } from '@/lib/ai/aiStorage'
 
 interface AiFileBrowserProps {
   socket: any
@@ -22,6 +24,33 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
   const [fileContent, setFileContent] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const { state: connectionState } = useAiConnection()
+
+  // Preserve file browser state when connection is preserved
+  useEffect(() => {
+    if (connectionState.connectionStatus === 'preserved') {
+      preserveFileBrowserState(currentPath, selectedFile, scrollPosition)
+    }
+  }, [connectionState.connectionStatus, currentPath, selectedFile, scrollPosition])
+
+  // Restore file browser state on connection
+  useEffect(() => {
+    if (connectionState.connectionStatus === 'connected') {
+      const storedState = retrieveFileBrowserState()
+      if (storedState) {
+        try {
+          setCurrentPath(storedState.currentPath)
+          setSelectedFile(storedState.selectedFile)
+          setScrollPosition(storedState.scrollPosition)
+          console.log('File browser state restored from storage')
+        } catch (error) {
+          console.error('Failed to restore file browser state:', error)
+          clearFileBrowserState()
+        }
+      }
+    }
+  }, [connectionState.connectionStatus])
 
   useEffect(() => {
     if (!socket) return
@@ -46,13 +75,35 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
     })
 
     socket.on('ssh-ready', () => {
-      loadDirectory('.')
+      // Load directory after connection ready
+      const storedState = retrieveFileBrowserState()
+      if (storedState) {
+        loadDirectory(storedState.currentPath)
+      } else {
+        loadDirectory('.')
+      }
+    })
+
+    socket.on('ssh-restored', () => {
+      // Load directory after restoration
+      const storedState = retrieveFileBrowserState()
+      if (storedState) {
+        loadDirectory(storedState.currentPath)
+        if (storedState.selectedFile) {
+          setSelectedFile(storedState.selectedFile)
+          setLoading(true)
+          socket.emit('sftp-read', storedState.selectedFile)
+        }
+      } else {
+        loadDirectory('.')
+      }
     })
 
     socket.on('ssh-close', () => {
       setFiles([])
       setFileContent('')
       setSelectedFile(null)
+      clearFileBrowserState()
     })
 
     return () => {
@@ -60,6 +111,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
       socket.off('sftp-read-result')
       socket.off('sftp-error')
       socket.off('ssh-ready')
+      socket.off('ssh-restored')
       socket.off('ssh-close')
     }
   }, [socket])
@@ -107,7 +159,10 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
     }
   }
   return (
-    <div className="h-full flex flex-col bg-white rounded-lg shadow-sm border border-gray-200">
+    <div
+      className="h-full flex flex-col bg-white rounded-lg shadow-sm border border-gray-200"
+      data-testid="ai-file-browser"
+    >
       <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50 rounded-t-lg">
         <div className="flex items-center gap-2 overflow-hidden">
           {(currentPath !== '.' || selectedFile) && (

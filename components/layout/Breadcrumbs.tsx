@@ -3,6 +3,7 @@
 import React from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useBreadcrumbRightContent } from './BreadcrumbsRightContent'
+import { AiConnectionStatusIndicator } from '@/components/ai/AiConnectionStatus'
 
 interface BreadcrumbProps {
   className?: string
@@ -102,7 +103,11 @@ export function Breadcrumbs({ className = '' }: BreadcrumbProps) {
             ))}
           </div>
           {rightContent && (
-            <div className="flex items-center">
+            <div className="flex items-center gap-3">
+              {/* AI Connection Status Indicator */}
+              <div data-testid="ai-connection-status-container">
+                <AiConnectionStatusIndicator />
+              </div>
               {rightContent}
             </div>
           )}

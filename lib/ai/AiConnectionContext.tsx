@@ -1,0 +1,344 @@
+'use client'
+
+import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react'
+import { io, Socket } from 'socket.io-client'
+export interface TerminalState {
+  buffer: string[]
+  cursorPosition: { x: number; y: number }
+  dimensions: { cols: number; rows: number }
+}
+
+export interface FileBrowserState {
+  currentPath: string
+  selectedFile: string | null
+  scrollPosition: number
+}
+
+export interface AiConnectionState {
+  socket: Socket | null
+  isConnected: boolean
+  isConnecting: boolean
+  connectionStatus: 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error' | 'preserved' | 'restoring'
+  lastConnected: number | null
+  sessionId: string | null
+  navigationStartTime: number | null
+  terminalState: TerminalState | null
+  fileBrowserState: FileBrowserState | null
+  error: string | null
+  reconnectAttempts: number
+}
+
+type AiConnectionAction =
+  | { type: 'SET_SOCKET'; payload: Socket | null }
+  | { type: 'SET_CONNECTING'; payload: boolean }
+  | { type: 'SET_CONNECTION_STATUS'; payload: AiConnectionState['connectionStatus'] }
+  | { type: 'SET_CONNECTED'; payload: boolean }
+  | { type: 'SET_SESSION_ID'; payload: string | null }
+  | { type: 'SET_NAVIGATION_START_TIME'; payload: number | null }
+  | { type: 'SET_TERMINAL_STATE'; payload: TerminalState | null }
+  | { type: 'SET_FILE_BROWSER_STATE'; payload: FileBrowserState | null }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'INCREMENT_RECONNECT_ATTEMPTS' }
+  | { type: 'RESET_RECONNECT_ATTEMPTS' }
+  | { type: 'RESET_STATE' }
+
+const initialState: AiConnectionState = {
+  socket: null,
+  isConnected: false,
+  isConnecting: false,
+  connectionStatus: 'idle',
+  lastConnected: null,
+  sessionId: null,
+  navigationStartTime: null,
+  terminalState: null,
+  fileBrowserState: null,
+  error: null,
+  reconnectAttempts: 0,
+}
+
+function aiConnectionReducer(state: AiConnectionState, action: AiConnectionAction): AiConnectionState {
+  switch (action.type) {
+    case 'SET_SOCKET':
+      return { ...state, socket: action.payload }
+    case 'SET_CONNECTING':
+      return { ...state, isConnecting: action.payload }
+    case 'SET_CONNECTION_STATUS':
+      return { ...state, connectionStatus: action.payload }
+    case 'SET_CONNECTED':
+      return {
+        ...state,
+        isConnected: action.payload,
+        lastConnected: action.payload ? Date.now() : null,
+        error: action.payload ? null : state.error
+      }
+    case 'SET_SESSION_ID':
+      return { ...state, sessionId: action.payload }
+    case 'SET_NAVIGATION_START_TIME':
+      return { ...state, navigationStartTime: action.payload }
+    case 'SET_TERMINAL_STATE':
+      return { ...state, terminalState: action.payload }
+    case 'SET_FILE_BROWSER_STATE':
+      return { ...state, fileBrowserState: action.payload }
+    case 'SET_ERROR':
+      return { ...state, error: action.payload }
+    case 'INCREMENT_RECONNECT_ATTEMPTS':
+      return { ...state, reconnectAttempts: state.reconnectAttempts + 1 }
+    case 'RESET_RECONNECT_ATTEMPTS':
+      return { ...state, reconnectAttempts: 0 }
+    case 'RESET_STATE':
+      return { ...initialState }
+    default:
+      return state
+  }
+}
+
+const AiConnectionContext = createContext<{
+  state: AiConnectionState
+  dispatch: React.Dispatch<AiConnectionAction>
+  connect: (settings?: { host: string; port: number; username: string; password: string }) => Promise<void>
+  disconnect: () => Promise<void>
+  preserveConnection: () => void
+  restoreConnection: () => Promise<boolean>
+  pauseConnection: () => void
+  resumeConnection: () => void
+} | null>(null)
+
+export function AiConnectionProvider({ children }: { children: React.ReactNode }) {
+  const [state, dispatch] = useReducer(aiConnectionReducer, initialState)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+
+  const connect = async (settings?: { host: string; port: number; username: string; password: string }) => {
+    try {
+      // Clean up any existing socket first
+      if (state.socket) {
+        state.socket.removeAllListeners()
+        state.socket.disconnect()
+      }
+
+      dispatch({ type: 'SET_CONNECTING', payload: true })
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' })
+      dispatch({ type: 'RESET_RECONNECT_ATTEMPTS' })
+      dispatch({ type: 'SET_ERROR', payload: null })
+
+      // Initialize socket.io server by making a request to the API route first
+      // This ensures the server is set up before we try to connect
+      try {
+        await fetch('/api/socket', { method: 'GET' })
+      } catch (err) {
+        console.warn('Failed to initialize socket server:', err)
+        // Continue anyway - the server might already be initialized
+      }
+
+      // Try connecting with the custom path
+      const socket = io(window.location.origin, {
+        path: '/api/socket',
+        transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
+        timeout: 10000,
+        reconnection: false, // We'll handle reconnection manually
+        autoConnect: true,
+      })
+
+      dispatch({ type: 'SET_SOCKET', payload: socket })
+
+      // Connection timeout - if socket doesn't connect within 10 seconds, fail
+      const connectionTimeout = setTimeout(() => {
+        if (!socket.connected) {
+          socket.disconnect()
+          dispatch({ type: 'SET_ERROR', payload: 'Connection timeout: Unable to reach server' })
+          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+          dispatch({ type: 'SET_CONNECTING', payload: false })
+        }
+      }, 10000)
+
+      socket.on('connect', () => {
+        clearTimeout(connectionTimeout)
+        console.log('Socket.io connected')
+        dispatch({ type: 'SET_CONNECTED', payload: true })
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' }) // Still connecting until SSH is ready
+
+        if (settings) {
+          console.log('Emitting ssh-connect with settings')
+          socket.emit('ssh-connect', settings)
+        } else {
+          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+          dispatch({ type: 'SET_CONNECTING', payload: false })
+        }
+      })
+
+      socket.on('connect_error', (error: Error) => {
+        clearTimeout(connectionTimeout)
+        console.error('Socket.io connection error:', error)
+        dispatch({ type: 'SET_ERROR', payload: `Connection failed: ${error.message || 'Unable to connect to server'}` })
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+        dispatch({ type: 'SET_CONNECTING', payload: false })
+        socket.disconnect()
+      })
+
+      socket.on('ssh-ready', (data: { sessionId: string }) => {
+        clearTimeout(connectionTimeout)
+        console.log('SSH connection ready, sessionId:', data.sessionId)
+        dispatch({ type: 'SET_SESSION_ID', payload: data.sessionId })
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+        dispatch({ type: 'SET_CONNECTING', payload: false })
+      })
+
+      socket.on('ssh-error', (error: string) => {
+        clearTimeout(connectionTimeout)
+        console.error('SSH error:', error)
+        dispatch({ type: 'SET_ERROR', payload: error })
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+        dispatch({ type: 'SET_CONNECTING', payload: false })
+      })
+
+      socket.on('ssh-close', () => {
+        clearTimeout(connectionTimeout)
+        console.log('SSH connection closed')
+        dispatch({ type: 'SET_CONNECTED', payload: false })
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
+        dispatch({ type: 'SET_SESSION_ID', payload: null })
+        dispatch({ type: 'SET_CONNECTING', payload: false })
+      })
+
+      socket.on('disconnect', (reason: string) => {
+        clearTimeout(connectionTimeout)
+        console.log('Socket.io disconnected:', reason)
+        dispatch({ type: 'SET_CONNECTED', payload: false })
+        
+        // Only attempt reconnection if it was an unexpected disconnect
+        if (reason === 'io server disconnect' || reason === 'transport close') {
+          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
+          dispatch({ type: 'SET_CONNECTING', payload: false })
+        } else if (state.connectionStatus !== 'disconnected' && state.reconnectAttempts < 5) {
+          dispatch({ type: 'INCREMENT_RECONNECT_ATTEMPTS' })
+          const timeout = Math.min(1000 * Math.pow(2, state.reconnectAttempts), 16000)
+
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect(settings)
+          }, timeout)
+        }
+      })
+
+    } catch (error) {
+      console.error('Error in connect function:', error)
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Connection failed' })
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+      dispatch({ type: 'SET_CONNECTING', payload: false })
+    }
+  }
+
+  const disconnect = async () => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+    }
+
+    if (state.socket) {
+      state.socket.emit('ssh-disconnect')
+      state.socket.disconnect()
+      dispatch({ type: 'SET_SOCKET', payload: null })
+    }
+
+    dispatch({ type: 'SET_CONNECTED', payload: false })
+    dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
+    dispatch({ type: 'SET_SESSION_ID', payload: null })
+    dispatch({ type: 'SET_TERMINAL_STATE', payload: null })
+    dispatch({ type: 'SET_FILE_BROWSER_STATE', payload: null })
+  }
+
+  const preserveConnection = () => {
+    if (state.socket && state.isConnected) {
+      state.socket.emit('navigation-pause')
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'preserved' })
+      dispatch({ type: 'SET_NAVIGATION_START_TIME', payload: Date.now() })
+    }
+  }
+
+  const pauseConnection = () => {
+    if (state.socket && state.isConnected) {
+      state.socket.emit('navigation-pause')
+    }
+  }
+
+  const resumeConnection = () => {
+    if (state.socket && state.connectionStatus === 'preserved') {
+      state.socket.emit('navigation-resume')
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+      dispatch({ type: 'SET_NAVIGATION_START_TIME', payload: null })
+    }
+  }
+
+  const restoreConnection = async (): Promise<boolean> => {
+    if (!state.socket) {
+      return false
+    }
+
+    try {
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'restoring' })
+
+      return new Promise((resolve) => {
+        state.socket!.emit('navigation-restore', {
+          sessionId: state.sessionId,
+          terminalState: state.terminalState,
+          fileBrowserState: state.fileBrowserState
+        })
+
+        const timeout = setTimeout(() => {
+          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+          dispatch({ type: 'SET_ERROR', payload: 'Connection restoration timeout' })
+          resolve(false)
+        }, 10000)
+
+        state.socket!.once('ssh-restored', () => {
+          clearTimeout(timeout)
+          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+          dispatch({ type: 'SET_NAVIGATION_START_TIME', payload: null })
+          resolve(true)
+        })
+
+        state.socket!.once('ssh-restore-failed', () => {
+          clearTimeout(timeout)
+          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+          dispatch({ type: 'SET_ERROR', payload: 'Failed to restore connection' })
+          resolve(false)
+        })
+      })
+    } catch (error) {
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Restoration failed' })
+      return false
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const value = {
+    state,
+    dispatch,
+    connect,
+    disconnect,
+    preserveConnection,
+    restoreConnection,
+    pauseConnection,
+    resumeConnection,
+  }
+
+  return (
+    <AiConnectionContext.Provider value={value}>
+      {children}
+    </AiConnectionContext.Provider>
+  )
+}
+
+export function useAiConnection() {
+  const context = useContext(AiConnectionContext)
+  if (!context) {
+    throw new Error('useAiConnection must be used within AiConnectionProvider')
+  }
+  return context
+}

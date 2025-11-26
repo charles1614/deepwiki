@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import { retrieveConnectionSettings, preserveConnectionSettings } from '@/lib/ai/aiStorage'
 
 interface AiSettingsModalProps {
   isOpen: boolean
@@ -17,21 +18,25 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
 
   useEffect(() => {
     if (isOpen) {
-      const savedSettings = localStorage.getItem('ai_ssh_settings')
+      const savedSettings = retrieveConnectionSettings()
       if (savedSettings) {
-        const parsed = JSON.parse(savedSettings)
-        setHost(parsed.host || '')
-        setPort(parsed.port || '22')
-        setUsername(parsed.username || '')
-        setPassword(parsed.password || '')
+        setHost(savedSettings.host || '')
+        setPort(String(savedSettings.port || '22'))
+        setUsername(savedSettings.username || '')
+        setPassword(savedSettings.password || '')
+      } else {
+        setHost('')
+        setPort('22')
+        setUsername('')
+        setPassword('')
       }
     }
   }, [isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const settings = { host, port, username, password }
-    localStorage.setItem('ai_ssh_settings', JSON.stringify(settings))
+    const settings = { host, port: Number(port), username, password }
+    preserveConnectionSettings(settings)
     onSave(settings)
     onClose()
   }
