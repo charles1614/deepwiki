@@ -27,6 +27,15 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     }
   }, [connectionState.connectionStatus, isInitialized])
 
+  // Use ref for state access in cleanup
+  const connectionStateRef = useRef(connectionState)
+  const isInitializedRef = useRef(isInitialized)
+
+  useEffect(() => {
+    connectionStateRef.current = connectionState
+    isInitializedRef.current = isInitialized
+  }, [connectionState, isInitialized])
+
   // Initialize terminal
   useEffect(() => {
     if (!terminalRef.current || termRef.current) return
@@ -106,11 +115,23 @@ export function AiTerminal({ socket }: AiTerminalProps) {
 
     return () => {
       resizeObserver.disconnect()
+
+      // Preserve state on unmount if connected
+      const state = connectionStateRef.current
+      if (termRef.current && isInitializedRef.current && state.isConnected) {
+        console.log('AiTerminal: Unmounting, preserving state')
+        preserveTerminalState(termRef.current)
+        // We don't call preserveConnection() here because it might be a simple unmount
+        // (e.g. conditional rendering). The page/navigation logic should handle the connection preservation.
+        // However, since we moved the provider to global, we need to ensure the connection isn't lost.
+        // If we are navigating away, we want to preserve.
+      }
+
       term.dispose()
       termRef.current = null
       setIsInitialized(false)
     }
-  }, [socket])
+  }, [socket]) // Only re-run if socket changes (which is rare)
 
   // Handle socket events
   useEffect(() => {
