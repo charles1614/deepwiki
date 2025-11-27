@@ -296,10 +296,32 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
   }
 
   const resumeConnection = () => {
-    if (state.socket && state.connectionStatus === 'preserved') {
-      state.socket.emit('navigation-resume')
-      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
-      dispatch({ type: 'SET_NAVIGATION_START_TIME', payload: null })
+    // Resume if socket exists and connection is preserved, or if socket exists and we have navigation timestamp
+    // (in case component remounted and status was reset)
+    if (state.socket) {
+      if (state.connectionStatus === 'preserved') {
+        state.socket.emit('navigation-resume')
+        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+        dispatch({ type: 'SET_NAVIGATION_START_TIME', payload: null })
+      } else {
+        // Check if we have a navigation timestamp (connection was preserved but status reset)
+        try {
+          const stored = sessionStorage.getItem('ai-navigation-timestamp')
+          if (stored) {
+            const timestamp = JSON.parse(stored)
+            if (timestamp && timestamp.startTime) {
+              // We have a preserved connection, restore the status and resume
+              console.log('Resuming connection with stored navigation timestamp')
+              dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'preserved' })
+              state.socket.emit('navigation-resume')
+              dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+              dispatch({ type: 'SET_NAVIGATION_START_TIME', payload: null })
+            }
+          }
+        } catch (error) {
+          console.error('Error checking navigation timestamp:', error)
+        }
+      }
     }
   }
 

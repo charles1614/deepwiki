@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
 import { AiFileBrowser } from '@/components/ai/AiFileBrowser'
 import { AiSettingsModal } from '@/components/ai/AiSettingsModal'
 import { AiReconnectionBanner } from '@/components/ai/AiReconnectionBanner'
@@ -19,12 +20,14 @@ const AiTerminal = dynamic(() => import('@/components/ai/AiTerminal').then(mod =
 const NAVIGATION_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
 function AiPageContent() {
+  const pathname = usePathname()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [settings, setSettings] = useState<any>(null)
   const [showReconnectionBanner, setShowReconnectionBanner] = useState(false)
   const [reconnectionStatus, setReconnectionStatus] = useState<'success' | 'error' | null>(null)
   const navigationStartTime = React.useRef<number | null>(null)
   const isConnecting = React.useRef(false)
+  const prevPathnameRef = useRef<string | null>(null)
 
   const {
     state: connectionState,
@@ -45,15 +48,22 @@ function AiPageContent() {
       if (savedSettings) {
         setSettings(savedSettings)
 
-        // Auto-connect if settings exist
-        if (!connectionState.isConnected && !connectionState.isConnecting) {
+        // Check if there's a preserved connection first
+        const navigationTimestamp = retrieveNavigationTimestamp()
+        const hasPreservedConnection = connectionState.connectionStatus === 'preserved' || 
+                                       (navigationTimestamp && navigationTimestamp.startTime)
+
+        // Only auto-connect if not connected, not connecting, and no preserved connection
+        if (!connectionState.isConnected && 
+            !connectionState.isConnecting && 
+            !hasPreservedConnection) {
           handleAutoConnect(savedSettings)
         }
       }
     } catch (error) {
       console.error('Error initializing AI page:', error)
     }
-  }, [connectionState.isConnected, connectionState.isConnecting])
+  }, [connectionState.isConnected, connectionState.isConnecting, connectionState.connectionStatus])
 
   // Auto-connect with saved settings
   const handleAutoConnect = async (savedSettings: any) => {
@@ -94,7 +104,7 @@ function AiPageContent() {
     }
   }
 
-  // Navigation detection via page visibility (works across App Router navigations)
+  // Navigation detection via page visibility (works for browser tab switches)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -124,6 +134,71 @@ function AiPageContent() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [connectionState.connectionStatus, preserveConnection, resumeConnection])
+
+  // Navigation detection via pathname (works for in-app navigation)
+  // This effect should run BEFORE the auto-connect effect to check for preserved connections
+  useEffect(() => {
+    const prevPathname = prevPathnameRef.current
+    const currentPathname = pathname
+
+    // Initialize previous pathname on first render
+    if (prevPathname === null) {
+      prevPathnameRef.current = currentPathname
+      return
+    }
+
+    // Detect transition from /ai to another route
+    if (prevPathname === '/ai' && currentPathname !== '/ai') {
+      console.log('AI page: Navigating away from /ai to', currentPathname)
+      // Preserve connection when leaving AI page
+      if (connectionState.isConnected || connectionState.connectionStatus === 'connected') {
+        navigationStartTime.current = Date.now()
+        preserveConnection()
+        preserveNavigationTimestamp(navigationStartTime.current)
+      }
+    }
+
+    // Detect transition from another route back to /ai
+    if (prevPathname !== '/ai' && currentPathname === '/ai') {
+      console.log('AI page: Navigating back to /ai from', prevPathname)
+      
+      // Check for stored navigation timestamp (component may have remounted)
+      const navigationTimestamp = retrieveNavigationTimestamp()
+      const hasPreservedConnection = connectionState.connectionStatus === 'preserved' || 
+                                     (navigationTimestamp && navigationTimestamp.startTime)
+      
+      if (hasPreservedConnection && connectionState.socket) {
+        const startTime = navigationStartTime.current || 
+                         (navigationTimestamp?.startTime ? navigationTimestamp.startTime : null)
+        
+        if (startTime) {
+          const duration = Date.now() - startTime
+
+          if (duration <= NAVIGATION_TIMEOUT) {
+            // Short navigation - resume connection
+            console.log('AI page: Short navigation, resuming preserved connection')
+            // resumeConnection() will check for navigation timestamp if status isn't preserved
+            resumeConnection()
+            // Clear navigation timestamp after resuming
+            if (navigationTimestamp) {
+              clearNavigationTimestamp()
+            }
+          } else {
+            // Long navigation - will be handled by auto-connect/restore logic
+            console.log('AI page: Long navigation, will attempt restoration')
+            // Don't clear timestamp yet - let restore logic handle it
+          }
+        }
+      } else if (hasPreservedConnection && !connectionState.socket) {
+        // Have preserved connection but no socket - need full restoration
+        console.log('AI page: Preserved connection but no socket, will attempt restoration')
+      }
+      navigationStartTime.current = null
+    }
+
+    // Update previous pathname
+    prevPathnameRef.current = currentPathname
+  }, [pathname, connectionState.connectionStatus, connectionState.socket, connectionState.isConnected, preserveConnection, resumeConnection])
 
   const handleConnect = async () => {
     if (settings) {
