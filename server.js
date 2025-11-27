@@ -53,12 +53,12 @@ class AiSessionManager {
 
       // Update expiration time
       session.expiresAt = Date.now() + this.SESSION_TIMEOUT
-      
+
       // Schedule new cleanup timeout
       session.cleanupTimeoutId = setTimeout(() => {
         this.cleanupSession(sessionId)
       }, this.SESSION_TIMEOUT)
-      
+
       return session
     }
     return null
@@ -72,7 +72,7 @@ class AiSessionManager {
         clearTimeout(session.cleanupTimeoutId)
         session.cleanupTimeoutId = null
       }
-      
+
       try {
         session.sshClient.end()
       } catch (error) {
@@ -186,8 +186,16 @@ app.prepare().then(() => {
               })
             })
 
-            // Setup Shell
-            sshClient.shell((err, s) => {
+            // Setup Shell with environment variables
+            const shellOptions = {
+              env: {
+                TERM: 'xterm-256color',
+                ANTHROPIC_BASE_URL: config.anthropicBaseUrl || '',
+                ANTHROPIC_AUTH_TOKEN: config.anthropicAuthToken || ''
+              }
+            }
+
+            sshClient.shell(shellOptions, (err, s) => {
               if (err) {
                 socket.emit('ssh-error', err.message)
                 return

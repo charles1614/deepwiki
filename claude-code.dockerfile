@@ -19,6 +19,7 @@ RUN mkdir -p /var/run/sshd && \
   echo 'root:$g7^pZxpgteixe' | chpasswd && \
   sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
   sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+  echo 'AcceptEnv ANTHROPIC_*' >> /etc/ssh/sshd_config && \
   sed -i 's|root:/bin/ash|root:/bin/bash|' /etc/passwd || true && \
   sed -i 's|root:/bin/sh|root:/bin/bash|' /etc/passwd || true
 

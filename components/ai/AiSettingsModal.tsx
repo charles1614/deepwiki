@@ -15,6 +15,8 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
   const [port, setPort] = useState('22')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [anthropicBaseUrl, setAnthropicBaseUrl] = useState('')
+  const [anthropicAuthToken, setAnthropicAuthToken] = useState('')
 
   useEffect(() => {
     if (isOpen) {
@@ -24,11 +26,15 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
         setPort(String(savedSettings.port || '22'))
         setUsername(savedSettings.username || '')
         setPassword(savedSettings.password || '')
+        setAnthropicBaseUrl(savedSettings.anthropicBaseUrl || '')
+        setAnthropicAuthToken(savedSettings.anthropicAuthToken || '')
       } else {
         setHost('')
         setPort('22')
         setUsername('')
         setPassword('')
+        setAnthropicBaseUrl('')
+        setAnthropicAuthToken('')
       }
     }
   }, [isOpen])
@@ -36,8 +42,15 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     console.log('AiSettingsModal: Form submitted', { host, port, username, password: '***' })
-    const settings = { host, port: Number(port), username, password }
-    console.log('AiSettingsModal: Saving settings', { ...settings, password: '***' })
+    const settings = {
+      host,
+      port: Number(port),
+      username,
+      password,
+      anthropicBaseUrl,
+      anthropicAuthToken
+    }
+    console.log('AiSettingsModal: Saving settings', { ...settings, password: '***', anthropicAuthToken: '***' })
     preserveConnectionSettings(settings)
     console.log('AiSettingsModal: Calling onSave callback')
     onSave(settings)
@@ -114,6 +127,28 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="••••••••"
                   required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Anthropic Base URL (Optional)</label>
+                <input
+                  type="text"
+                  value={anthropicBaseUrl}
+                  onChange={(e) => setAnthropicBaseUrl(e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="https://api.anthropic.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Anthropic Auth Token (Optional)</label>
+                <input
+                  type="password"
+                  value={anthropicAuthToken}
+                  onChange={(e) => setAnthropicAuthToken(e.target.value)}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="sk-..."
                 />
               </div>
 

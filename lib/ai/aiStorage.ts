@@ -189,6 +189,8 @@ export interface ConnectionSettings {
   port: number
   username: string
   password: string
+  anthropicBaseUrl?: string
+  anthropicAuthToken?: string
 }
 
 export const preserveConnectionSettings = (settings: ConnectionSettings): boolean => {

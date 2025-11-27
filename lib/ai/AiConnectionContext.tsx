@@ -65,8 +65,8 @@ function aiConnectionReducer(state: AiConnectionState, action: AiConnectionActio
     case 'SET_CONNECTION_STATUS':
       // Keep isConnecting in sync with connectionStatus
       const isConnecting = action.payload === 'connecting' || action.payload === 'restoring'
-      return { 
-        ...state, 
+      return {
+        ...state,
         connectionStatus: action.payload,
         isConnecting: isConnecting
       }
@@ -113,7 +113,14 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
   const [state, dispatch] = useReducer(aiConnectionReducer, initialState)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const connect = async (settings?: { host: string; port: number; username: string; password: string }) => {
+  const connect = async (settings?: {
+    host: string
+    port: number
+    username: string
+    password: string
+    anthropicBaseUrl?: string
+    anthropicAuthToken?: string
+  }) => {
     try {
       // Clean up any existing socket first
       if (state.socket) {
@@ -150,7 +157,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
 
       // Set up ALL event handlers BEFORE the socket might connect
       // This ensures we don't miss any events
-      
+
       socket.on('ssh-ready', (data: { sessionId: string }) => {
         console.log('Received ssh-ready event:', data)
         clearTimeout(connectionTimeout)
@@ -202,14 +209,18 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
 
         if (settings) {
           sshConnectEmitted = true
-          console.log('Emitting ssh-connect with settings:', { ...settings, password: '***' })
-          
+          console.log('Emitting ssh-connect with settings:', {
+            ...settings,
+            password: '***',
+            anthropicAuthToken: settings.anthropicAuthToken ? '***' : undefined
+          })
+
           // Clear any existing SSH timeout before setting a new one
           if (sshTimeout) {
             clearTimeout(sshTimeout)
             sshTimeout = null
           }
-          
+
           socket.emit('ssh-connect', settings)
           console.log('ssh-connect event emitted; SSH connection establishing in background')
 
@@ -258,7 +269,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         clearTimeout(connectionTimeout)
         console.log('Socket.io disconnected:', reason)
         dispatch({ type: 'SET_CONNECTED', payload: false })
-        
+
         // Only attempt reconnection if it was an unexpected disconnect
         if (reason === 'io server disconnect' || reason === 'transport close') {
           // Set status to 'disconnected' - reducer will automatically set isConnecting to false
