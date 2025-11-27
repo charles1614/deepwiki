@@ -53,17 +53,33 @@ function AiPageContent() {
         const hasPreservedConnection = connectionState.connectionStatus === 'preserved' || 
                                        (navigationTimestamp && navigationTimestamp.startTime)
 
-        // Only auto-connect if not connected, not connecting, and no preserved connection
+        // Only auto-connect if:
+        // 1. Not connected
+        // 2. Not connecting
+        // 3. No preserved connection
+        // 4. Not on /ai page (to avoid interfering with resume logic)
         if (!connectionState.isConnected && 
             !connectionState.isConnecting && 
-            !hasPreservedConnection) {
-          handleAutoConnect(savedSettings)
+            !hasPreservedConnection &&
+            pathname === '/ai') {
+          // Small delay to let pathname detection run first
+          const timeoutId = setTimeout(() => {
+            // Double-check after delay - pathname detection might have resumed the connection
+            const stillNeedsConnection = !connectionState.isConnected && 
+                                        !connectionState.isConnecting &&
+                                        connectionState.connectionStatus !== 'preserved'
+            if (stillNeedsConnection) {
+              handleAutoConnect(savedSettings)
+            }
+          }, 200)
+          
+          return () => clearTimeout(timeoutId)
         }
       }
     } catch (error) {
       console.error('Error initializing AI page:', error)
     }
-  }, [connectionState.isConnected, connectionState.isConnecting, connectionState.connectionStatus])
+  }, [connectionState.isConnected, connectionState.isConnecting, connectionState.connectionStatus, pathname])
 
   // Auto-connect with saved settings
   const handleAutoConnect = async (savedSettings: any) => {
@@ -155,6 +171,7 @@ function AiPageContent() {
         navigationStartTime.current = Date.now()
         preserveConnection()
         preserveNavigationTimestamp(navigationStartTime.current)
+        console.log('AI page: Connection preserved for navigation')
       }
     }
 
@@ -167,7 +184,7 @@ function AiPageContent() {
       const hasPreservedConnection = connectionState.connectionStatus === 'preserved' || 
                                      (navigationTimestamp && navigationTimestamp.startTime)
       
-      if (hasPreservedConnection && connectionState.socket) {
+      if (hasPreservedConnection) {
         const startTime = navigationStartTime.current || 
                          (navigationTimestamp?.startTime ? navigationTimestamp.startTime : null)
         
@@ -176,22 +193,47 @@ function AiPageContent() {
 
           if (duration <= NAVIGATION_TIMEOUT) {
             // Short navigation - resume connection
-            console.log('AI page: Short navigation, resuming preserved connection')
-            // resumeConnection() will check for navigation timestamp if status isn't preserved
-            resumeConnection()
-            // Clear navigation timestamp after resuming
-            if (navigationTimestamp) {
-              clearNavigationTimestamp()
+            console.log('AI page: Short navigation detected, attempting to resume preserved connection')
+            
+            // Try to resume immediately if socket is available
+            const attemptResume = () => {
+              if (connectionState.socket && connectionState.socket.connected) {
+                console.log('AI page: Socket available and connected, resuming connection')
+                resumeConnection()
+                if (navigationTimestamp) {
+                  clearNavigationTimestamp()
+                }
+                return true
+              }
+              return false
+            }
+            
+            if (!attemptResume()) {
+              // Socket not available yet (component just remounted), wait a bit and try again
+              console.log('AI page: Socket not available yet, will retry resume')
+              let retryCount = 0
+              const maxRetries = 10
+              
+              const retryResume = setInterval(() => {
+                retryCount++
+                if (attemptResume()) {
+                  console.log('AI page: Successfully resumed connection after retry')
+                  clearInterval(retryResume)
+                } else if (retryCount >= maxRetries) {
+                  console.log('AI page: Socket still not available after max retries')
+                  clearInterval(retryResume)
+                }
+              }, 100)
+              
+              // Clean up interval on unmount or when socket becomes available
+              return () => clearInterval(retryResume)
             }
           } else {
             // Long navigation - will be handled by auto-connect/restore logic
-            console.log('AI page: Long navigation, will attempt restoration')
+            console.log('AI page: Long navigation detected, will attempt restoration')
             // Don't clear timestamp yet - let restore logic handle it
           }
         }
-      } else if (hasPreservedConnection && !connectionState.socket) {
-        // Have preserved connection but no socket - need full restoration
-        console.log('AI page: Preserved connection but no socket, will attempt restoration')
       }
       navigationStartTime.current = null
     }
@@ -199,6 +241,29 @@ function AiPageContent() {
     // Update previous pathname
     prevPathnameRef.current = currentPathname
   }, [pathname, connectionState.connectionStatus, connectionState.socket, connectionState.isConnected, preserveConnection, resumeConnection])
+
+  // Watch for socket becoming available and auto-resume if we have a preserved connection
+  useEffect(() => {
+    if (pathname === '/ai' && connectionState.socket && connectionState.socket.connected) {
+      const navigationTimestamp = retrieveNavigationTimestamp()
+      const hasPreservedConnection = connectionState.connectionStatus === 'preserved' || 
+                                     (navigationTimestamp && navigationTimestamp.startTime)
+      
+      if (hasPreservedConnection && connectionState.connectionStatus !== 'connected') {
+        const startTime = navigationTimestamp?.startTime
+        if (startTime) {
+          const duration = Date.now() - startTime
+          if (duration <= NAVIGATION_TIMEOUT) {
+            console.log('AI page: Socket became available, auto-resuming preserved connection')
+            resumeConnection()
+            if (navigationTimestamp) {
+              clearNavigationTimestamp()
+            }
+          }
+        }
+      }
+    }
+  }, [connectionState.socket, pathname, connectionState.connectionStatus, resumeConnection])
 
   const handleConnect = async () => {
     if (settings) {

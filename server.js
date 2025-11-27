@@ -27,14 +27,15 @@ class AiSessionManager {
       config,
       createdAt: Date.now(),
       expiresAt: Date.now() + this.SESSION_TIMEOUT,
-      terminalState,
-      fileBrowserState
+      terminalState: terminalState || null,
+      fileBrowserState: fileBrowserState || null,
+      cleanupTimeoutId: null
     }
 
     this.sessions.set(sessionId, session)
 
-    // Auto-cleanup after timeout
-    setTimeout(() => {
+    // Auto-cleanup after timeout - store timeout ID so it can be cancelled
+    session.cleanupTimeoutId = setTimeout(() => {
       this.cleanupSession(sessionId)
     }, this.SESSION_TIMEOUT)
 
@@ -44,11 +45,20 @@ class AiSessionManager {
   restoreSession(sessionId) {
     const session = this.sessions.get(sessionId)
     if (session && session.expiresAt > Date.now()) {
+      // Cancel existing cleanup timeout to prevent multiple timers
+      if (session.cleanupTimeoutId) {
+        clearTimeout(session.cleanupTimeoutId)
+        session.cleanupTimeoutId = null
+      }
+
       // Update expiration time
       session.expiresAt = Date.now() + this.SESSION_TIMEOUT
-      setTimeout(() => {
+      
+      // Schedule new cleanup timeout
+      session.cleanupTimeoutId = setTimeout(() => {
         this.cleanupSession(sessionId)
       }, this.SESSION_TIMEOUT)
+      
       return session
     }
     return null
@@ -57,6 +67,12 @@ class AiSessionManager {
   cleanupSession(sessionId) {
     const session = this.sessions.get(sessionId)
     if (session) {
+      // Clear any pending cleanup timeout
+      if (session.cleanupTimeoutId) {
+        clearTimeout(session.cleanupTimeoutId)
+        session.cleanupTimeoutId = null
+      }
+      
       try {
         session.sshClient.end()
       } catch (error) {
@@ -193,12 +209,15 @@ app.prepare().then(() => {
               })
 
               // Preserve session for potential restoration
+              // Note: terminalState and fileBrowserState will be updated via navigation-disconnect event
               currentSessionId = sessionManager.preserveSession(
                 socket.id,
                 sshClient,
                 sftpClient,
                 stream,
-                config
+                config,
+                null, // terminalState - will be updated later
+                null  // fileBrowserState - will be updated later
               )
 
               // Emit ready only after both SFTP and Shell are set up
@@ -262,7 +281,9 @@ app.prepare().then(() => {
       console.log('Attempting to restore connection')
       if (data?.sessionId) {
         const session = sessionManager.restoreSession(data.sessionId)
-        if (session && session.socketId === socket.id) {
+        // Remove socket ID check - session ID is the security mechanism
+        // New socket connections will have different IDs, which is expected
+        if (session) {
           try {
             sshClient = session.sshClient
             sftpClient = session.sftpClient

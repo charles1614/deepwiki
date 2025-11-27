@@ -111,7 +111,7 @@ const AiConnectionContext = createContext<{
 
 export function AiConnectionProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(aiConnectionReducer, initialState)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const connect = async (settings?: { host: string; port: number; username: string; password: string }) => {
     try {
@@ -158,6 +158,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
           clearTimeout(sshTimeout)
           sshTimeout = null
         }
+        sshConnectEmitted = false // Reset flag to allow reconnection if needed
         console.log('SSH connection ready, sessionId:', data.sessionId)
         dispatch({ type: 'SET_SESSION_ID', payload: data.sessionId })
         dispatch({ type: 'SET_ERROR', payload: null }) // Clear any previous errors
@@ -171,6 +172,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
           clearTimeout(sshTimeout)
           sshTimeout = null
         }
+        sshConnectEmitted = false // Reset flag to allow retry
         console.error('SSH error:', error)
         dispatch({ type: 'SET_ERROR', payload: error })
         // Set status to 'error' - reducer will automatically set isConnecting to false
@@ -188,11 +190,26 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
 
       // SSH connection timeout - if SSH doesn't connect within 30 seconds, fail
       let sshTimeout: NodeJS.Timeout | null = null
+      let sshConnectEmitted = false // Flag to prevent multiple SSH connection attempts
 
       // Helper function to emit SSH connect and set timeout
       const emitSshConnect = () => {
+        // Prevent multiple SSH connection attempts
+        if (sshConnectEmitted) {
+          console.log('SSH connect already emitted, skipping duplicate call')
+          return
+        }
+
         if (settings) {
+          sshConnectEmitted = true
           console.log('Emitting ssh-connect with settings:', { ...settings, password: '***' })
+          
+          // Clear any existing SSH timeout before setting a new one
+          if (sshTimeout) {
+            clearTimeout(sshTimeout)
+            sshTimeout = null
+          }
+          
           socket.emit('ssh-connect', settings)
           console.log('ssh-connect event emitted; SSH connection establishing in background')
 
@@ -201,6 +218,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
             console.error('SSH connection timeout - no ssh-ready or ssh-error received')
             dispatch({ type: 'SET_ERROR', payload: 'SSH connection timeout: Server did not respond' })
             // Keep status as 'connected' (socket is still up), but surface error text in UI
+            sshTimeout = null
           }, 30000) // 30 seconds for SSH connection
         } else {
           console.log('No SSH settings, leaving connection in connected state')
@@ -300,8 +318,10 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
     // (in case component remounted and status was reset)
     if (state.socket) {
       if (state.connectionStatus === 'preserved') {
+        console.log('Resuming preserved connection (status is preserved)')
         state.socket.emit('navigation-resume')
         dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+        dispatch({ type: 'SET_CONNECTED', payload: true })
         dispatch({ type: 'SET_NAVIGATION_START_TIME', payload: null })
       } else {
         // Check if we have a navigation timestamp (connection was preserved but status reset)
@@ -315,13 +335,20 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
               dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'preserved' })
               state.socket.emit('navigation-resume')
               dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
+              dispatch({ type: 'SET_CONNECTED', payload: true })
               dispatch({ type: 'SET_NAVIGATION_START_TIME', payload: null })
             }
+          } else if (state.isConnected && state.socket.connected) {
+            // Socket is connected but status might not be preserved - just ensure status is correct
+            console.log('Socket is connected, ensuring status is correct')
+            dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
           }
         } catch (error) {
           console.error('Error checking navigation timestamp:', error)
         }
       }
+    } else {
+      console.log('Cannot resume: socket not available')
     }
   }
 
