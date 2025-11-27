@@ -116,6 +116,24 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
     }
   }, [socket])
 
+  // Handle initial load if already connected
+  useEffect(() => {
+    if (socket && connectionState.connectionStatus === 'connected' && files.length === 0 && !loading) {
+      console.log('AiFileBrowser: Already connected on mount, loading directory')
+      const storedState = retrieveFileBrowserState()
+      if (storedState) {
+        loadDirectory(storedState.currentPath)
+        if (storedState.selectedFile) {
+          setSelectedFile(storedState.selectedFile)
+          setLoading(true)
+          socket.emit('sftp-read', storedState.selectedFile)
+        }
+      } else {
+        loadDirectory('.')
+      }
+    }
+  }, [socket, connectionState.connectionStatus])
+
   const loadDirectory = (path: string) => {
     setLoading(true)
     setError(null)

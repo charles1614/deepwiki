@@ -79,6 +79,9 @@ export function AiTerminal({ socket }: AiTerminalProps) {
       }
     }
 
+    // Ensure terminal has focus so cursor blinks
+    term.focus()
+
     // Handle resize with ResizeObserver
     const resizeObserver = new ResizeObserver(() => {
       try {
