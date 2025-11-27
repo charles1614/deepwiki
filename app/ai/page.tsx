@@ -342,7 +342,7 @@ function AiPageContent() {
         </div>
 
         {/* Right Column: File Browser */}
-        <div className="w-1/2 bg-gray-50 p-4">
+        <div className="w-1/2 bg-gray-50">
           {connectionState.socket && <AiFileBrowser socket={connectionState.socket} />}
         </div>
       </div>

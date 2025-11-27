@@ -160,10 +160,10 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
   }
   return (
     <div
-      className="h-full flex flex-col bg-white rounded-lg shadow-sm border border-gray-200"
+      className="h-full flex flex-col bg-white"
       data-testid="ai-file-browser"
     >
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50 rounded-t-lg">
+      <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
         <div className="flex items-center gap-2 overflow-hidden">
           {(currentPath !== '.' || selectedFile) && (
             <button
