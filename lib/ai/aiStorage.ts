@@ -32,23 +32,8 @@ export const preserveTerminalState = (terminal: any): boolean => {
     }
 
     const buffer = terminal.buffer.active
-    const totalLines = buffer.length
-    const startLine = Math.max(0, totalLines - MAX_TERMINAL_LINES)
-    const lastLines: string[] = []
-
-    // Get last 1000 lines
-    for (let i = startLine; i < totalLines; i++) {
-      const line = buffer.getLine(i)
-      if (line) {
-        const lineText = line.translateToString(true)
-        if (lineText.trim()) {
-          lastLines.push(lineText)
-        }
-      }
-    }
-
     const state: StoredTerminalState = {
-      buffer: lastLines,
+      buffer: [], // We rely on server history for content now
       cursorPosition: {
         x: buffer.cursorX || 0,
         y: buffer.cursorY || 0

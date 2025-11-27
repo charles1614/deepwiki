@@ -203,19 +203,6 @@ app.prepare().then(() => {
 
               stream = s
 
-              stream.on('close', () => {
-                socket.emit('ssh-close')
-                sshClient.end()
-              })
-
-              stream.on('data', (data) => {
-                socket.emit('ssh-data', data.toString('utf-8'))
-              })
-
-              stream.stderr.on('data', (data) => {
-                socket.emit('ssh-data', data.toString('utf-8'))
-              })
-
               // Preserve session for potential restoration
               // Note: terminalState and fileBrowserState will be updated via navigation-disconnect event
               currentSessionId = sessionManager.preserveSession(
@@ -227,6 +214,31 @@ app.prepare().then(() => {
                 null, // terminalState - will be updated later
                 null  // fileBrowserState - will be updated later
               )
+
+              stream.on('close', () => {
+                socket.emit('ssh-close')
+                sshClient.end()
+              })
+
+              stream.on('data', (data) => {
+                const text = data.toString('utf-8')
+                socket.emit('ssh-data', text)
+                // Append to session history
+                const session = sessionManager.sessions.get(currentSessionId)
+                if (session) {
+                  session.history = (session.history || '') + text
+                }
+              })
+
+              stream.stderr.on('data', (data) => {
+                const text = data.toString('utf-8')
+                socket.emit('ssh-data', text)
+                // Append to session history
+                const session = sessionManager.sessions.get(currentSessionId)
+                if (session) {
+                  session.history = (session.history || '') + text
+                }
+              })
 
               // Emit ready only after both SFTP and Shell are set up
               socket.emit('ssh-ready', { sessionId: currentSessionId })
@@ -334,15 +346,32 @@ app.prepare().then(() => {
               })
 
               stream.on('data', (data) => {
-                socket.emit('ssh-data', data.toString('utf-8'))
+                const text = data.toString('utf-8')
+                socket.emit('ssh-data', text)
+                // Append to session history
+                const session = sessionManager.sessions.get(currentSessionId)
+                if (session) {
+                  session.history = (session.history || '') + text
+                }
               })
 
               stream.stderr.on('data', (data) => {
-                socket.emit('ssh-data', data.toString('utf-8'))
+                const text = data.toString('utf-8')
+                socket.emit('ssh-data', text)
+                // Append to session history
+                const session = sessionManager.sessions.get(currentSessionId)
+                if (session) {
+                  session.history = (session.history || '') + text
+                }
               })
             }
 
             socket.emit('ssh-restored')
+
+            // Send history to restore terminal state with colors
+            if (session.history) {
+              socket.emit('ssh-history', session.history)
+            }
 
             console.log('Session restored successfully')
           } catch (error) {
@@ -374,9 +403,18 @@ app.prepare().then(() => {
       }
     })
 
-    socket.on('ssh-resize', ({ cols, rows }) => {
+    socket.on('ssh-resize', (dims) => {
       if (stream) {
-        stream.setWindow(rows, cols, 0, 0)
+        stream.setWindow(dims.rows, dims.cols, dims.height, dims.width)
+      }
+    })
+
+    socket.on('ssh-get-history', () => {
+      if (currentSessionId) {
+        const session = sessionManager.sessions.get(currentSessionId)
+        if (session && session.history) {
+          socket.emit('ssh-history', session.history)
+        }
       }
     })
 

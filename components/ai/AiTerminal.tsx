@@ -65,14 +65,15 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     const storedState = retrieveTerminalState()
     if (storedState) {
       try {
-        // Write preserved buffer content
-        if (storedState.buffer && storedState.buffer.length > 0) {
-          term.write(storedState.buffer.join('\r\n'))
-        }
+        // We no longer restore buffer from local storage as it loses colors
+        // Instead we rely on server sending 'ssh-history' event
 
+        // Restore cursor position if available (optional, might be better to let history dictate)
+        // if (storedState.cursorPosition) {
+        //   term.write(`\x1b[${storedState.cursorPosition.y};${storedState.cursorPosition.x}H`)
+        // }
 
-
-        console.log('Terminal state restored from storage')
+        console.log('Terminal settings restored from storage')
       } catch (error) {
         console.error('Failed to restore terminal state:', error)
         clearTerminalState()
@@ -85,12 +86,18 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     // Handle resize with ResizeObserver
     const resizeObserver = new ResizeObserver(() => {
       try {
-        fitAddon.fit()
-        if (socket && term) {
-          socket.emit('ssh-resize', { cols: term.cols, rows: term.rows })
+        if (fitAddonRef.current) {
+          fitAddonRef.current.fit()
+          // Send new dimensions to server
+          if (socket && socket.connected) {
+            socket.emit('ssh-resize', {
+              cols: term.cols,
+              rows: term.rows
+            })
+          }
         }
       } catch (e) {
-        console.error('Resize error:', e)
+        console.error('Error resizing terminal:', e)
       }
     })
 
@@ -98,6 +105,7 @@ export function AiTerminal({ socket }: AiTerminalProps) {
       resizeObserver.observe(terminalRef.current)
     }
 
+    // Xterm.js event handlers
     term.onData((data) => {
       if (socket) {
         socket.emit('ssh-data', data)
@@ -109,6 +117,9 @@ export function AiTerminal({ socket }: AiTerminalProps) {
         socket.emit('ssh-resize', { cols, rows })
       }
     })
+
+    // Socket event listeners are handled in a separate useEffect
+    // to ensure proper cleanup and avoid duplication
 
     setIsInitialized(true)
 
@@ -132,25 +143,30 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     }
   }, [socket]) // Only re-run if socket changes (which is rare)
 
+  // Helper to handle incoming data and check for OSC sequences
+  const handleData = (data: string) => {
+    if (!termRef.current) return
+
+    // Check for custom OSC sequence for directory sync: \x1b]99;path\x07
+    const oscMatch = data.match(/\x1b\]99;(.+?)\x07/)
+    if (oscMatch) {
+      const path = oscMatch[1]
+      console.log('AiTerminal: Detected path change:', path)
+      if (socket) {
+        socket.emit('sftp-list', path)
+      }
+
+      // Remove the sequence from data so it doesn't show up in terminal
+      data = data.replace(/\x1b\]99;.+?\x07/g, '')
+    }
+    termRef.current.write(data)
+  }
+
   // Handle socket events
   useEffect(() => {
     if (!socket || !termRef.current) return
 
     const term = termRef.current
-
-    const handleData = (data: string) => {
-      // Check for custom OSC sequence for directory sync: \x1b]99;path\x07
-      const oscMatch = data.match(/\x1b\]99;(.+?)\x07/)
-      if (oscMatch) {
-        const path = oscMatch[1]
-        console.log('AiTerminal: Detected path change:', path)
-        socket.emit('sftp-list', path)
-
-        // Remove the sequence from data so it doesn't show up in terminal
-        data = data.replace(/\x1b\]99;.+?\x07/g, '')
-      }
-      term.write(data)
-    }
 
     const handleError = (err: string) => {
       term.write(`\r\n\x1b[31mError: ${err}\x1b[0m\r\n`)
@@ -172,11 +188,21 @@ export function AiTerminal({ socket }: AiTerminalProps) {
       term.write('\r\n\x1b[31mConnection restoration failed\x1b[0m\r\n')
     }
 
+    const handleHistory = (history: string) => {
+      console.log('Received session history, restoring terminal content')
+      term.reset() // Clear current content
+      term.write(history)
+    }
+
     socket.on('ssh-data', handleData)
     socket.on('ssh-error', handleError)
     socket.on('ssh-close', handleClose)
     socket.on('ssh-restored', handleRestored)
     socket.on('ssh-restore-failed', handleRestoreFailed)
+    socket.on('ssh-history', handleHistory)
+
+    // Request history on mount/reconnect
+    socket.emit('ssh-get-history')
 
     return () => {
       socket.off('ssh-data', handleData)
@@ -184,8 +210,9 @@ export function AiTerminal({ socket }: AiTerminalProps) {
       socket.off('ssh-close', handleClose)
       socket.off('ssh-restored', handleRestored)
       socket.off('ssh-restore-failed', handleRestoreFailed)
+      socket.off('ssh-history', handleHistory)
     }
-  }, [socket])
+  }, [socket, isInitialized])
 
   return (
     <div className="h-full w-full bg-[#1e1e1e] rounded-lg overflow-hidden p-2" data-testid="ai-terminal">
