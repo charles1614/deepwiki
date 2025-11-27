@@ -70,11 +70,7 @@ export function AiTerminal({ socket }: AiTerminalProps) {
           term.write(storedState.buffer.join('\r\n'))
         }
 
-        // Restore cursor position if available
-        if (storedState.cursorPosition) {
-          // XTerm.js cursor positioning
-          term.write(`\x1b[${storedState.cursorPosition.y};${storedState.cursorPosition.x}H`)
-        }
+
 
         console.log('Terminal state restored from storage')
       } catch (error) {
