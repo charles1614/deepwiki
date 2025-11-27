@@ -139,6 +139,16 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     const term = termRef.current
 
     const handleData = (data: string) => {
+      // Check for custom OSC sequence for directory sync: \x1b]99;path\x07
+      const oscMatch = data.match(/\x1b\]99;(.+?)\x07/)
+      if (oscMatch) {
+        const path = oscMatch[1]
+        console.log('AiTerminal: Detected path change:', path)
+        socket.emit('sftp-list', path)
+
+        // Remove the sequence from data so it doesn't show up in terminal
+        data = data.replace(/\x1b\]99;.+?\x07/g, '')
+      }
       term.write(data)
     }
 
