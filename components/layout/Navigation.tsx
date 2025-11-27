@@ -485,19 +485,18 @@ export function Navigation({ className = '' }: NavigationProps) {
                 )}
               </div>
             )}
+            {/* Back button for desktop */}
+            {showBackButton && (
+              <button
+                onClick={handleBackNavigation}
+                className="flex items-center px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md ml-4"
+                data-testid="nav-back-button"
+              >
+                <ChevronLeftIcon className="h-4 w-4 mr-1" />
+                Back
+              </button>
+            )}
           </div>
-
-          {/* Back button for desktop */}
-          {showBackButton && (
-            <button
-              onClick={handleBackNavigation}
-              className="flex items-center px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md mr-4"
-              data-testid="nav-back-button"
-            >
-              <ChevronLeftIcon className="h-4 w-4 mr-1" />
-              Back
-            </button>
-          )}
         </div>
       </div>
 
