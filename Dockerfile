@@ -23,8 +23,8 @@ RUN npx prisma generate
 
 # Copy Prisma binaries to ensure they're available in final image
 RUN mkdir -p ./prisma-binaries && \
-    find node_modules/@prisma -name "*.node" -type f -exec cp {} ./prisma-binaries/ \; && \
-    cp -r node_modules/.prisma ./prisma-binaries/ 2>/dev/null || echo "No .prisma directory found"
+  find node_modules/@prisma -name "*.node" -type f -exec cp {} ./prisma-binaries/ \; && \
+  cp -r node_modules/.prisma ./prisma-binaries/ 2>/dev/null || echo "No .prisma directory found"
 
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -58,6 +58,7 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 # Copy public directory (now guaranteed to exist)
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/server.js ./server.js
 
 # Copy Prisma related files
 COPY --from=builder /app/prisma ./prisma
@@ -68,8 +69,8 @@ COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/clie
 
 # Ensure Prisma CLI is available and binaries are accessible
 RUN mkdir -p node_modules/.prisma && \
-    cp -r prisma-binaries/* node_modules/.prisma/ && \
-    chmod +x node_modules/.prisma/client-* 2>/dev/null || true
+  cp -r prisma-binaries/* node_modules/.prisma/ && \
+  chmod +x node_modules/.prisma/client-* 2>/dev/null || true
 
 # Set proper permissions
 RUN chown -R nextjs:nodejs /app
