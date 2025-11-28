@@ -217,7 +217,9 @@ app.prepare().then(() => {
 
               stream.on('close', () => {
                 socket.emit('ssh-close')
-                sshClient.end()
+                if (sshClient) {
+                  sshClient.end()
+                }
               })
 
               stream.on('data', (data) => {
@@ -420,7 +422,11 @@ app.prepare().then(() => {
 
     socket.on('disconnect', () => {
       if (sshClient) {
-        sshClient.end()
+        try {
+          sshClient.end()
+        } catch (e) {
+          console.error('Error closing SSH client:', e)
+        }
       }
       console.log('Client disconnected:', socket.id)
     })

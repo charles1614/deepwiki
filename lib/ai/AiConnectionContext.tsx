@@ -267,20 +267,42 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
 
       socket.on('disconnect', (reason: string) => {
         clearTimeout(connectionTimeout)
-        console.log('Socket.io disconnected:', reason)
+        console.log('Socket.io disconnected:', reason, 'sessionId:', state.sessionId)
         dispatch({ type: 'SET_CONNECTED', payload: false })
 
-        // Only attempt reconnection if it was an unexpected disconnect
-        if (reason === 'io server disconnect' || reason === 'transport close') {
+        // Check if this was a manual/expected disconnect
+        // 'client namespace disconnect' = manual disconnect via socket.disconnect()
+        // 'io server disconnect' = server initiated disconnect
+        // 'transport close' = connection closed unexpectedly
+        const isManualDisconnect = reason === 'client namespace disconnect' ||
+          reason === 'io server disconnect' ||
+          reason === 'transport close'
+
+        // Check if SSH was ever successfully established
+        const hadSSHConnection = state.sessionId !== null
+
+        if (isManualDisconnect) {
           // Set status to 'disconnected' - reducer will automatically set isConnecting to false
+          console.log('Manual disconnect detected, setting status to disconnected')
           dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
-        } else if (state.connectionStatus !== 'disconnected' && state.reconnectAttempts < 5) {
+        } else if (!hadSSHConnection) {
+          // Don't reconnect if SSH connection was never established
+          console.log('Disconnect before SSH established, setting status to error')
+          dispatch({ type: 'SET_ERROR', payload: 'SSH connection failed' })
+          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+        } else if (state.connectionStatus !== 'disconnected' && state.connectionStatus !== 'error' && state.reconnectAttempts < 5) {
+          // Only reconnect for unexpected disconnects on established SSH connections
+          console.log('Unexpected disconnect on established SSH, attempting reconnect')
           dispatch({ type: 'INCREMENT_RECONNECT_ATTEMPTS' })
           const timeout = Math.min(1000 * Math.pow(2, state.reconnectAttempts), 16000)
 
           reconnectTimeoutRef.current = setTimeout(() => {
             connect(settings)
           }, timeout)
+        } else {
+          // Max reconnect attempts reached or already disconnected/error state
+          console.log('Max reconnect attempts or invalid state, setting to disconnected')
+          dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
         }
       })
 
@@ -293,21 +315,30 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
   }
 
   const disconnect = async () => {
+    console.log('AiConnectionContext: disconnect() called')
+
     if (reconnectTimeoutRef.current) {
+      console.log('AiConnectionContext: Clearing reconnect timeout')
       clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
     }
 
-    if (state.socket) {
-      state.socket.emit('ssh-disconnect')
-      state.socket.disconnect()
-      dispatch({ type: 'SET_SOCKET', payload: null })
-    }
-
+    // Update state FIRST to prevent race condition in disconnect handler
+    console.log('AiConnectionContext: Setting state to disconnected')
     dispatch({ type: 'SET_CONNECTED', payload: false })
     dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
     dispatch({ type: 'SET_SESSION_ID', payload: null })
     dispatch({ type: 'SET_TERMINAL_STATE', payload: null })
     dispatch({ type: 'SET_FILE_BROWSER_STATE', payload: null })
+
+    if (state.socket) {
+      console.log('AiConnectionContext: Emitting ssh-disconnect and disconnecting socket')
+      state.socket.emit('ssh-disconnect')
+      state.socket.disconnect()
+      dispatch({ type: 'SET_SOCKET', payload: null })
+    }
+
+    console.log('AiConnectionContext: disconnect() completed')
   }
 
   const preserveConnection = () => {
