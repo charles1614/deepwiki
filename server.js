@@ -137,7 +137,7 @@ app.prepare().then(() => {
     let currentSessionId = null
 
     socket.on('ssh-connect', (config) => {
-      console.log('Received ssh-connect request', { ...config, password: '***' })
+      console.log('Received ssh-connect request', { ...config, password: '***', anthropicAuthToken: '***' })
       try {
         if (sshClient) {
           sshClient.end()
