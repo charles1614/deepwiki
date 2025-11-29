@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { AiFileBrowser } from '@/components/ai/AiFileBrowser'
 import { AiSettingsModal } from '@/components/ai/AiSettingsModal'
 import { AiReconnectionBanner } from '@/components/ai/AiReconnectionBanner'
+import { AiRetryBanner } from '@/components/ai/AiRetryBanner'
 import { WithNavigation } from '@/components/layout/WithNavigation'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { useAiConnection } from '@/lib/ai/AiConnectionContext'
@@ -18,6 +19,8 @@ const AiTerminal = dynamic(() => import('@/components/ai/AiTerminal').then(mod =
 })
 
 const NAVIGATION_TIMEOUT = 5 * 60 * 1000 // 5 minutes
+const MAX_RETRY_ATTEMPTS = Infinity
+const RETRY_DELAY_MS = 5000
 
 function AiPageContent() {
   const pathname = usePathname()
@@ -25,21 +28,31 @@ function AiPageContent() {
   const [settings, setSettings] = useState<any>(null)
   const [showReconnectionBanner, setShowReconnectionBanner] = useState(false)
   const [reconnectionStatus, setReconnectionStatus] = useState<'success' | 'error' | null>(null)
+  const [retryAttempt, setRetryAttempt] = useState(0)
+  const [retryError, setRetryError] = useState<string | null>(null)
+  const [showRetryBanner, setShowRetryBanner] = useState(false)
   const navigationStartTime = React.useRef<number | null>(null)
   const isConnecting = React.useRef(false)
   const prevPathnameRef = useRef<string | null>(null)
   const autoConnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const manualDisconnectRef = useRef(false) // Track manual disconnects
+  // Ref to track latest connection state to avoid stale closures in async loops
+  const connectionStateRef = useRef<any>(null)
 
   const {
     state: connectionState,
     connect,
     disconnect,
+    resetManualDisconnect,
     preserveConnection,
     restoreConnection,
     pauseConnection,
     resumeConnection,
   } = useAiConnection()
+
+  // Keep connectionStateRef updated
+  useEffect(() => {
+    connectionStateRef.current = connectionState
+  }, [connectionState])
 
   // Initialize settings on mount with error handling
   useEffect(() => {
@@ -48,9 +61,9 @@ function AiPageContent() {
       if (savedSettings) {
         setSettings(savedSettings)
 
-        // Don't auto-connect during manual disconnect
-        if (manualDisconnectRef.current) {
-          console.log('AiPage: Skipping auto-connect - manual disconnect in progress')
+        // Don't auto-connect if manually disconnected
+        if (connectionState.connectionStatus === 'manuallyDisconnected') {
+          console.log('AiPage: Skipping auto-connect - manually disconnected')
           return
         }
 
@@ -75,9 +88,9 @@ function AiPageContent() {
           console.log('AiPage: Scheduling auto-connect')
           // Small delay to let other initialization complete
           autoConnectTimeoutRef.current = setTimeout(() => {
-            // Double-check manual disconnect flag
-            if (manualDisconnectRef.current) {
-              console.log('AiPage: Auto-connect timeout fired but manual disconnect flag is set, aborting')
+            // Double-check manual disconnect status
+            if (connectionState.connectionStatus === 'manuallyDisconnected') {
+              console.log('AiPage: Auto-connect timeout fired but status is manuallyDisconnected, aborting')
               return
             }
 
@@ -107,7 +120,6 @@ function AiPageContent() {
     }
   }, [pathname, connectionState.isConnected, connectionState.isConnecting, connectionState.connectionStatus])
 
-  // Auto-connect with saved settings
   const handleAutoConnect = async (savedSettings: any) => {
     console.log('AiPage: handleAutoConnect called', {
       isConnectingRef: isConnecting.current,
@@ -115,43 +127,116 @@ function AiPageContent() {
       status: connectionState.connectionStatus
     })
 
-    // Extra guard - don't auto-connect if status is disconnected
-    if (connectionState.connectionStatus === 'disconnected') {
-      console.log('AiPage: Skipping auto-connect - status is disconnected')
+    // Extra guard - don't auto-connect if status is disconnected or manually disconnected
+    if (connectionState.connectionStatus === 'disconnected' || connectionState.connectionStatus === 'manuallyDisconnected') {
+      console.log('AiPage: Skipping auto-connect - status is disconnected/manuallyDisconnected')
       return
     }
 
     if (!isConnecting.current && !connectionState.isConnected) {
       isConnecting.current = true
+
+      // Reset retry state when starting fresh auto-connect sequence
+      setRetryAttempt(1)
+      setRetryError(null)
+      setShowRetryBanner(true)
+
       try {
-        await connect(savedSettings)
+        // Retry loop
+        for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+          try {
+            console.log(`AiPage: Auto-connect attempt ${attempt}`)
+            setRetryAttempt(attempt)
 
-        // Check for restoration after navigation
-        const navigationTimestamp = retrieveNavigationTimestamp()
-        if (navigationTimestamp && navigationTimestamp.startTime) {
-          const duration = Date.now() - navigationTimestamp.startTime
+            // If this is not the first attempt, wait before retrying
+            if (attempt > 1) {
+              await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS))
+            }
 
-          if (duration > NAVIGATION_TIMEOUT) {
-            // Long navigation - attempt restoration
-            setShowReconnectionBanner(true)
-            setReconnectionStatus(null)
+            // Check if we should still be connecting (user might have cancelled/disconnected)
+            if (connectionStateRef.current?.connectionStatus === 'manuallyDisconnected') {
+              console.log('AiPage: Auto-connect aborted - manually disconnected')
+              break
+            }
 
-            const restored = await restoreConnection()
-            setReconnectionStatus(restored ? 'success' : 'error')
+            await connect(savedSettings)
 
-            setTimeout(() => {
-              setShowReconnectionBanner(false)
-              setReconnectionStatus(null)
-            }, restored ? 3000 : 5000)
-          } else {
-            // Short navigation - just resume
-            resumeConnection()
+            // Wait for SSH connection (sessionId) or error
+            // Poll every 500ms for up to 15 seconds
+            let sshConnected = false
+            let sshError = null
+
+            for (let i = 0; i < 30; i++) { // 30 * 500ms = 15s
+              await new Promise(resolve => setTimeout(resolve, 500))
+
+              // Check if manually disconnected during wait
+              if (connectionStateRef.current?.connectionStatus === 'manuallyDisconnected') {
+                console.log('AiPage: Auto-connect aborted - manually disconnected')
+                break
+              }
+
+              // Check for SSH success (sessionId present)
+              if (connectionStateRef.current?.sessionId) {
+                sshConnected = true
+                break
+              }
+
+              // Check for error
+              if (connectionStateRef.current?.error) {
+                sshError = connectionStateRef.current.error
+                break
+              }
+            }
+
+            if (sshConnected) {
+              console.log('AiPage: Auto-connect successful (SSH established)')
+              setShowRetryBanner(false)
+              break
+            } else if (sshError) {
+              throw new Error(sshError)
+            } else if (connectionStateRef.current?.connectionStatus === 'manuallyDisconnected') {
+              break // Already handled above, just break the retry loop
+            } else {
+              throw new Error('SSH connection timeout')
+            }
+          } catch (err) {
+            console.error(`AiPage: Auto-connect attempt ${attempt} failed:`, err)
+            if (attempt === MAX_RETRY_ATTEMPTS) {
+              const errorMessage = err instanceof Error ? err.message : 'Connection failed'
+              setRetryError(errorMessage)
+              // Don't hide banner, show error state
+            }
           }
+        }
 
-          clearNavigationTimestamp()
+        // Check for restoration after navigation (only if connected)
+        if (connectionState.isConnected) {
+          const navigationTimestamp = retrieveNavigationTimestamp()
+          if (navigationTimestamp && navigationTimestamp.startTime) {
+            const duration = Date.now() - navigationTimestamp.startTime
+
+            if (duration > NAVIGATION_TIMEOUT) {
+              // Long navigation - attempt restoration
+              setShowReconnectionBanner(true)
+              setReconnectionStatus(null)
+
+              const restored = await restoreConnection()
+              setReconnectionStatus(restored ? 'success' : 'error')
+
+              setTimeout(() => {
+                setShowReconnectionBanner(false)
+                setReconnectionStatus(null)
+              }, restored ? 3000 : 5000)
+            } else {
+              // Short navigation - just resume
+              resumeConnection()
+            }
+
+            clearNavigationTimestamp()
+          }
         }
       } catch (error) {
-        console.error('Auto-connect failed:', error)
+        console.error('Auto-connect sequence failed:', error)
       } finally {
         isConnecting.current = false
       }
@@ -217,8 +302,13 @@ function AiPageContent() {
   }, [connectionState.socket, pathname, connectionState.connectionStatus, resumeConnection])
 
   const handleConnect = async () => {
-    // Clear manual disconnect flag when user manually connects
-    manualDisconnectRef.current = false
+    // Reset manual disconnect status
+    resetManualDisconnect()
+
+    // Reset retry state
+    setRetryAttempt(0)
+    setRetryError(null)
+    setShowRetryBanner(false)
 
     if (settings) {
       try {
@@ -232,10 +322,7 @@ function AiPageContent() {
   }
 
   const handleDisconnect = async () => {
-    console.log('AiPage: handleDisconnect called, setting manual disconnect flag')
-
-    // Set manual disconnect flag to prevent auto-reconnect
-    manualDisconnectRef.current = true
+    console.log('AiPage: handleDisconnect called')
 
     // Clear any pending auto-connect timeout
     if (autoConnectTimeoutRef.current) {
@@ -244,17 +331,14 @@ function AiPageContent() {
       autoConnectTimeoutRef.current = null
     }
 
+    // Cancel any active retry
+    setShowRetryBanner(false)
+    setRetryAttempt(0)
+
     try {
       await disconnect()
-
-      // Keep the flag set for a moment to ensure effect doesn't re-trigger
-      setTimeout(() => {
-        console.log('AiPage: Clearing manual disconnect flag after delay')
-        manualDisconnectRef.current = false
-      }, 500)
     } catch (error) {
       console.error('Disconnect failed:', error)
-      manualDisconnectRef.current = false
     }
   }
 
@@ -391,6 +475,16 @@ function AiPageContent() {
           status={reconnectionStatus}
           onDismiss={() => setShowReconnectionBanner(false)}
           onRetry={handleManualReconnect}
+        />
+      )}
+
+      {showRetryBanner && (
+        <AiRetryBanner
+          attempt={retryAttempt}
+          maxAttempts={MAX_RETRY_ATTEMPTS}
+          error={retryError}
+          onDismiss={() => setShowRetryBanner(false)}
+          onRetry={handleConnect}
         />
       )}
     </div>

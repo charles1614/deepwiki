@@ -18,7 +18,7 @@ export interface AiConnectionState {
   socket: Socket | null
   isConnected: boolean
   isConnecting: boolean
-  connectionStatus: 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error' | 'preserved' | 'restoring'
+  connectionStatus: 'idle' | 'connecting' | 'connected' | 'disconnected' | 'manuallyDisconnected' | 'error' | 'preserved' | 'restoring'
   lastConnected: number | null
   sessionId: string | null
   navigationStartTime: number | null
@@ -103,6 +103,7 @@ const AiConnectionContext = createContext<{
   dispatch: React.Dispatch<AiConnectionAction>
   connect: (settings?: { host: string; port: number; username: string; password: string }) => Promise<void>
   disconnect: () => Promise<void>
+  resetManualDisconnect: () => void
   preserveConnection: () => void
   restoreConnection: () => Promise<boolean>
   pauseConnection: () => void
@@ -112,6 +113,13 @@ const AiConnectionContext = createContext<{
 export function AiConnectionProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(aiConnectionReducer, initialState)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const stateRef = useRef(state)
+  const isConnectingRef = useRef(false)
+
+  // Keep stateRef updated
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
 
   const connect = async (settings?: {
     host: string
@@ -121,11 +129,19 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
     anthropicBaseUrl?: string
     anthropicAuthToken?: string
   }) => {
+    // Prevent concurrent connection attempts
+    if (isConnectingRef.current) {
+      console.log('AiConnectionContext: Connection attempt skipped - already connecting')
+      return
+    }
+
     try {
+      isConnectingRef.current = true
+
       // Clean up any existing socket first
-      if (state.socket) {
-        state.socket.removeAllListeners()
-        state.socket.disconnect()
+      if (stateRef.current.socket) {
+        stateRef.current.socket.removeAllListeners()
+        stateRef.current.socket.disconnect()
       }
 
       dispatch({ type: 'SET_CONNECTING', payload: true })
@@ -140,7 +156,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
         timeout: 10000,
         reconnection: false, // We'll handle reconnection manually
-        autoConnect: true,
+        autoConnect: false, // Important: set to false to allow adding listeners before connecting
       })
 
       dispatch({ type: 'SET_SOCKET', payload: socket })
@@ -152,6 +168,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
           dispatch({ type: 'SET_ERROR', payload: 'Connection timeout: Unable to reach server' })
           // Set status to 'error' - reducer will automatically set isConnecting to false
           dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+          isConnectingRef.current = false
         }
       }, 10000)
 
@@ -171,6 +188,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         dispatch({ type: 'SET_ERROR', payload: null }) // Clear any previous errors
         // Status is already set to 'connected' in the socket connect handler; no UI change needed here
         console.log('SSH connection fully established')
+        isConnectingRef.current = false
       })
 
       socket.on('ssh-error', (error: string) => {
@@ -184,6 +202,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         dispatch({ type: 'SET_ERROR', payload: error })
         // Set status to 'error' - reducer will automatically set isConnecting to false
         dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+        isConnectingRef.current = false
       })
 
       socket.on('ssh-close', () => {
@@ -230,6 +249,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
             dispatch({ type: 'SET_ERROR', payload: 'SSH connection timeout: Server did not respond' })
             // Keep status as 'connected' (socket is still up), but surface error text in UI
             sshTimeout = null
+            isConnectingRef.current = false
           }, 30000) // 30 seconds for SSH connection
         } else {
           console.log('No SSH settings, leaving connection in connected state')
@@ -243,6 +263,12 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         // Consider the connection active as soon as Socket.IO is connected
         dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
         console.log('State updated to connected (socket active); SSH tunnel will finish in background if configured')
+
+        // We are connected to socket, but still establishing SSH. 
+        // We keep isConnectingRef true until SSH is ready or fails, OR we can clear it here if we consider "socket connected" as done.
+        // However, since we block new connections based on this, we should probably clear it here to allow retries if needed?
+        // No, if we clear it here, a second connect() call might kill this socket while SSH is setting up.
+        // So we should clear it when SSH is ready or failed.
 
         emitSshConnect()
       })
@@ -263,23 +289,25 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         // Set status to 'error' - reducer will automatically set isConnecting to false
         dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
         socket.disconnect()
+        isConnectingRef.current = false
       })
 
       socket.on('disconnect', (reason: string) => {
         clearTimeout(connectionTimeout)
-        console.log('Socket.io disconnected:', reason, 'sessionId:', state.sessionId)
+        console.log('Socket.io disconnected:', reason, 'sessionId:', stateRef.current.sessionId)
         dispatch({ type: 'SET_CONNECTED', payload: false })
 
         // Check if this was a manual/expected disconnect
-        // 'client namespace disconnect' = manual disconnect via socket.disconnect()
+        // 'io client disconnect' = manual disconnect via socket.disconnect()
+        // 'client namespace disconnect' = manual disconnect via socket.disconnect() (older versions/namespaces)
         // 'io server disconnect' = server initiated disconnect
-        // 'transport close' = connection closed unexpectedly
-        const isManualDisconnect = reason === 'client namespace disconnect' ||
+        const isManualDisconnect = reason === 'io client disconnect' ||
+          reason === 'client namespace disconnect' ||
           reason === 'io server disconnect' ||
-          reason === 'transport close'
+          stateRef.current.connectionStatus === 'manuallyDisconnected'
 
         // Check if SSH was ever successfully established
-        const hadSSHConnection = state.sessionId !== null
+        const hadSSHConnection = stateRef.current.sessionId !== null
 
         if (isManualDisconnect) {
           // Set status to 'disconnected' - reducer will automatically set isConnecting to false
@@ -290,11 +318,11 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
           console.log('Disconnect before SSH established, setting status to error')
           dispatch({ type: 'SET_ERROR', payload: 'SSH connection failed' })
           dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
-        } else if (state.connectionStatus !== 'disconnected' && state.connectionStatus !== 'error' && state.reconnectAttempts < 5) {
+        } else if (stateRef.current.connectionStatus !== 'disconnected' && stateRef.current.connectionStatus !== 'error' && stateRef.current.reconnectAttempts < 5) {
           // Only reconnect for unexpected disconnects on established SSH connections
           console.log('Unexpected disconnect on established SSH, attempting reconnect')
           dispatch({ type: 'INCREMENT_RECONNECT_ATTEMPTS' })
-          const timeout = Math.min(1000 * Math.pow(2, state.reconnectAttempts), 16000)
+          const timeout = Math.min(1000 * Math.pow(2, stateRef.current.reconnectAttempts), 16000)
 
           reconnectTimeoutRef.current = setTimeout(() => {
             connect(settings)
@@ -306,11 +334,15 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         }
       })
 
+      // Connect the socket manually after all listeners are attached
+      socket.connect()
+
     } catch (error) {
       console.error('Error in connect function:', error)
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Connection failed' })
       // Set status to 'error' - reducer will automatically set isConnecting to false
       dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' })
+      isConnectingRef.current = false
     }
   }
 
@@ -324,9 +356,9 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
     }
 
     // Update state FIRST to prevent race condition in disconnect handler
-    console.log('AiConnectionContext: Setting state to disconnected')
+    console.log('AiConnectionContext: Setting state to manuallyDisconnected')
     dispatch({ type: 'SET_CONNECTED', payload: false })
-    dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
+    dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'manuallyDisconnected' })
     dispatch({ type: 'SET_SESSION_ID', payload: null })
     dispatch({ type: 'SET_TERMINAL_STATE', payload: null })
     dispatch({ type: 'SET_FILE_BROWSER_STATE', payload: null })
@@ -336,9 +368,17 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
       state.socket.emit('ssh-disconnect')
       state.socket.disconnect()
       dispatch({ type: 'SET_SOCKET', payload: null })
+      isConnectingRef.current = false
     }
 
     console.log('AiConnectionContext: disconnect() completed')
+  }
+
+  const resetManualDisconnect = () => {
+    if (state.connectionStatus === 'manuallyDisconnected') {
+      console.log('AiConnectionContext: Resetting manual disconnect status to idle')
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'idle' })
+    }
   }
 
   const preserveConnection = () => {
@@ -450,6 +490,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
     dispatch,
     connect,
     disconnect,
+    resetManualDisconnect,
     preserveConnection,
     restoreConnection,
     pauseConnection,
