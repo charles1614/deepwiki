@@ -222,8 +222,7 @@ export function Navigation({ className = '' }: NavigationProps) {
   const tabs = [
     { id: 'home', label: 'Dashboard', icon: HomeIcon, href: '/dashboard' },
     { id: 'wiki', label: 'Wiki', icon: BookOpenIcon, href: '/wiki' },
-    { id: 'ai', label: 'AI', icon: CpuChipIcon, href: '/ai' },
-    { id: 'search', label: 'Search', icon: MagnifyingGlassIcon, href: '/search' }
+    { id: 'ai', label: 'AI', icon: CpuChipIcon, href: '/ai' }
   ]
 
 
@@ -234,7 +233,7 @@ export function Navigation({ className = '' }: NavigationProps) {
       aria-label="Main navigation"
       data-testid="navigation-component"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:pl-8 lg:pr-8">
         {/* Mobile menu button */}
         <div className="flex items-center justify-between h-16 md:hidden">
           <div className="flex items-center">
@@ -385,7 +384,7 @@ export function Navigation({ className = '' }: NavigationProps) {
 
           <div className="flex items-center">
             {/* Search input for desktop */}
-            <div className="">
+            <div className="relative">
               <form onSubmit={handleSearchSubmit} className="relative">
                 <input
                   ref={searchInputRef}
@@ -399,6 +398,25 @@ export function Navigation({ className = '' }: NavigationProps) {
                 />
                 <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </form>
+
+              {/* Search results dropdown for desktop */}
+              {searchResults.length > 0 && searchQuery.trim() && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+                  <div className="py-1">
+                    {searchResults.map((wiki) => (
+                      <button
+                        key={wiki.id}
+                        onClick={() => handleWikiClick(wiki)}
+                        className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors"
+                        data-testid={`search-result-${wiki.slug}`}
+                      >
+                        <div className="font-medium text-gray-900">{wiki.title}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">{wiki.slug}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* User menu dropdown */}
