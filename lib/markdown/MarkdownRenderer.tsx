@@ -931,7 +931,7 @@ export function MarkdownRenderer({
       <div
         ref={containerRef}
         data-testid="markdown-content"
-        className={`prose prose-gray max-w-none markdown-content ${className}`}
+        className={`prose prose-sm prose-gray max-w-none markdown-content ${className}`}
       >
         {!content || content.trim() === '' ? (
           <div>

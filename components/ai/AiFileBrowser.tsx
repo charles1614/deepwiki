@@ -186,7 +186,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
       className="h-full flex flex-col bg-white"
       data-testid="ai-file-browser"
     >
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+      <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between bg-gray-50">
         <div className="flex items-center gap-2 overflow-hidden">
           {(currentPath !== '.' || selectedFile) && (
             <button
@@ -194,10 +194,10 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
               className="p-1 hover:bg-gray-200 rounded-full transition-colors"
               title="Go back"
             >
-              <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
+              <ArrowLeftIcon className="h-4 w-4 text-gray-600" />
             </button>
           )}
-          <h3 className="font-semibold text-gray-700 truncate">
+          <h3 className="text-sm font-semibold text-gray-700 truncate">
             {selectedFile ? selectedFile : currentPath}
           </h3>
         </div>
@@ -208,7 +208,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
             title="Refresh"
             disabled={loading}
           >
-            <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+            <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -221,7 +221,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
         )}
 
         {selectedFile ? (
-          <div className="prose max-w-none">
+          <div className="prose prose-sm max-w-none">
             <MarkdownRenderer content={fileContent} />
           </div>
         ) : (

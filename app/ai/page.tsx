@@ -350,9 +350,9 @@ function AiPageContent() {
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
-      <div className="flex-none px-6 py-4 border-b border-gray-200 bg-white flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold text-gray-900">AI Agent</h1>
+      <div className="flex-none px-4 py-2 border-b border-gray-200 bg-white flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-semibold text-gray-900">AI Agent</h1>
           {connectionState.connectionStatus !== 'idle' && (
             <div className="text-xs text-gray-500">
               {connectionState.connectionStatus === 'connected' && 'Active'}
@@ -372,7 +372,7 @@ function AiPageContent() {
             disabled={
               connectionState.connectionStatus === 'restoring'
             }
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isActiveConnection || connectionState.isConnecting || connectionState.connectionStatus === 'connecting'
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isActiveConnection || connectionState.isConnecting || connectionState.connectionStatus === 'connecting'
               ? 'bg-red-100 text-red-700 hover:bg-red-200'
               : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
@@ -388,7 +388,7 @@ function AiPageContent() {
           {connectionState.connectionStatus === 'preserved' && (
             <button
               onClick={handleManualReconnect}
-              className="px-3 py-2 rounded-lg text-sm font-medium bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition-colors"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition-colors"
               data-testid="ai-manual-reconnect-button"
             >
               Restore
@@ -397,10 +397,10 @@ function AiPageContent() {
 
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             title="SSH Settings"
           >
-            <Cog6ToothIcon className="h-6 w-6" />
+            <Cog6ToothIcon className="h-5 w-5" />
           </button>
         </div>
       </div>
