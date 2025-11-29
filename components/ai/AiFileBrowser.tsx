@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { FolderIcon, DocumentTextIcon, ArrowLeftIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { FolderIcon, DocumentTextIcon, ArrowLeftIcon, ArrowPathIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline'
 import { MarkdownRenderer } from '@/lib/markdown/MarkdownRenderer'
 import { useAiConnection } from '@/lib/ai/AiConnectionContext'
 import { preserveFileBrowserState, retrieveFileBrowserState, clearFileBrowserState } from '@/lib/ai/aiStorage'
@@ -25,6 +25,8 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [scrollPosition, setScrollPosition] = useState(0)
+  const [publishing, setPublishing] = useState(false)
+  const [publishStatus, setPublishStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
   const { state: connectionState } = useAiConnection()
 
   // Preserve file browser state when connection is preserved
@@ -181,6 +183,170 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
       loadDirectory(currentPath)
     }
   }
+
+  const isPublishable = () => {
+    // Check if current path matches .../docs/xxx pattern
+    // Filter out '.' AND empty strings (from leading/trailing slashes)
+    const pathParts = currentPath.split('/').filter(p => p && p !== '.')
+    const docsIndex = pathParts.lastIndexOf('docs')
+
+    console.log('isPublishable check:', {
+      currentPath,
+      pathParts,
+      docsIndex,
+      expectedIndex: pathParts.length - 2,
+      hasIndexMd: files.some(f => f.filename === 'index.md'),
+      filesCount: files.length
+    })
+
+    // Must find 'docs' and it must be the second to last part (parent of current dir)
+    if (docsIndex === -1 || docsIndex !== pathParts.length - 2) {
+      return false
+    }
+
+    // Check if index.md exists in current files
+    return files.some(f => f.filename === 'index.md')
+  }
+
+  const handlePublish = async () => {
+    if (!socket) return
+
+    const pathParts = currentPath.split('/').filter(p => p && p !== '.')
+    const docsIndex = pathParts.lastIndexOf('docs')
+    const slug = pathParts[docsIndex + 1]
+
+    if (!slug) return
+
+    // Verify wiki existence (optional, but good for UX)
+    try {
+      const res = await fetch(`/api/wiki/${slug}`)
+      const data = await res.json()
+
+      let confirmMessage = `Are you sure you want to publish "${slug}"?`
+      if (data.success) {
+        confirmMessage = `Wiki "${slug}" already exists. Do you want to update it?`
+      }
+
+      if (!window.confirm(confirmMessage)) return
+
+    } catch (error) {
+      console.error('Error checking wiki:', error)
+      // Continue anyway, maybe it's a new wiki
+      if (!window.confirm(`Are you sure you want to publish "${slug}"?`)) return
+    }
+
+    setPublishing(true)
+    setPublishStatus(null)
+
+    try {
+      // 1. Filter markdown files
+      const mdFiles = files.filter(f => !f.isDirectory && f.filename.endsWith('.md'))
+
+      if (mdFiles.length === 0) {
+        throw new Error('No markdown files found to publish')
+      }
+
+      // 2. Read content of all files
+      const fileContents: { filename: string, content: string }[] = []
+
+      // We need to promisify the socket read
+      const readFile = (filename: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const path = `${currentPath}/${filename}`
+
+          // Create a one-time listener for this specific read
+          const handleRead = ({ path: readPath, content }: { path: string, content: string }) => {
+            if (readPath === path) {
+              socket.off('sftp-read-result', handleRead)
+              socket.off('sftp-error', handleError)
+              resolve(content)
+            }
+          }
+
+          const handleError = (err: string) => {
+            socket.off('sftp-read-result', handleRead)
+            socket.off('sftp-error', handleError)
+            reject(new Error(err))
+          }
+
+          // Note: This might conflict with the main useEffect listeners if not careful.
+          // However, since we are adding specific listeners *before* emitting, 
+          // and the main listener just updates state, it should be fine.
+          // Ideally we should refactor the main listener to ignore these specific reads if possible,
+          // or just accept that state might flicker (which is fine as we are in publishing state).
+          // Actually, the main listener updates `fileContent` state. We should probably temporarily detach it or ignore it.
+          // For now, let's just use a separate event or rely on the fact that we are "publishing".
+
+          // Better approach: The main listener is always active. We can't easily "intercept" the event 
+          // without removing the main listener.
+          // But we can just use the main listener!
+          // We can't easily wait for it though without a custom promise wrapper that hooks into the global event stream.
+          // Given the constraints and the existing code structure, let's try to use a "request-response" pattern 
+          // by adding a unique ID to requests if the backend supported it, but it doesn't seem to.
+
+          // Alternative: We can just emit 'sftp-read' and wait for 'sftp-read-result' that matches our path.
+          // The main listener will ALSO fire and update `fileContent`, which might be annoying but harmless 
+          // if we are showing a loading overlay.
+
+          const onRead = (data: { path: string, content: string }) => {
+            if (data.path === path) {
+              cleanup()
+              resolve(data.content)
+            }
+          }
+
+          const onError = (err: any) => {
+            cleanup()
+            reject(err)
+          }
+
+          const cleanup = () => {
+            socket.off('sftp-read-result', onRead)
+            socket.off('sftp-error', onError)
+          }
+
+          socket.on('sftp-read-result', onRead)
+          socket.on('sftp-error', onError)
+
+          socket.emit('sftp-read', path)
+        })
+      }
+
+      for (const file of mdFiles) {
+        const content = await readFile(file.filename)
+        fileContents.push({ filename: file.filename, content })
+      }
+
+      // 3. Send to API
+      const response = await fetch('/api/wiki/publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          slug,
+          files: fileContents
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to publish wiki')
+      }
+
+      setPublishStatus({ type: 'success', message: 'Wiki published successfully!' })
+
+      // Clear status after 3 seconds
+      setTimeout(() => setPublishStatus(null), 3000)
+
+    } catch (error) {
+      console.error('Publish error:', error)
+      setPublishStatus({ type: 'error', message: error instanceof Error ? error.message : 'Failed to publish' })
+    } finally {
+      setPublishing(false)
+    }
+  }
   return (
     <div
       className="h-full flex flex-col bg-white"
@@ -206,10 +372,34 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
             onClick={handleRefresh}
             className="p-1 hover:bg-gray-200 rounded-full transition-colors text-gray-500 hover:text-gray-700"
             title="Refresh"
-            disabled={loading}
+            disabled={loading || publishing}
           >
             <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
+
+          {isPublishable() && (
+            <button
+              onClick={handlePublish}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${publishing
+                ? 'bg-blue-100 text-blue-700 cursor-wait'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              title="Publish to Wiki"
+              disabled={publishing}
+            >
+              {publishing ? (
+                <>
+                  <ArrowPathIcon className="h-3 w-3 animate-spin" />
+                  <span>Publishing...</span>
+                </>
+              ) : (
+                <>
+                  <CloudArrowUpIcon className="h-3 w-3" />
+                  <span>Publish</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -217,6 +407,13 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
         {error && (
           <div className="p-4 bg-red-50 text-red-700 rounded-md mb-4">
             Error: {error}
+          </div>
+        )}
+
+        {publishStatus && (
+          <div className={`p-4 rounded-md mb-4 ${publishStatus.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+            }`}>
+            {publishStatus.message}
           </div>
         )}
 
