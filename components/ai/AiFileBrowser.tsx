@@ -56,6 +56,9 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
     if (!socket) return
 
     socket.on('sftp-list-result', ({ path, list }: { path: string, list: FileItem[] }) => {
+      console.log('AiFileBrowser: sftp-list-result', { path, listLength: list.length })
+      // Use the path from the server response to ensure currentPath is in sync with the file list
+      setCurrentPath(path)
       setFiles(list.sort((a, b) => {
         if (a.isDirectory && !b.isDirectory) return -1
         if (!a.isDirectory && b.isDirectory) return 1
@@ -70,6 +73,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
     })
 
     socket.on('sftp-error', (err: string) => {
+      console.error('AiFileBrowser: sftp-error', err)
       setError(err)
       setLoading(false)
     })
@@ -135,6 +139,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
   }, [socket, connectionState.connectionStatus])
 
   const loadDirectory = (path: string) => {
+    console.log('AiFileBrowser: loadDirectory', path)
     setLoading(true)
     setError(null)
     socket.emit('sftp-list', path)

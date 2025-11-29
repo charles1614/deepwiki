@@ -162,8 +162,10 @@ app.prepare().then(() => {
             socket.removeAllListeners('sftp-read')
 
             socket.on('sftp-list', (path) => {
+              console.log('SFTP list request:', path)
               sftp.readdir(path, (err, list) => {
                 if (err) {
+                  console.error('SFTP list error:', err)
                   socket.emit('sftp-error', err.message)
                   return
                 }
