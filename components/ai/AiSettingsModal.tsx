@@ -11,51 +11,72 @@ interface AiSettingsModalProps {
 }
 
 export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProps) {
-  const [host, setHost] = useState('')
-  const [port, setPort] = useState('22')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [anthropicBaseUrl, setAnthropicBaseUrl] = useState('')
-  const [anthropicAuthToken, setAnthropicAuthToken] = useState('')
+  const [formData, setFormData] = useState({
+    host: '',
+    port: '22',
+    username: '',
+    password: '',
+    anthropicBaseUrl: '',
+    anthropicAuthToken: ''
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
-      const savedSettings = retrieveConnectionSettings()
-      if (savedSettings) {
-        setHost(savedSettings.host || '')
-        setPort(String(savedSettings.port || '22'))
-        setUsername(savedSettings.username || '')
-        setPassword(savedSettings.password || '')
-        setAnthropicBaseUrl(savedSettings.anthropicBaseUrl || '')
-        setAnthropicAuthToken(savedSettings.anthropicAuthToken || '')
-      } else {
-        setHost('')
-        setPort('22')
-        setUsername('')
-        setPassword('')
-        setAnthropicBaseUrl('')
-        setAnthropicAuthToken('')
-      }
+      loadSettings()
     }
   }, [isOpen])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log('AiSettingsModal: Form submitted', { host, port, username, password: '***' })
-    const settings = {
-      host,
-      port: Number(port),
-      username,
-      password,
-      anthropicBaseUrl,
-      anthropicAuthToken
+  const loadSettings = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/ai/ssh-settings')
+      if (res.ok) {
+        const data = await res.json()
+        if (data) {
+          setFormData({
+            host: data.host,
+            port: String(data.port),
+            username: data.username,
+            password: '', // Don't show password
+            anthropicBaseUrl: data.anthropicBaseUrl || '',
+            anthropicAuthToken: '' // Don't show token
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load settings:', err)
+    } finally {
+      setIsLoading(false)
     }
-    console.log('AiSettingsModal: Saving settings', { ...settings, password: '***', anthropicAuthToken: '***' })
-    preserveConnectionSettings(settings)
-    console.log('AiSettingsModal: Calling onSave callback')
-    onSave(settings)
-    console.log('AiSettingsModal: Closing modal')
-    onClose()
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      const res = await fetch('/api/ai/ssh-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      if (!res.ok) {
+        throw new Error(await res.text())
+      }
+
+      const { id } = await res.json()
+      console.log('AiSettingsModal: Settings saved, calling onSave')
+      onSave({ ...formData, connectionId: id })
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save settings')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (!isOpen) return null
@@ -66,98 +87,117 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={onClose}></div>
         </div>
-
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">SSH Connection Settings</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">SSH Connection Settings</h2>
               <button
                 onClick={onClose}
-                className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
+                className="text-gray-400 hover:text-gray-600"
+                aria-label="Close"
               >
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
 
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Host</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Host</label>
                 <input
                   type="text"
-                  value={host}
-                  onChange={(e) => setHost(e.target.value)}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="localhost"
+                  value={formData.host}
+                  onChange={(e) => setFormData({ ...formData, host: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., 192.168.1.100"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Port</label>
-                <input
-                  type="number"
-                  value={port}
-                  onChange={(e) => setPort(e.target.value)}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="22"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Port</label>
+                  <input
+                    type="number"
+                    value={formData.port}
+                    onChange={(e) => setFormData({ ...formData, port: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="22"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="root"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Username</label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="root"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                 <input
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="••••••••"
-                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder={formData.password ? '••••••••' : 'Leave empty to keep unchanged'}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Anthropic Base URL (Optional)</label>
-                <input
-                  type="text"
-                  value={anthropicBaseUrl}
-                  onChange={(e) => setAnthropicBaseUrl(e.target.value)}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="https://api.anthropic.com"
-                />
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Anthropic Integration (Optional)</h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Base URL</label>
+                    <input
+                      type="text"
+                      value={formData.anthropicBaseUrl}
+                      onChange={(e) => setFormData({ ...formData, anthropicBaseUrl: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="https://api.anthropic.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Auth Token</label>
+                    <input
+                      type="password"
+                      value={formData.anthropicAuthToken}
+                      onChange={(e) => setFormData({ ...formData, anthropicAuthToken: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={formData.anthropicAuthToken ? '••••••••' : 'Leave empty to keep unchanged'}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Anthropic Auth Token (Optional)</label>
-                <input
-                  type="password"
-                  value={anthropicAuthToken}
-                  onChange={(e) => setAnthropicAuthToken(e.target.value)}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="sk-..."
-                />
-              </div>
-
-              <div className="mt-5 sm:mt-6">
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
-                  className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50"
+                  disabled={isLoading}
                 >
-                  Save & Connect
+                  {isLoading ? 'Saving...' : 'Save & Connect'}
                 </button>
               </div>
             </form>

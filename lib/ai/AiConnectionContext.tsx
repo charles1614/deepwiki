@@ -121,11 +121,13 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
     stateRef.current = state
   }, [state])
 
+
   const connect = async (settings?: {
-    host: string
-    port: number
-    username: string
-    password: string
+    connectionId?: string
+    host?: string
+    port?: number
+    username?: string
+    password?: string
     anthropicBaseUrl?: string
     anthropicAuthToken?: string
   }) => {
@@ -226,11 +228,12 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
           return
         }
 
+
         if (settings) {
           sshConnectEmitted = true
           console.log('Emitting ssh-connect with settings:', {
             ...settings,
-            password: '***',
+            password: settings.password ? '***' : undefined,
             anthropicAuthToken: settings.anthropicAuthToken ? '***' : undefined
           })
 

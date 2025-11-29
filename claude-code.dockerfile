@@ -1,17 +1,17 @@
-FROM alpine:latest
+FROM debian:stable-slim
 
 # Install minimal dependencies
-# bash: required for install.sh
+# bash: default in debian, but good to ensure
 # curl: required for downloading
 # git: often required by development tools
-# openssh: for SSH access
-RUN apk add --no-cache \
+# openssh-server: for SSH access (note: openssh-server, not openssh)
+RUN apt-get update && apt-get install -y --no-install-recommends \
   bash \
   curl \
   git \
-  openssh \
-  libstdc++ \
-  gcompat
+  openssh-server \
+  ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 # Configure SSH
 RUN mkdir -p /var/run/sshd && \
@@ -19,9 +19,7 @@ RUN mkdir -p /var/run/sshd && \
   echo 'root:$g7^pZxpgteixe' | chpasswd && \
   sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
   sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
-  echo 'AcceptEnv ANTHROPIC_*' >> /etc/ssh/sshd_config && \
-  sed -i 's|root:/bin/ash|root:/bin/bash|' /etc/passwd || true && \
-  sed -i 's|root:/bin/sh|root:/bin/bash|' /etc/passwd || true
+  echo 'AcceptEnv ANTHROPIC_*' >> /etc/ssh/sshd_config
 
 # Install Claude Code
 # The script installs to ~/.claude/bin
@@ -32,7 +30,9 @@ ENV PATH="/root/.local/bin:/root/.claude/bin:${PATH}"
 RUN echo 'export PATH="/root/.local/bin:/root/.claude/bin:$PATH"' >> /root/.bashrc && \
   echo 'export PROMPT_COMMAND='\''printf "\033]99;$(pwd)\007"'\''' >> /root/.bashrc && \
   echo 'if [ -f /root/.env ]; then set -a; source /root/.env; set +a; fi' >> /root/.bashrc && \
-  echo 'if [ -f ~/.bashrc ]; then . ~/.bashrc; fi' > /root/.bash_profile
+  # Debian uses .bashrc for interactive non-login shells, and .profile for login shells.
+  # Ensure .bashrc is sourced in .profile if it exists
+  echo 'if [ -f ~/.bashrc ]; then . ~/.bashrc; fi' >> /root/.profile
 
 # Expose SSH port
 EXPOSE 22

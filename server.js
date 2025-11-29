@@ -136,8 +136,84 @@ app.prepare().then(() => {
     let sftpClient = null
     let currentSessionId = null
 
-    socket.on('ssh-connect', (config) => {
-      console.log('Received ssh-connect request', { ...config, password: '***', anthropicAuthToken: '***' })
+
+    socket.on('ssh-connect', async (data) => {
+      console.log('Received ssh-connect request')
+
+      let config = null
+
+      // Handle both legacy (direct settings) and new (connectionId) modes
+      if (data.connectionId) {
+        console.log('Using stored credentials for connection:', data.connectionId)
+        try {
+          // We need to import prisma and decryption here
+          // Since server.js is a CommonJS file, we might need dynamic import or require
+          // For simplicity in this custom server setup, we'll assume we can require the built encryption lib
+          // But typescript files aren't built yet.
+          // A better approach for the custom server is to query the DB directly using pg or similar, 
+          // OR since we are in dev/prod, we can try to use the prisma client.
+
+          const { PrismaClient } = require('@prisma/client')
+          const prisma = new PrismaClient()
+
+          // We also need the decryption logic. 
+          // Since encryption.ts is TS, we can't require it directly in JS without compilation.
+          // We will duplicate the decryption logic here for the server.js file to avoid build complexity
+          // or we could compile encryption.ts. Duplication is safer for this specific file.
+          const crypto = require('crypto')
+          const ALGORITHM = 'aes-256-gcm'
+          const IV_LENGTH = 16
+          const SALT_LENGTH = 64
+          const TAG_LENGTH = 16
+
+          function getKey(salt) {
+            const secret = process.env.ENCRYPTION_KEY
+            if (!secret) throw new Error('ENCRYPTION_KEY not set')
+            return crypto.pbkdf2Sync(secret, salt, 100000, 32, 'sha512')
+          }
+
+          function decrypt(text) {
+            const buffer = Buffer.from(text, 'hex')
+            const salt = buffer.subarray(0, SALT_LENGTH)
+            const iv = buffer.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH)
+            const tag = buffer.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH)
+            const encrypted = buffer.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH)
+            const key = getKey(salt)
+            const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
+            decipher.setAuthTag(tag)
+            return decipher.update(encrypted) + decipher.final('utf8')
+          }
+
+          const connection = await prisma.sshConnection.findUnique({
+            where: { id: data.connectionId }
+          })
+
+          if (!connection) {
+            socket.emit('ssh-error', 'Connection setting not found')
+            return
+          }
+
+          config = {
+            host: connection.host,
+            port: connection.port,
+            username: connection.username,
+            password: decrypt(connection.encryptedPassword),
+            anthropicAuthToken: connection.encryptedAuthToken ? decrypt(connection.encryptedAuthToken) : undefined,
+            anthropicBaseUrl: connection.anthropicBaseUrl || process.env.ANTHROPIC_BASE_URL
+          }
+
+          await prisma.$disconnect()
+        } catch (error) {
+          console.error('Error fetching credentials:', error)
+          socket.emit('ssh-error', 'Failed to load credentials')
+          return
+        }
+      } else {
+        // Legacy/Direct mode
+        config = data
+      }
+
+      console.log('Connecting to:', config.host)
       try {
         if (sshClient) {
           sshClient.end()

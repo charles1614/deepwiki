@@ -48,70 +48,77 @@ function AiPageContent() {
     connectionStateRef.current = connectionState
   }, [connectionState])
 
+
   // Initialize settings on mount with error handling
   useEffect(() => {
-    try {
-      const savedSettings = retrieveConnectionSettings()
-      if (savedSettings) {
-        setSettings(savedSettings)
+    const init = async () => {
+      try {
+        const res = await fetch('/api/ai/ssh-settings')
+        if (res.ok) {
+          const savedSettings = await res.json()
+          if (savedSettings) {
+            setSettings({ ...savedSettings, connectionId: savedSettings.id })
 
-        // Don't auto-connect if manually disconnected
-        if (connectionState.connectionStatus === 'manuallyDisconnected') {
-          console.log('AiPage: Skipping auto-connect - manually disconnected')
-          return
-        }
-
-        // Check if there's a preserved connection first
-        const navigationTimestamp = retrieveNavigationTimestamp()
-        const hasPreservedConnection = connectionState.connectionStatus === 'preserved' ||
-          (navigationTimestamp && navigationTimestamp.startTime)
-
-        // Only auto-connect if:
-        // 1. On /ai page
-        // 2. Not connected
-        // 3. Not connecting
-        // 4. No preserved connection
-        // 5. Status is idle or error (NOT disconnected - respect manual disconnects)
-        const shouldAutoConnect = pathname === '/ai' &&
-          !connectionState.isConnected &&
-          !connectionState.isConnecting &&
-          !hasPreservedConnection &&
-          (connectionState.connectionStatus === 'idle' || connectionState.connectionStatus === 'error')
-
-        if (shouldAutoConnect) {
-          console.log('AiPage: Scheduling auto-connect')
-          // Small delay to let other initialization complete
-          autoConnectTimeoutRef.current = setTimeout(() => {
-            // Double-check manual disconnect status
+            // Don't auto-connect if manually disconnected
             if (connectionState.connectionStatus === 'manuallyDisconnected') {
-              console.log('AiPage: Auto-connect timeout fired but status is manuallyDisconnected, aborting')
+              console.log('AiPage: Skipping auto-connect - manually disconnected')
               return
             }
 
-            console.log('AiPage: Auto-connect timeout fired, attempting connection')
-            if (!isConnecting.current) {
-              handleAutoConnect(savedSettings)
-            }
-          }, 200)
-        } else {
-          console.log('AiPage: Skipping auto-connect', {
-            pathname,
-            isConnected: connectionState.isConnected,
-            status: connectionState.connectionStatus
-          })
-        }
+            // Check if there's a preserved connection first
+            const navigationTimestamp = retrieveNavigationTimestamp()
+            const hasPreservedConnection = connectionState.connectionStatus === 'preserved' ||
+              (navigationTimestamp && navigationTimestamp.startTime)
 
-        return () => {
-          if (autoConnectTimeoutRef.current) {
-            console.log('AiPage: Cleaning up auto-connect timeout')
-            clearTimeout(autoConnectTimeoutRef.current)
-            autoConnectTimeoutRef.current = null
+            // Only auto-connect if:
+            // 1. On /ai page
+            // 2. Not connected
+            // 3. Not connecting
+            // 4. No preserved connection
+            // 5. Status is idle or error (NOT disconnected - respect manual disconnects)
+            const shouldAutoConnect = pathname === '/ai' &&
+              !connectionState.isConnected &&
+              !connectionState.isConnecting &&
+              !hasPreservedConnection &&
+              (connectionState.connectionStatus === 'idle' || connectionState.connectionStatus === 'error')
+
+            if (shouldAutoConnect) {
+              console.log('AiPage: Scheduling auto-connect')
+              // Small delay to let other initialization complete
+              autoConnectTimeoutRef.current = setTimeout(() => {
+                // Double-check manual disconnect status
+                if (connectionState.connectionStatus === 'manuallyDisconnected') {
+                  console.log('AiPage: Auto-connect timeout fired but status is manuallyDisconnected, aborting')
+                  return
+                }
+
+                console.log('AiPage: Auto-connect timeout fired, attempting connection')
+                if (!isConnecting.current) {
+                  handleAutoConnect({ ...savedSettings, connectionId: savedSettings.id })
+                }
+              }, 200)
+            } else {
+              console.log('AiPage: Skipping auto-connect', {
+                pathname,
+                isConnected: connectionState.isConnected,
+                status: connectionState.connectionStatus
+              })
+            }
+
+            return () => {
+              if (autoConnectTimeoutRef.current) {
+                console.log('AiPage: Cleaning up auto-connect timeout')
+                clearTimeout(autoConnectTimeoutRef.current)
+                autoConnectTimeoutRef.current = null
+              }
+            }
           }
         }
+      } catch (error) {
+        console.error('Error initializing AI page:', error)
       }
-    } catch (error) {
-      console.error('Error initializing AI page:', error)
     }
+    init()
   }, [pathname, connectionState.isConnected, connectionState.isConnecting, connectionState.connectionStatus])
 
   const handleAutoConnect = async (savedSettings: any) => {

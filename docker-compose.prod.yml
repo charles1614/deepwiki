@@ -1,106 +1,17 @@
 services:
-  # Main Next.js application
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: deepwiki-app-prod
+  deepwiki:
+    image: ghcr.io/charles1614/deepwiki:latest
+    platform: linux/amd64
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      # Use external PostgreSQL database
-      - DATABASE_URL=${DATABASE_URL}
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXT_PUBLIC_APP_URL=${NEXTAUTH_URL}
-      # Cloudflare R2 configuration
-      - CLOUDFLARE_R2_BUCKET_NAME=${CLOUDFLARE_R2_BUCKET_NAME}
-      - CLOUDFLARE_R2_ACCOUNT_ID=${CLOUDFLARE_R2_ACCOUNT_ID}
-      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID}
-      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY}
-      - CLOUDFLARE_R2_ENDPOINT_URL=${CLOUDFLARE_R2_ENDPOINT_URL}
-      # Email configuration
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - EMAIL_FROM=${EMAIL_FROM}
+    env_file:
+      - .env.production
     restart: always
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
-  # PostgreSQL database (production)
-  postgres:
-    image: postgres:15-alpine
-    container_name: deepwiki-postgres-prod
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-deepwiki}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
-      - ./docker/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - deepwiki-backend
-
-  # Redis not needed - using JWT sessions
-  # No session storage backend required for JWT strategy
-
-  # Nginx reverse proxy
-  nginx:
-    image: nginx:alpine
-    container_name: deepwiki-nginx
+  claude-code:
+    image: ghcr.io/charles1614/deepwiki/claude-code:latest
+    platform: linux/amd64
+    container_name: claude-code
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
-      - nginx_logs:/var/log/nginx
-    depends_on:
-      - app
+      - "2222:22"
     restart: always
-    networks:
-      - deepwiki-frontend
-
-  # Database backup service
-  backup:
-    image: postgres:15-alpine
-    container_name: deepwiki-backup
-    environment:
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - ./backups:/backups
-      - ./docker/backup/backup.sh:/backup.sh:ro
-    command: /backup.sh
-    depends_on:
-      - postgres
-    restart: "no"  # Run manually or via cron
-    networks:
-      - deepwiki-backend
-
-volumes:
-  postgres_data:
-    driver: local
-  nginx_logs:
-    driver: local
-
-networks:
-  deepwiki-frontend:
-    driver: bridge
-  deepwiki-backend:
-    driver: bridge
-    internal: true
