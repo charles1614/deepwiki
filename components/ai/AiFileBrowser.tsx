@@ -27,14 +27,17 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
   const [publishing, setPublishing] = useState(false)
   const [publishStatus, setPublishStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
   const { state: connectionState } = useAiConnection()
 
-  // Preserve file browser state when connection is preserved
+  // Preserve file browser state when connection is preserved or active
   useEffect(() => {
-    if (connectionState.connectionStatus === 'preserved') {
+    if (!isInitialized) return
+
+    if (connectionState.connectionStatus === 'connected' || connectionState.connectionStatus === 'preserved') {
       preserveFileBrowserState(currentPath, selectedFile, scrollPosition)
     }
-  }, [connectionState.connectionStatus, currentPath, selectedFile, scrollPosition])
+  }, [connectionState.connectionStatus, currentPath, selectedFile, scrollPosition, isInitialized])
 
   // Restore file browser state on connection
   useEffect(() => {
@@ -51,6 +54,8 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
           clearFileBrowserState()
         }
       }
+      // Mark as initialized after attempting restore (even if no stored state, we are ready to save new state)
+      setIsInitialized(true)
     }
   }, [connectionState.connectionStatus])
 
@@ -88,6 +93,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
       } else {
         loadDirectory('.')
       }
+      setIsInitialized(true)
     })
 
     socket.on('ssh-restored', () => {
@@ -103,6 +109,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
       } else {
         loadDirectory('.')
       }
+      setIsInitialized(true)
     })
 
     socket.on('ssh-close', () => {
@@ -110,6 +117,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
       setFileContent('')
       setSelectedFile(null)
       clearFileBrowserState()
+      setIsInitialized(false)
     })
 
     return () => {
@@ -137,6 +145,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
       } else {
         loadDirectory('.')
       }
+      setIsInitialized(true)
     }
   }, [socket, connectionState.connectionStatus])
 
@@ -237,46 +246,28 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
         throw new Error('No markdown files found to publish')
       }
 
-      // 2. Read content of all files
+      // 2. Read content of all files concurrently with limit
       const fileContents: { filename: string, content: string }[] = []
 
-      // We need to promisify the socket read
+      // We need to promisify the socket read with timeout
       const readFile = (filename: string): Promise<string> => {
         return new Promise((resolve, reject) => {
           const path = `${currentPath}/${filename}`
+          let timeoutId: NodeJS.Timeout
 
           // Create a one-time listener for this specific read
           const handleRead = ({ path: readPath, content }: { path: string, content: string }) => {
             if (readPath === path) {
-              socket.off('sftp-read-result', handleRead)
-              socket.off('sftp-error', handleError)
+              cleanup()
               resolve(content)
             }
           }
 
           const handleError = (err: string) => {
-            socket.off('sftp-read-result', handleRead)
-            socket.off('sftp-error', handleError)
+            cleanup()
             reject(new Error(err))
           }
 
-          // Note: This might conflict with the main useEffect listeners if not careful.
-          // However, since we are adding specific listeners *before* emitting, 
-          // and the main listener just updates state, it should be fine.
-          // Ideally we should refactor the main listener to ignore these specific reads if possible,
-          // or just accept that state might flicker (which is fine as we are in publishing state).
-          // Actually, the main listener updates `fileContent` state. We should probably temporarily detach it or ignore it.
-          // For now, let's just use a separate event or rely on the fact that we are "publishing".
-
-          // Better approach: The main listener is always active. We can't easily "intercept" the event 
-          // without removing the main listener.
-          // But we can just use the main listener!
-          // We can't easily wait for it though without a custom promise wrapper that hooks into the global event stream.
-          // Given the constraints and the existing code structure, let's try to use a "request-response" pattern 
-          // by adding a unique ID to requests if the backend supported it, but it doesn't seem to.
-
-          // Alternative: We can just emit 'sftp-read' and wait for 'sftp-read-result' that matches our path.
-          // The main listener will ALSO fire and update `fileContent`, which might be annoying but harmless 
           // if we are showing a loading overlay.
 
           const onRead = (data: { path: string, content: string }) => {
@@ -328,8 +319,8 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
 
       setPublishStatus({ type: 'success', message: 'Wiki published successfully!' })
 
-      // Clear status after 3 seconds
-      setTimeout(() => setPublishStatus(null), 3000)
+      // Status is now persistent until next action or navigation
+      // setTimeout(() => setPublishStatus(null), 3000)
 
     } catch (error) {
       console.error('Publish error:', error)
@@ -369,27 +360,36 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
           </button>
 
           {isPublishable() && (
-            <button
-              onClick={handlePublish}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border shadow-sm ${publishing
+            <>
+              {publishStatus && (
+                <div
+                  className={`h-2 w-2 rounded-full flex-shrink-0 ${publishStatus.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                  title={publishStatus.message}
+                />
+              )}
+              <button
+                onClick={handlePublish}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border shadow-sm ${publishing
                   ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-wait'
                   : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              title="Publish to Wiki"
-              disabled={publishing}
-            >
-              {publishing ? (
-                <>
-                  <ArrowPathIcon className="h-3.5 w-3.5 animate-spin" />
-                  <span>Publishing...</span>
-                </>
-              ) : (
-                <>
-                  <CloudArrowUpIcon className="h-3.5 w-3.5" />
-                  <span>Publish</span>
-                </>
-              )}
-            </button>
+                  }`}
+                title="Publish to Wiki"
+                disabled={publishing}
+              >
+                {publishing ? (
+                  <>
+                    <ArrowPathIcon className="h-3.5 w-3.5 animate-spin" />
+                    <span>Publishing...</span>
+                  </>
+                ) : (
+                  <>
+                    <CloudArrowUpIcon className="h-3.5 w-3.5" />
+                    <span>Publish</span>
+                  </>
+                )}
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -398,13 +398,6 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
         {error && (
           <div className="p-4 bg-red-50 text-red-700 rounded-md mb-4">
             Error: {error}
-          </div>
-        )}
-
-        {publishStatus && (
-          <div className={`p-4 rounded-md mb-4 ${publishStatus.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-            }`}>
-            {publishStatus.message}
           </div>
         )}
 
