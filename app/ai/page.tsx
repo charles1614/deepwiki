@@ -17,7 +17,7 @@ const AiTerminal = dynamic(() => import('@/components/ai/AiTerminal').then(mod =
   loading: () => <div className="h-full w-full bg-[#1e1e1e] animate-pulse" />
 })
 
-const NAVIGATION_TIMEOUT = 5 * 60 * 1000 // 5 minutes
+const NAVIGATION_TIMEOUT = 24 * 60 * 60 * 1000 // 24 hours (effectively indefinite)
 
 function AiPageContent() {
   const pathname = usePathname()
