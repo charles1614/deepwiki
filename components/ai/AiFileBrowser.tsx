@@ -190,15 +190,6 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
     const pathParts = currentPath.split('/').filter(p => p && p !== '.')
     const docsIndex = pathParts.lastIndexOf('docs')
 
-    console.log('isPublishable check:', {
-      currentPath,
-      pathParts,
-      docsIndex,
-      expectedIndex: pathParts.length - 2,
-      hasIndexMd: files.some(f => f.filename === 'index.md'),
-      filesCount: files.length
-    })
-
     // Must find 'docs' and it must be the second to last part (parent of current dir)
     if (docsIndex === -1 || docsIndex !== pathParts.length - 2) {
       return false
@@ -380,21 +371,21 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
           {isPublishable() && (
             <button
               onClick={handlePublish}
-              className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${publishing
-                ? 'bg-blue-100 text-blue-700 cursor-wait'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border shadow-sm ${publishing
+                  ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-wait'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               title="Publish to Wiki"
               disabled={publishing}
             >
               {publishing ? (
                 <>
-                  <ArrowPathIcon className="h-3 w-3 animate-spin" />
+                  <ArrowPathIcon className="h-3.5 w-3.5 animate-spin" />
                   <span>Publishing...</span>
                 </>
               ) : (
                 <>
-                  <CloudArrowUpIcon className="h-3 w-3" />
+                  <CloudArrowUpIcon className="h-3.5 w-3.5" />
                   <span>Publish</span>
                 </>
               )}
