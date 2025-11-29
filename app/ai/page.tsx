@@ -352,7 +352,7 @@ function AiPageContent() {
     <div className="h-[calc(100vh-64px)] flex flex-col">
       <div className="flex-none px-6 py-4 border-b border-gray-200 bg-white flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold text-gray-900">AI Terminal & File Browser</h1>
+          <h1 className="text-xl font-semibold text-gray-900">AI Agent</h1>
           {connectionState.connectionStatus !== 'idle' && (
             <div className="text-xs text-gray-500">
               {connectionState.connectionStatus === 'connected' && 'Active'}
@@ -405,14 +405,14 @@ function AiPageContent() {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Left Column: Terminal */}
-        <div className="w-1/2 border-r border-gray-200 bg-[#1e1e1e] p-4">
+        <div className="w-full h-1/2 md:w-1/2 md:h-full border-b md:border-b-0 md:border-r border-gray-200 bg-[#1e1e1e] p-4">
           {connectionState.socket && <AiTerminal socket={connectionState.socket} />}
         </div>
 
         {/* Right Column: File Browser */}
-        <div className="w-1/2 bg-gray-50">
+        <div className="w-full h-1/2 md:w-1/2 md:h-full bg-gray-50">
           {connectionState.socket && <AiFileBrowser socket={connectionState.socket} />}
         </div>
       </div>

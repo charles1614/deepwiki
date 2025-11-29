@@ -47,7 +47,8 @@ export function Navigation({ className = '' }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const userMenuRef = useRef<HTMLDivElement>(null)
+  const mobileUserMenuRef = useRef<HTMLDivElement>(null)
+  const desktopUserMenuRef = useRef<HTMLDivElement>(null)
 
   const isAdmin = session?.user?.role === 'ADMIN'
 
@@ -207,7 +208,10 @@ export function Navigation({ className = '' }: NavigationProps) {
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      const clickedInsideMobile = mobileUserMenuRef.current?.contains(event.target as Node)
+      const clickedInsideDesktop = desktopUserMenuRef.current?.contains(event.target as Node)
+
+      if (!clickedInsideMobile && !clickedInsideDesktop) {
         setIsUserMenuOpen(false)
       }
     }
@@ -265,7 +269,7 @@ export function Navigation({ className = '' }: NavigationProps) {
 
           {/* User menu for mobile */}
           {session && (
-            <div className="relative" ref={userMenuRef}>
+            <div className="relative" ref={mobileUserMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className="flex items-center justify-center w-10 h-10 bg-gradient-to-tr from-cyan-400 via-blue-500 to-purple-600 rounded-full shadow-sm focus:outline-none border border-white/10"
@@ -421,7 +425,7 @@ export function Navigation({ className = '' }: NavigationProps) {
 
             {/* User menu dropdown */}
             {session && (
-              <div className="relative ml-4" ref={userMenuRef} data-testid="user-menu">
+              <div className="relative ml-4" ref={desktopUserMenuRef} data-testid="user-menu">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-colors focus:outline-none"
