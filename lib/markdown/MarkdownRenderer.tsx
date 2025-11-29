@@ -3,6 +3,19 @@
 import React, { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import Prism from 'prismjs'
+import 'prismjs/components/prism-typescript'
+import 'prismjs/components/prism-javascript'
+import 'prismjs/components/prism-jsx'
+import 'prismjs/components/prism-tsx'
+import 'prismjs/components/prism-css'
+import 'prismjs/components/prism-json'
+import 'prismjs/components/prism-bash'
+import 'prismjs/components/prism-markdown'
+import 'prismjs/components/prism-yaml'
+import 'prismjs/components/prism-python'
+import 'prismjs/components/prism-sql'
+import './prism-github-light.css'
 
 // Helper function to escape HTML for safe display
 function escapeHtml(text: string): string {
@@ -622,8 +635,19 @@ export function MarkdownRenderer({
               // We cannot pre-render here because mermaid.render() is async
               return `<div class="mermaid my-6">${text}</div>`
             }
-            // For other code blocks, use default rendering with a custom wrapper
-            return `<pre class="prose-pre"><code class="prose-code">${text}</code></pre>`
+
+            // Syntax highlighting with PrismJS
+            if (lang && Prism.languages[lang]) {
+              try {
+                const highlighted = Prism.highlight(text, Prism.languages[lang], lang)
+                return `<pre class="language-${lang}"><code class="language-${lang}">${highlighted}</code></pre>`
+              } catch (e) {
+                console.warn('Prism highlighting failed for language:', lang, e)
+              }
+            }
+
+            // Fallback for unknown languages or errors
+            return `<pre class="language-text"><code class="language-text">${text}</code></pre>`
           },
           heading({ text, depth }: { text: string; depth: number }): string {
             if (!text || !depth) {
