@@ -76,6 +76,7 @@ export function MarkdownRenderer({
               startOnLoad: false,
               securityLevel: 'loose',
               theme: 'default',
+              suppressErrorRendering: true, // Suppress default error messages in the DOM
               fontFamily: theme === 'handwritten' ? handwrittenFont : defaultFont,
               fontSize: 14,
               flowchart: {

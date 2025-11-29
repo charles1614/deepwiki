@@ -384,6 +384,21 @@ button {
   padding-bottom: 10px;
 }
 
+/* Hide Mermaid error messages */
+.markdown-content .mermaid .error-icon,
+.markdown-content .mermaid .error-text,
+.markdown-content .mermaid [class*="error"],
+.mermaid .error-icon,
+.mermaid .error-text,
+.mermaid [class*="error"],
+text.error-icon,
+text.error-text {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+
 /* Enhanced Table Styles */
 .markdown-content {
   width: 100%;

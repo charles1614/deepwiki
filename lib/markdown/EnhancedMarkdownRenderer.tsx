@@ -173,6 +173,9 @@ export function EnhancedMarkdownRenderer({
 
         if (codeBlock && mermaidModule) {
           try {
+            // Clear wrapper first to prevent any error messages from persisting
+            wrapper.innerHTML = ''
+
             const { svg } = await mermaidModule.render(blockId, codeBlock.content)
             wrapper.innerHTML = svg
 
@@ -184,8 +187,12 @@ export function EnhancedMarkdownRenderer({
               svgElement.setAttribute('aria-label', `Mermaid diagram: ${blockId}`)
             }
           } catch (error) {
+            // Silently hide the diagram on error to prevent "Syntax error in text" from showing
             console.error('Error rendering mermaid diagram:', error)
-            wrapper.innerHTML = `<div class="mermaid-error">Failed to render diagram</div>`
+            // Remove the wrapper element entirely to hide any error display
+            if (wrapper.parentNode) {
+              wrapper.parentNode.removeChild(wrapper)
+            }
           }
         }
       }
