@@ -14,4 +14,5 @@ services:
     container_name: claude-code
     ports:
       - "2222:22"
+      - "3001:3001"
     restart: always

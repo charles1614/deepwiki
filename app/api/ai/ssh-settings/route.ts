@@ -28,12 +28,18 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     id: connection.id,
-    host: connection.host,
-    port: connection.port,
-    username: connection.username,
-    hasPassword: !!connection.encryptedPassword,
+    webHost: connection.webHost,
+    webPort: connection.webPort,
+    webUsername: connection.webUsername,
+    hasWebPassword: !!connection.encryptedWebPassword,
     hasAuthToken: !!connection.encryptedAuthToken,
-    anthropicBaseUrl: connection.anthropicBaseUrl || process.env.ANTHROPIC_BASE_URL
+    anthropicBaseUrl: connection.anthropicBaseUrl || process.env.ANTHROPIC_BASE_URL,
+    proxyUrl: connection.proxyUrl,
+    connectionMode: connection.connectionMode,
+    sshHost: connection.sshHost,
+    sshPort: connection.sshPort,
+    sshUsername: connection.sshUsername,
+    hasSshPassword: !!connection.encryptedSshPassword
   })
 }
 
@@ -44,9 +50,15 @@ export async function POST(req: Request) {
   }
 
   const data = await req.json()
-  const { host, port, username, password, anthropicAuthToken, anthropicBaseUrl } = data
+  const {
+    webHost, webPort, webUsername, webPassword,
+    anthropicAuthToken, anthropicBaseUrl,
+    proxyUrl, connectionMode,
+    sshHost, sshPort, sshUsername, sshPassword
+  } = data
 
-  if (!host || !port || !username) {
+
+  if (!webHost || !webPort || !webUsername) {
     return new NextResponse('Missing required fields', { status: 400 })
   }
 
@@ -64,10 +76,13 @@ export async function POST(req: Request) {
     where: { userId: user.id }
   })
 
-  const encryptedPassword = password ? encrypt(password) : existingConnection?.encryptedPassword
+  const encryptedWebPassword = webPassword ? encrypt(webPassword) : existingConnection?.encryptedWebPassword
   const encryptedAuthToken = anthropicAuthToken ? encrypt(anthropicAuthToken) : existingConnection?.encryptedAuthToken
 
-  if (!encryptedPassword) {
+  // Handle internal password encryption
+  const encryptedSshPassword = sshPassword ? encrypt(sshPassword) : existingConnection?.encryptedSshPassword
+
+  if (!encryptedWebPassword) {
     return new NextResponse('Password is required for new connections', { status: 400 })
   }
 
@@ -76,12 +91,18 @@ export async function POST(req: Request) {
     const updated = await prisma.sshConnection.update({
       where: { id: existingConnection.id },
       data: {
-        host,
-        port: parseInt(String(port)),
-        username,
-        encryptedPassword,
+        webHost,
+        webPort: parseInt(String(webPort)),
+        webUsername,
+        encryptedWebPassword,
         encryptedAuthToken,
-        anthropicBaseUrl
+        anthropicBaseUrl,
+        proxyUrl,
+        connectionMode,
+        sshHost,
+        sshPort: sshPort ? parseInt(String(sshPort)) : null,
+        sshUsername,
+        encryptedSshPassword
       }
     })
     return NextResponse.json({ id: updated.id })
@@ -90,12 +111,18 @@ export async function POST(req: Request) {
     const created = await prisma.sshConnection.create({
       data: {
         userId: user.id,
-        host,
-        port: parseInt(String(port)),
-        username,
-        encryptedPassword,
+        webHost,
+        webPort: parseInt(String(webPort)),
+        webUsername,
+        encryptedWebPassword,
         encryptedAuthToken,
-        anthropicBaseUrl
+        anthropicBaseUrl,
+        proxyUrl,
+        connectionMode,
+        sshHost,
+        sshPort: sshPort ? parseInt(String(sshPort)) : null,
+        sshUsername,
+        encryptedSshPassword
       }
     })
     return NextResponse.json({ id: created.id })

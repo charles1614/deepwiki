@@ -5,12 +5,15 @@ FROM debian:stable-slim
 # curl: required for downloading
 # git: often required by development tools
 # openssh-server: for SSH access (note: openssh-server, not openssh)
+# Install Node.js and npm (for ssh-proxy.js)
 RUN apt-get update && apt-get install -y --no-install-recommends \
   bash \
   curl \
   git \
   openssh-server \
   ca-certificates \
+  nodejs \
+  npm \
   && rm -rf /var/lib/apt/lists/*
 
 # Configure SSH
@@ -34,8 +37,14 @@ RUN echo 'export PATH="/root/.local/bin:/root/.claude/bin:$PATH"' >> /root/.bash
   # Ensure .bashrc is sourced in .profile if it exists
   echo 'if [ -f ~/.bashrc ]; then . ~/.bashrc; fi' >> /root/.profile
 
-# Expose SSH port
-EXPOSE 22
+# Setup SSH Proxy
+WORKDIR /app
+COPY ssh-proxy.js .
+# Install proxy dependencies
+RUN npm install socket.io ssh2
 
-# Start SSH daemon
-CMD ["/usr/sbin/sshd", "-D"]
+# Expose SSH port and Proxy port
+EXPOSE 22 3001
+
+# Start SSH daemon and Proxy
+CMD ["/bin/bash", "-c", "/usr/sbin/sshd && node ssh-proxy.js"]

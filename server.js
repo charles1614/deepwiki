@@ -143,7 +143,8 @@ app.prepare().then(() => {
       let config = null
 
       // Handle both legacy (direct settings) and new (connectionId) modes
-      if (data.connectionId) {
+      // If explicit credentials are provided, use them (avoids DB lookup issues in standalone server)
+      if (data.connectionId && !data.webPassword && !data.password) {
         console.log('Using stored credentials for connection:', data.connectionId)
         try {
           // We need to import prisma and decryption here
@@ -194,10 +195,10 @@ app.prepare().then(() => {
           }
 
           config = {
-            host: connection.host,
-            port: connection.port,
-            username: connection.username,
-            password: decrypt(connection.encryptedPassword),
+            host: connection.webHost,
+            port: connection.webPort,
+            username: connection.webUsername,
+            password: decrypt(connection.encryptedWebPassword),
             anthropicAuthToken: connection.encryptedAuthToken ? decrypt(connection.encryptedAuthToken) : undefined,
             anthropicBaseUrl: connection.anthropicBaseUrl || process.env.ANTHROPIC_BASE_URL
           }
@@ -210,7 +211,15 @@ app.prepare().then(() => {
         }
       } else {
         // Legacy/Direct mode
-        config = data
+        // For Web Mode (this server), we use webHost/webPort etc.
+        config = {
+          host: data.webHost || data.host,
+          port: data.webPort || data.port,
+          username: data.webUsername || data.username,
+          password: data.webPassword || data.password,
+          anthropicBaseUrl: data.anthropicBaseUrl,
+          anthropicAuthToken: data.anthropicAuthToken
+        }
       }
 
       console.log('Connecting to:', config.host)

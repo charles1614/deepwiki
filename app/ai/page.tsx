@@ -25,6 +25,7 @@ function AiPageContent() {
   const [settings, setSettings] = useState<any>(null)
   const [showReconnectionBanner, setShowReconnectionBanner] = useState(false)
   const [reconnectionStatus, setReconnectionStatus] = useState<'success' | 'error' | null>(null)
+  const [connectionMode, setConnectionMode] = useState<'web' | 'proxy'>('web')
   const navigationStartTime = React.useRef<number | null>(null)
   const isConnecting = React.useRef(false)
   const prevPathnameRef = useRef<string | null>(null)
@@ -59,6 +60,11 @@ function AiPageContent() {
           if (savedSettings) {
             setSettings({ ...savedSettings, connectionId: savedSettings.id })
 
+            // Load saved connection mode from DB settings
+            if (savedSettings.connectionMode) {
+              setConnectionMode(savedSettings.connectionMode as 'web' | 'proxy')
+            }
+
             // Don't auto-connect if manually disconnected
             if (connectionState.connectionStatus === 'manuallyDisconnected') {
               console.log('AiPage: Skipping auto-connect - manually disconnected')
@@ -76,6 +82,9 @@ function AiPageContent() {
             // 3. Not connecting
             // 4. No preserved connection
             // 5. Status is idle or error (NOT disconnected - respect manual disconnects)
+            // 6. Not in Proxy Mode (Proxy requires manual password entry)
+            const initialMode = localStorage.getItem('ai_connection_mode') as 'web' | 'proxy'
+
             const shouldAutoConnect = pathname === '/ai' &&
               !connectionState.isConnected &&
               !connectionState.isConnecting &&
@@ -94,7 +103,18 @@ function AiPageContent() {
 
                 console.log('AiPage: Auto-connect timeout fired, attempting connection')
                 if (!isConnecting.current) {
-                  handleAutoConnect({ ...savedSettings, connectionId: savedSettings.id })
+                  // Use saved proxy settings for auto-connect
+                  const savedProxyUrl = savedSettings.proxyUrl
+
+                  // Double check mode inside timeout
+                  // const currentMode = localStorage.getItem('ai_connection_mode') as 'web' | 'proxy'
+                  // We now support auto-connect for proxy mode via reveal API
+
+                  handleAutoConnect({
+                    ...savedSettings,
+                    connectionId: savedSettings.id,
+                    proxyUrl: savedProxyUrl
+                  })
                 }
               }, 200)
             } else {
@@ -275,8 +295,43 @@ function AiPageContent() {
     resetManualDisconnect()
 
     if (settings) {
+      // For Proxy Mode, we need the raw password.
+      // Try to fetch it from the reveal API first
+      let connectionSettings = { ...settings }
+
+      if (connectionMode === 'proxy') {
+        if (!settings.proxyUrl) {
+          console.log('AiPage: Proxy mode requires proxy URL, opening settings')
+          setIsSettingsOpen(true)
+          return
+        }
+
+        try {
+          const res = await fetch('/api/ai/ssh-settings/reveal', { method: 'POST' })
+          if (res.ok) {
+            const credentials = await res.json()
+            connectionSettings = {
+              ...connectionSettings,
+              ...credentials // Use resolved host/port/username/password from API
+            }
+          } else {
+            console.error('Failed to fetch credentials for proxy mode')
+            // Fallback to manual entry if API fails
+            if (!settings.sshPassword) {
+              setIsSettingsOpen(true)
+              return
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching credentials:', error)
+        }
+      }
+
       try {
-        await connect(settings)
+        await connect({
+          ...connectionSettings,
+          proxyUrl: connectionMode === 'proxy' ? settings.proxyUrl : undefined
+        })
       } catch (error) {
         console.error('Connection failed:', error)
       }
@@ -303,19 +358,73 @@ function AiPageContent() {
   }
 
   const handleSettingsSave = async (newSettings: any) => {
-    console.log('AiPage: handleSettingsSave called', { ...newSettings, password: '***' })
+    console.log('AiPage: handleSettingsSave called', { ...newSettings, webPassword: '***', sshPassword: '***' })
     setSettings(newSettings)
 
-    // If connected, reconnect with new settings; otherwise connect immediately
+    const newMode = newSettings.connectionMode || 'web'
+    setConnectionMode(newMode)
+
+    // If connected, disconnect first if settings or mode changed
     if (connectionState.isConnected) {
       console.log('AiPage: Already connected, disconnecting first')
       await handleDisconnect()
-      console.log('AiPage: Connecting with new settings')
-      await connect(newSettings)
-    } else {
-      console.log('AiPage: Not connected, connecting with new settings')
-      await connect(newSettings)
     }
+
+    console.log('AiPage: Connecting with new settings')
+
+    // For Proxy Mode, we need to ensure we have the password (via reveal API if not provided)
+    // The connect logic below handles this via the reveal API check if we call it properly
+    // But here we are calling connect directly. 
+    // Actually, we should just call handleConnect() which has the logic? 
+    // No, handleConnect uses state 'settings' which might not be updated yet due to closure/batching.
+    // So we duplicate the reveal logic or extract it.
+    // For simplicity, let's just trigger a re-connect with the new settings.
+
+    let connectionSettings = { ...newSettings }
+
+    if (newMode === 'proxy') {
+      if (!newSettings.proxyUrl) {
+        console.error('Proxy URL missing')
+        return
+      }
+
+      // If password is not in newSettings (e.g. not changed), we need to fetch it
+      if (!newSettings.sshPassword) {
+        try {
+          const res = await fetch('/api/ai/ssh-settings/reveal', { method: 'POST' })
+          if (res.ok) {
+            const credentials = await res.json()
+            connectionSettings = {
+              ...connectionSettings,
+              ...credentials // Use resolved host/port/username/password from API
+            }
+          }
+        } catch (e) {
+          console.error('Failed to reveal credentials', e)
+        }
+      }
+    } else {
+      // Web mode
+      if (!newSettings.webPassword) {
+        try {
+          const res = await fetch('/api/ai/ssh-settings/reveal', { method: 'POST' })
+          if (res.ok) {
+            const credentials = await res.json()
+            connectionSettings = {
+              ...connectionSettings,
+              ...credentials
+            }
+          }
+        } catch (e) {
+          console.error('Failed to reveal credentials', e)
+        }
+      }
+    }
+
+    await connect({
+      ...connectionSettings,
+      proxyUrl: newMode === 'proxy' ? newSettings.proxyUrl : undefined
+    })
   }
 
   const handleManualReconnect = async () => {
@@ -334,7 +443,10 @@ function AiPageContent() {
       } else {
         // If restoration fails, try full reconnect
         if (settings) {
-          await connect(settings)
+          await connect({
+            ...settings,
+            proxyUrl: connectionMode === 'proxy' ? settings.proxyUrl : undefined
+          })
           setReconnectionStatus('success')
           setTimeout(() => {
             setShowReconnectionBanner(false)
@@ -374,6 +486,38 @@ function AiPageContent() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Connection Mode Selector */}
+          <div className="flex items-center gap-2 mr-2">
+            <select
+              value={connectionMode}
+              onChange={async (e) => {
+                const mode = e.target.value as 'web' | 'proxy'
+                setConnectionMode(mode)
+                // We need to save this change to DB immediately
+                if (settings) {
+                  try {
+                    await fetch('/api/ai/ssh-settings', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ ...settings, connectionMode: mode })
+                    })
+                    // Update local settings state
+                    setSettings({ ...settings, connectionMode: mode })
+                  } catch (err) {
+                    console.error('Failed to save connection mode change', err)
+                  }
+                }
+              }}
+              disabled={isActiveConnection || connectionState.isConnecting}
+              className="text-xs border border-gray-300 rounded px-2 py-1 bg-white disabled:opacity-50 disabled:bg-gray-100"
+            >
+              <option value="web">Web Server</option>
+              <option value="proxy">SSH Server</option>
+            </select>
+
+            {/* Proxy URL display removed as requested */}
+          </div>
+
           <button
             onClick={isActiveConnection || connectionState.isConnecting || connectionState.connectionStatus === 'connecting' ? handleDisconnect : handleConnect}
             disabled={
@@ -428,6 +572,7 @@ function AiPageContent() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onSave={handleSettingsSave}
+        currentMode={connectionMode}
       />
 
       {showReconnectionBanner && (

@@ -106,12 +106,20 @@ model SshConnection {
   id                 String   @id @default(cuid())
   userId             String
   name               String   @default("Default Connection")
-  host               String
-  port               Int
-  username           String
-  encryptedPassword  String
+  webHost               String
+  webPort               Int
+  webUsername           String
+  encryptedWebPassword  String
   encryptedAuthToken String?
   anthropicBaseUrl   String?
+  proxyUrl            String? // URL of the standalone SSH proxy (e.g., http://x.x.x.x:3001)
+  connectionMode      String  @default("web") // "web" or "proxy"
+
+  // Internal connection details (used when connecting via Proxy)
+  sshHost              String? // e.g., "127.0.0.1"
+  sshPort              Int?    // e.g., 22
+  sshUsername          String? // e.g., "root"
+  encryptedSshPassword String? // Encrypted password for internal connection
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

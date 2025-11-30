@@ -8,17 +8,26 @@ interface AiSettingsModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (settings: any) => void
+  currentMode: 'web' | 'proxy'
 }
 
-export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProps) {
+export function AiSettingsModal({ isOpen, onClose, onSave, currentMode }: AiSettingsModalProps) {
   const [formData, setFormData] = useState({
-    host: '',
-    port: '22',
-    username: '',
-    password: '',
+    webHost: '',
+    webPort: '22',
+    webUsername: '',
+    webPassword: '',
+    sshHost: '',
+    sshPort: '22',
+    sshUsername: '',
+    sshPassword: '',
     anthropicBaseUrl: '',
-    anthropicAuthToken: ''
+    anthropicAuthToken: '',
+    proxyUrl: ''
   })
+  // Mode is now controlled by parent via currentMode prop
+  const [hasSavedWebPassword, setHasSavedWebPassword] = useState(false)
+  const [hasSavedSshPassword, setHasSavedSshPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,13 +45,25 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
         const data = await res.json()
         if (data) {
           setFormData({
-            host: data.host,
-            port: String(data.port),
-            username: data.username,
-            password: '', // Don't show password
+            webHost: data.webHost || '',
+            webPort: String(data.webPort || '22'),
+            webUsername: data.webUsername || '',
+            webPassword: '', // Don't show password
+            sshHost: data.sshHost || '',
+            sshPort: String(data.sshPort || '22'),
+            sshUsername: data.sshUsername || '',
+            sshPassword: '', // Don't show password
             anthropicBaseUrl: data.anthropicBaseUrl || '',
-            anthropicAuthToken: '' // Don't show token
+            anthropicAuthToken: '', // Don't show token
+            proxyUrl: data.proxyUrl || ''
           })
+          if (data.connectionMode) {
+            // We don't set local mode state anymore, just use the prop for display logic if needed
+            // But we might want to notify parent if DB has different mode? 
+            // For now, assume parent (AiPage) handles mode loading.
+          }
+          setHasSavedWebPassword(data.hasWebPassword)
+          setHasSavedSshPassword(data.hasSshPassword)
         }
       }
     } catch (err) {
@@ -61,7 +82,7 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
       const res = await fetch('/api/ai/ssh-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, connectionMode: currentMode })
       })
 
       if (!res.ok) {
@@ -70,7 +91,7 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
 
       const { id } = await res.json()
       console.log('AiSettingsModal: Settings saved, calling onSave')
-      onSave({ ...formData, connectionId: id })
+      onSave({ ...formData, connectionId: id, connectionMode: currentMode })
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings')
@@ -106,84 +127,178 @@ export function AiSettingsModal({ isOpen, onClose, onSave }: AiSettingsModalProp
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Host</label>
-                <input
-                  type="text"
-                  value={formData.host}
-                  onChange={(e) => setFormData({ ...formData, host: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., 192.168.1.100"
-                  required
-                />
-              </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Web Server Settings */}
+              {currentMode === 'web' && (
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    Web Server Connection
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Web Host</label>
+                      <input
+                        type="text"
+                        value={formData.webHost}
+                        onChange={(e) => setFormData({ ...formData, webHost: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="e.g., 192.168.1.100"
+                        required
+                      />
+                    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Port</label>
-                  <input
-                    type="number"
-                    value={formData.port}
-                    onChange={(e) => setFormData({ ...formData, port: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="22"
-                    required
-                  />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Web Port</label>
+                        <input
+                          type="number"
+                          value={formData.webPort}
+                          onChange={(e) => setFormData({ ...formData, webPort: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          placeholder="22"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Web Username</label>
+                        <input
+                          type="text"
+                          value={formData.webUsername}
+                          onChange={(e) => setFormData({ ...formData, webUsername: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          placeholder="root"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Web Password</label>
+                      <input
+                        type="password"
+                        value={formData.webPassword}
+                        onChange={(e) => setFormData({ ...formData, webPassword: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder={formData.webPassword || hasSavedWebPassword ? '••••••••' : 'Required'}
+                        required={!formData.webPassword && !hasSavedWebPassword}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                  <input
-                    type="text"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="root"
-                    required
-                  />
+              )}
+
+              {/* SSH Proxy Settings */}
+              {currentMode === 'proxy' && (
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    SSH Proxy Connection
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Proxy URL</label>
+                      <input
+                        type="text"
+                        value={formData.proxyUrl}
+                        onChange={(e) => setFormData({ ...formData, proxyUrl: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="e.g., http://your-china-server:3001"
+                        required
+                      />
+                      <p className="mt-1 text-[10px] text-gray-500">
+                        Required for direct connection.
+                        {!formData.proxyUrl.match(/:\d+$/) && formData.proxyUrl.length > 0 && (
+                          <span className="text-amber-600 font-medium ml-1">
+                            Warning: URL usually requires a port (e.g., :3001)
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="border-t border-gray-200 my-3"></div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">SSH Host</label>
+                      <input
+                        type="text"
+                        value={formData.sshHost}
+                        onChange={(e) => setFormData({ ...formData, sshHost: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="e.g., 10.0.0.5 (Internal IP)"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">SSH Port</label>
+                        <input
+                          type="number"
+                          value={formData.sshPort}
+                          onChange={(e) => setFormData({ ...formData, sshPort: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          placeholder="22"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">SSH Username</label>
+                        <input
+                          type="text"
+                          value={formData.sshUsername}
+                          onChange={(e) => setFormData({ ...formData, sshUsername: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          placeholder="root"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">SSH Password</label>
+                      <input
+                        type="password"
+                        value={formData.sshPassword}
+                        onChange={(e) => setFormData({ ...formData, sshPassword: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder={formData.sshPassword || hasSavedSshPassword ? '••••••••' : 'Required'}
+                        required={!formData.sshPassword && !hasSavedSshPassword}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={formData.password ? '••••••••' : 'Leave empty to keep unchanged'}
-                />
-              </div>
-
-              <div className="border-t border-gray-200 pt-4 mt-4">
+              <div className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-medium text-gray-900 mb-3">Anthropic Integration (Optional)</h3>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Base URL</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Base URL</label>
                     <input
                       type="text"
                       value={formData.anthropicBaseUrl}
                       onChange={(e) => setFormData({ ...formData, anthropicBaseUrl: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                       placeholder="https://api.anthropic.com"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Auth Token</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Auth Token</label>
                     <input
                       type="password"
                       value={formData.anthropicAuthToken}
                       onChange={(e) => setFormData({ ...formData, anthropicAuthToken: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                       placeholder={formData.anthropicAuthToken ? '••••••••' : 'Leave empty to keep unchanged'}
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={onClose}

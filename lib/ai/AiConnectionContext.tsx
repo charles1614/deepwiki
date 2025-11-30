@@ -101,7 +101,20 @@ function aiConnectionReducer(state: AiConnectionState, action: AiConnectionActio
 const AiConnectionContext = createContext<{
   state: AiConnectionState
   dispatch: React.Dispatch<AiConnectionAction>
-  connect: (settings?: { host: string; port: number; username: string; password: string }) => Promise<void>
+  connect: (settings?: {
+    connectionId?: string
+    webHost?: string
+    webPort?: number
+    webUsername?: string
+    webPassword?: string
+    sshHost?: string
+    sshPort?: number
+    sshUsername?: string
+    sshPassword?: string
+    anthropicBaseUrl?: string
+    anthropicAuthToken?: string
+    proxyUrl?: string
+  }) => Promise<void>
   disconnect: () => Promise<void>
   resetManualDisconnect: () => void
   preserveConnection: () => void
@@ -124,12 +137,17 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
 
   const connect = async (settings?: {
     connectionId?: string
-    host?: string
-    port?: number
-    username?: string
-    password?: string
+    webHost?: string
+    webPort?: number
+    webUsername?: string
+    webPassword?: string
+    sshHost?: string
+    sshPort?: number
+    sshUsername?: string
+    sshPassword?: string
     anthropicBaseUrl?: string
     anthropicAuthToken?: string
+    proxyUrl?: string
   }) => {
     // Prevent concurrent connection attempts
     if (isConnectingRef.current) {
@@ -153,7 +171,10 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
 
       // Try connecting with the custom path
       // Note: The socket.io server will be initialized automatically when the first client connects
-      const socket = io(window.location.origin, {
+      const socketUrl = settings?.proxyUrl || window.location.origin
+      console.log('Connecting to socket URL:', socketUrl)
+
+      const socket = io(socketUrl, {
         path: '/api/socket',
         transports: ['websocket', 'polling'], // Fallback to polling if websocket fails
         timeout: 10000,
@@ -233,7 +254,8 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
           sshConnectEmitted = true
           console.log('Emitting ssh-connect with settings:', {
             ...settings,
-            password: settings.password ? '***' : undefined,
+            webPassword: settings.webPassword ? '***' : undefined,
+            sshPassword: settings.sshPassword ? '***' : undefined,
             anthropicAuthToken: settings.anthropicAuthToken ? '***' : undefined
           })
 
