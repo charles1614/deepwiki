@@ -1,4 +1,5 @@
-const { createServer } = require('http');
+const { createServer } = require('https');
+const { readFileSync } = require('fs');
 const { Server } = require('socket.io');
 const { Client } = require('ssh2');
 require('dotenv').config(); // Load env vars from .env if present
@@ -97,7 +98,10 @@ class AiSessionManager {
 
 const sessionManager = new AiSessionManager();
 
-const httpServer = createServer((req, res) => {
+const httpServer = createServer({
+  key: readFileSync('/etc/nginx/ssl_ip/ip.key'),
+  cert: readFileSync('/etc/nginx/ssl_ip/ip.crt')
+}, (req, res) => {
   res.writeHead(200);
   res.end('SSH Proxy Active');
 });
