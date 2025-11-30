@@ -1,6 +1,7 @@
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { Client } = require('ssh2');
+require('dotenv').config(); // Load env vars from .env if present
 
 const port = parseInt(process.env.PORT || '3001', 10);
 
@@ -132,6 +133,8 @@ io.use((socket, next) => {
   }
 
   console.error('Authentication failed for client:', socket.id);
+  console.error('Expected token length:', token.length);
+  console.error('Received token:', clientToken ? `Length: ${clientToken.length}` : 'undefined');
   const err = new Error('Authentication error');
   err.data = { content: 'Invalid authentication token' };
   next(err);

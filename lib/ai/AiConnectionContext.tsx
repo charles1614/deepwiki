@@ -174,6 +174,9 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
       const socketUrl = settings?.proxyUrl || window.location.origin
       console.log('Connecting to socket URL:', socketUrl)
 
+      const authToken = process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN;
+      console.log('Auth Token present:', !!authToken, 'Length:', authToken?.length);
+
       const socket = io(socketUrl, {
         path: '/api/socket',
         transports: ['websocket', 'polling'], // Fallback to polling if websocket fails

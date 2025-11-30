@@ -28,6 +28,7 @@ The SSH container (`claude-code`) uses a root password for SSH access. This pass
 
 1.  **Frontend (`.env.local`)**:
     ```bash
+    # Must start with NEXT_PUBLIC_ to be visible to the browser
     NEXT_PUBLIC_PROXY_AUTH_TOKEN="dev-secret-token"
     ```
 
@@ -47,7 +48,7 @@ Ensure the following environment variables are set in your deployment environmen
 
 | Variable | Description | Location |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_PROXY_AUTH_TOKEN` | Shared secret for WebSocket auth | Next.js App |
+| `NEXT_PUBLIC_PROXY_AUTH_TOKEN` | Shared secret for WebSocket auth | Next.js App (Client Side) |
 | `PROXY_AUTH_TOKEN` | Shared secret for WebSocket auth | SSH Proxy Container |
 | `SSH_ROOT_PASSWORD` | Root password for SSH access | SSH Proxy Container |
 
@@ -67,7 +68,13 @@ services:
 
 ## Troubleshooting
 
--   **"Authentication error" in Web Terminal**: Check that `NEXT_PUBLIC_PROXY_AUTH_TOKEN` in the web app matches `PROXY_AUTH_TOKEN` in the container.
+-   **"Authentication error" in Web Terminal**:
+    -   Check that `NEXT_PUBLIC_PROXY_AUTH_TOKEN` in `.env.local` matches `PROXY_AUTH_TOKEN` in the container.
+    -   Ensure the frontend variable starts with `NEXT_PUBLIC_`.
+    -   Restart the Next.js server after changing `.env.local`.
+-   **"SSH error: All configured authentication methods failed"**:
+    -   The WebSocket connection is secure, but the SSH login failed.
+    -   Update the **SSH Password** in the AI Page Settings to match the `SSH_ROOT_PASSWORD` of the container.
 -   **Cannot SSH into container**: Verify `SSH_ROOT_PASSWORD` was set correctly when the container started. You can check logs for "Setting root password...".
 
 ## GitHub Actions Configuration

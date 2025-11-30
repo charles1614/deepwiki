@@ -45,7 +45,7 @@ COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
 # Install proxy dependencies
-RUN npm install socket.io ssh2
+RUN npm install socket.io ssh2 dotenv
 
 # Expose SSH port and Proxy port
 EXPOSE 22 3001
