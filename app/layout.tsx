@@ -26,10 +26,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Read from server-side env var (NO NEXT_PUBLIC_ prefix)
+  // This gets the runtime container value, not build-time value
+  const proxyAuthToken = process.env.PROXY_AUTH_TOKEN;
+
   return (
     <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className={GeistSans.className}>
-        <Providers proxyAuthToken={process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN}>
+        <Providers proxyAuthToken={proxyAuthToken}>
           {children}
         </Providers>
       </body>
