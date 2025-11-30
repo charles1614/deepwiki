@@ -30,6 +30,9 @@ export default function RootLayout({
   // This gets the runtime container value, not build-time value
   const proxyAuthToken = process.env.PROXY_AUTH_TOKEN;
 
+  // Debug: verify token is available (server-side only, won't show in browser)
+  console.log('[Server] PROXY_AUTH_TOKEN present:', !!proxyAuthToken, 'Length:', proxyAuthToken?.length);
+
   return (
     <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className={GeistSans.className}>

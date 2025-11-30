@@ -129,6 +129,13 @@ export function AiConnectionProvider({ children, proxyAuthToken }: { children: R
   const stateRef = useRef(state)
   const isConnectingRef = useRef(false)
 
+  const proxyAuthTokenRef = useRef(proxyAuthToken);
+
+  // Keep proxyAuthTokenRef updated
+  useEffect(() => {
+    proxyAuthTokenRef.current = proxyAuthToken;
+  }, [proxyAuthToken]);
+
   // Keep stateRef updated
   useEffect(() => {
     stateRef.current = state
@@ -180,8 +187,8 @@ export function AiConnectionProvider({ children, proxyAuthToken }: { children: R
       const socketUrl = settings?.proxyUrl || window.location.origin
       console.log('Connecting to socket URL:', socketUrl)
 
-      // Use prop if available, fallback to env (for local dev)
-      const authToken = proxyAuthToken || process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN;
+      // Use prop from ref if available, fallback to env (for local dev)
+      const authToken = proxyAuthTokenRef.current || process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN;
       console.log('Auth Token present:', !!authToken, 'Length:', authToken?.length);
 
       const socket = io(socketUrl, {
