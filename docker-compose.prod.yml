@@ -15,4 +15,7 @@ services:
     ports:
       - "2222:22"
       - "3001:3001"
+    environment:
+      - SSH_ROOT_PASSWORD=${SSH_ROOT_PASSWORD}
+      - PROXY_AUTH_TOKEN=${PROXY_AUTH_TOKEN}
     restart: always

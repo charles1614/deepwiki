@@ -180,6 +180,9 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         timeout: 10000,
         reconnection: false, // We'll handle reconnection manually
         autoConnect: false, // Important: set to false to allow adding listeners before connecting
+        auth: {
+          token: process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN
+        }
       })
 
       dispatch({ type: 'SET_SOCKET', payload: socket })

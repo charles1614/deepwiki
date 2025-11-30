@@ -114,6 +114,29 @@ const io = new Server(httpServer, {
   upgradeTimeout: 10000,
 });
 
+// Authentication Middleware
+io.use((socket, next) => {
+  const token = process.env.PROXY_AUTH_TOKEN;
+
+  // If no token is configured in environment, allow connection (dev mode or insecure mode)
+  // WARN: This should be set in production
+  if (!token) {
+    console.warn('WARNING: No PROXY_AUTH_TOKEN set. Allowing all connections.');
+    return next();
+  }
+
+  const clientToken = socket.handshake.auth.token;
+
+  if (clientToken === token) {
+    return next();
+  }
+
+  console.error('Authentication failed for client:', socket.id);
+  const err = new Error('Authentication error');
+  err.data = { content: 'Invalid authentication token' };
+  next(err);
+});
+
 // Set up connection handler
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
