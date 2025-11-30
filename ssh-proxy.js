@@ -282,17 +282,26 @@ io.on('connection', (socket) => {
         socket.emit('ssh-close');
       });
 
+      sshClient.on('keyboard-interactive', (name, instructions, instructionsLang, prompts, finish) => {
+        console.log('ssh-proxy: keyboard-interactive prompt received');
+        finish([config.sshPassword]);
+      });
+
       const port = parseInt(String(config.sshPort));
       if (isNaN(port) || port < 0 || port >= 65536) {
         socket.emit('ssh-error', 'Invalid port number');
         return;
       }
 
+      console.log(`ssh-proxy: Attempting connection to ${config.sshHost}:${port} as ${config.sshUsername}`);
+      console.log(`ssh-proxy: Password length: ${config.sshPassword ? config.sshPassword.length : 0}`);
+
       sshClient.connect({
         host: config.sshHost,
         port: port,
         username: config.sshUsername,
         password: config.sshPassword,
+        tryKeyboard: true,
       });
     } catch (error) {
       console.error('SSH connection error:', error);

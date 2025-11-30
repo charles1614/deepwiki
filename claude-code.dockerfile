@@ -14,13 +14,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates \
   nodejs \
   npm \
+  passwd \
   && rm -rf /var/lib/apt/lists/*
 
 # Configure SSH
 RUN mkdir -p /var/run/sshd && \
   ssh-keygen -A && \
-  sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-  sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+  echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config && \
+  echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config && \
+  echo 'UsePAM no' >> /etc/ssh/sshd_config && \
   echo 'AcceptEnv ANTHROPIC_*' >> /etc/ssh/sshd_config
 
 # Install Claude Code

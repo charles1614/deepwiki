@@ -29,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className={GeistSans.className}>
-        <Providers>
+        <Providers proxyAuthToken={process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN}>
           {children}
         </Providers>
       </body>

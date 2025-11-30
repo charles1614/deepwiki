@@ -123,7 +123,7 @@ const AiConnectionContext = createContext<{
   resumeConnection: () => void
 } | null>(null)
 
-export function AiConnectionProvider({ children }: { children: React.ReactNode }) {
+export function AiConnectionProvider({ children, proxyAuthToken }: { children: React.ReactNode, proxyAuthToken?: string }) {
   const [state, dispatch] = useReducer(aiConnectionReducer, initialState)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const stateRef = useRef(state)
@@ -155,6 +155,12 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
       return
     }
 
+    // If already connected, do nothing
+    if (stateRef.current.socket?.connected) {
+      console.log('AiConnectionContext: Already connected, skipping new connection attempt.')
+      return
+    }
+
     try {
       isConnectingRef.current = true
 
@@ -174,7 +180,8 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
       const socketUrl = settings?.proxyUrl || window.location.origin
       console.log('Connecting to socket URL:', socketUrl)
 
-      const authToken = process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN;
+      // Use prop if available, fallback to env (for local dev)
+      const authToken = proxyAuthToken || process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN;
       console.log('Auth Token present:', !!authToken, 'Length:', authToken?.length);
 
       const socket = io(socketUrl, {
@@ -184,7 +191,7 @@ export function AiConnectionProvider({ children }: { children: React.ReactNode }
         reconnection: false, // We'll handle reconnection manually
         autoConnect: false, // Important: set to false to allow adding listeners before connecting
         auth: {
-          token: process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN
+          token: authToken
         }
       })
 

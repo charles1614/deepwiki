@@ -89,7 +89,7 @@ function AiPageContent() {
               !connectionState.isConnected &&
               !connectionState.isConnecting &&
               !hasPreservedConnection &&
-              (connectionState.connectionStatus === 'idle' || connectionState.connectionStatus === 'error')
+              (connectionState.connectionStatus === 'idle')
 
             if (shouldAutoConnect) {
               console.log('AiPage: Scheduling auto-connect')
@@ -159,7 +159,26 @@ function AiPageContent() {
 
       try {
         console.log('AiPage: Auto-connect attempt')
-        await connect(savedSettings)
+
+        // Fetch credentials via reveal API (passwords are not included in regular settings response)
+        let connectionSettings = { ...savedSettings }
+
+        try {
+          const res = await fetch('/api/ai/ssh-settings/reveal', { method: 'POST' })
+          if (res.ok) {
+            const credentials = await res.json()
+            connectionSettings = {
+              ...connectionSettings,
+              ...credentials // Merge decrypted credentials
+            }
+          } else {
+            console.error('Failed to fetch credentials for auto-connect')
+          }
+        } catch (error) {
+          console.error('Error fetching credentials for auto-connect:', error)
+        }
+
+        await connect(connectionSettings)
 
         // Wait for SSH connection (sessionId) or error
         // Poll every 500ms for up to 15 seconds
