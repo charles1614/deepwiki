@@ -1,20 +1,5 @@
 FROM debian:stable-slim
 
-# Configure Aliyun Debian mirrors
-RUN tee /etc/apt/sources.list.d/debian.sources <<'EOF'
-Types: deb
-URIs: https://mirrors.aliyun.com/debian
-Suites: trixie trixie-updates
-Components: main non-free contrib
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-
-Types: deb
-URIs: https://mirrors.aliyun.com/debian-security
-Suites: trixie-security
-Components: main
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-EOF
-
 # Install minimal dependencies
 # bash: default in debian, but good to ensure
 # curl: required for downloading
@@ -38,8 +23,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   vim \
   && rm -rf /var/lib/apt/lists/*
 
+# Configure Aliyun Debian mirrors
+RUN tee /etc/apt/sources.list.d/debian.sources <<'EOF'
+Types: deb
+URIs: https://mirrors.aliyun.com/debian
+Suites: trixie trixie-updates
+Components: main non-free contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: https://mirrors.aliyun.com/debian-security
+Suites: trixie-security
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+
 # Install Zellij
-RUN bash <(curl -L https://zellij.dev/launch)
+ARG ZELLIJ_VERSION=0.43.1
+RUN curl -L "https://github.com/zellij-org/zellij/releases/download/v${ZELLIJ_VERSION}/zellij-x86_64-unknown-linux-musl.tar.gz" \
+    | tar -xz -C /usr/local/bin \
+    && chmod +x /usr/local/bin/zellij
 
 # Generate SSL certificate at build time
 RUN mkdir -p /etc/nginx/ssl_ip && \
