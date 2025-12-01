@@ -28,16 +28,26 @@ export async function POST(req: Request) {
   // Determine which credentials to return based on mode
   const isProxyMode = connection.connectionMode === 'proxy'
 
+  // Helper to safely decrypt
+  const safeDecrypt = (text: string) => {
+    try {
+      return decrypt(text)
+    } catch (e) {
+      console.warn('Decryption failed (key mismatch?): Returning empty string. User should update settings.')
+      return ''
+    }
+  }
+
   let webHost = connection.webHost
   let webPort = connection.webPort
   let webUsername = connection.webUsername
-  let webPassword = connection.encryptedWebPassword ? decrypt(connection.encryptedWebPassword) : ''
+  let webPassword = connection.encryptedWebPassword ? safeDecrypt(connection.encryptedWebPassword) : ''
 
   // Always return SSH target details if they exist, as they are needed for the proxy connection
   let sshHost = connection.sshHost
   let sshPort = connection.sshPort
   let sshUsername = connection.sshUsername
-  let sshPassword = connection.encryptedSshPassword ? decrypt(connection.encryptedSshPassword) : ''
+  let sshPassword = connection.encryptedSshPassword ? safeDecrypt(connection.encryptedSshPassword) : ''
 
   return NextResponse.json({
     webHost,
@@ -48,7 +58,7 @@ export async function POST(req: Request) {
     sshPort,
     sshUsername,
     sshPassword,
-    anthropicAuthToken: connection.encryptedAuthToken ? decrypt(connection.encryptedAuthToken) : undefined,
+    anthropicAuthToken: connection.encryptedAuthToken ? safeDecrypt(connection.encryptedAuthToken) : undefined,
     proxyUrl: connection.proxyUrl // Client needs this too
   })
 }

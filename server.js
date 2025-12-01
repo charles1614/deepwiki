@@ -174,15 +174,20 @@ app.prepare().then(() => {
           }
 
           function decrypt(text) {
-            const buffer = Buffer.from(text, 'hex')
-            const salt = buffer.subarray(0, SALT_LENGTH)
-            const iv = buffer.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH)
-            const tag = buffer.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH)
-            const encrypted = buffer.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH)
-            const key = getKey(salt)
-            const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
-            decipher.setAuthTag(tag)
-            return decipher.update(encrypted) + decipher.final('utf8')
+            try {
+              const buffer = Buffer.from(text, 'hex')
+              const salt = buffer.subarray(0, SALT_LENGTH)
+              const iv = buffer.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH)
+              const tag = buffer.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH)
+              const encrypted = buffer.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH)
+              const key = getKey(salt)
+              const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
+              decipher.setAuthTag(tag)
+              return decipher.update(encrypted) + decipher.final('utf8')
+            } catch (error) {
+              console.warn('Server decryption failed (key mismatch?):', error.message)
+              return ''
+            }
           }
 
           const connection = await prisma.sshConnection.findUnique({
