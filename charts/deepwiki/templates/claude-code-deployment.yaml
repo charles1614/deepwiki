@@ -1,0 +1,50 @@
+{{- if .Values.claudeCode.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "deepwiki.fullname" . }}-claude-code
+  labels:
+    {{- include "deepwiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: claude-code
+spec:
+  replicas: {{ .Values.claudeCode.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "deepwiki.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: claude-code
+  template:
+    metadata:
+      labels:
+        {{- include "deepwiki.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: claude-code
+    spec:
+      containers:
+        - name: claude-code
+          image: "{{ .Values.claudeCode.image.repository }}:{{ .Values.claudeCode.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.claudeCode.image.pullPolicy }}
+          ports:
+            - name: ssh
+              containerPort: 22
+              protocol: TCP
+            - name: proxy
+              containerPort: 3001
+              protocol: TCP
+          env:
+            - name: PROXY_AUTH_TOKEN
+              value: {{ .Values.global.env.PROXY_AUTH_TOKEN | quote }}
+            - name: SSH_ROOT_PASSWORD
+              value: {{ .Values.global.env.SSH_ROOT_PASSWORD | quote }}
+          resources:
+            {{- toYaml .Values.claudeCode.resources | nindent 12 }}
+          {{- if .Values.claudeCode.persistence.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: /workspace
+          {{- end }}
+      {{- if .Values.claudeCode.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "deepwiki.fullname" . }}-claude-code-pvc
+      {{- end }}
+{{- end }}

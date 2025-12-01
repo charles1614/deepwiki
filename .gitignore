@@ -68,3 +68,4 @@ ENV_SETUP.md
 # IDE
 .vscode/
 .idea/
+secrets.yaml

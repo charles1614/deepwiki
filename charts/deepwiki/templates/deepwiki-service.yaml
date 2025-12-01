@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "deepwiki.fullname" . }}
+  labels:
+    {{- include "deepwiki.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.deepwiki.service.type }}
+  ports:
+    - port: {{ .Values.deepwiki.service.port }}
+      targetPort: {{ .Values.deepwiki.service.targetPort }}
+      protocol: TCP
+      name: http
+      {{- if .Values.deepwiki.service.nodePort }}
+      nodePort: {{ .Values.deepwiki.service.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "deepwiki.selectorLabels" . | nindent 4 }}

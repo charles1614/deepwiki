@@ -1,0 +1,59 @@
+# Default values for deepwiki.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  env:
+    PROXY_AUTH_TOKEN: "" # Should be set via secret or --set
+    SSH_ROOT_PASSWORD: "" # Should be set via secret or --set
+
+deepwiki:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/charles1614/deepwiki
+    pullPolicy: Always
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "latest"
+  service:
+    type: NodePort
+    port: 80
+    nodePort: 30000 # Optional: specify if needed, otherwise auto-assigned
+    targetPort: 3000
+  resources: 
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  env:
+    # Add other environment variables here
+    # DATABASE_URL: "postgresql://..."
+    # NEXTAUTH_URL: "http://..."
+    # NEXTAUTH_SECRET: "..."
+
+claudeCode:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/charles1614/deepwiki/claude-code
+    pullPolicy: Always
+    tag: "latest"
+  service:
+    type: NodePort
+    sshPort: 22
+    sshNodePort: 30022 # Optional
+    proxyPort: 3001
+    proxyNodePort: 30031 # Optional
+  persistence:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    # storageClass: "-" # Uncomment to use default or specify one
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi

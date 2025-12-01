@@ -1,0 +1,29 @@
+{{- if .Values.claudeCode.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "deepwiki.fullname" . }}-claude-code
+  labels:
+    {{- include "deepwiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: claude-code
+spec:
+  type: {{ .Values.claudeCode.service.type }}
+  ports:
+    - port: {{ .Values.claudeCode.service.sshPort }}
+      targetPort: 22
+      protocol: TCP
+      name: ssh
+      {{- if .Values.claudeCode.service.sshNodePort }}
+      nodePort: {{ .Values.claudeCode.service.sshNodePort }}
+      {{- end }}
+    - port: {{ .Values.claudeCode.service.proxyPort }}
+      targetPort: 3001
+      protocol: TCP
+      name: proxy
+      {{- if .Values.claudeCode.service.proxyNodePort }}
+      nodePort: {{ .Values.claudeCode.service.proxyNodePort }}
+      {{- end }}
+  selector:
+    {{- include "deepwiki.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: claude-code
+{{- end }}

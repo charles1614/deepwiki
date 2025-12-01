@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "deepwiki.fullname" . }}
+  labels:
+    {{- include "deepwiki.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.deepwiki.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "deepwiki.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "deepwiki.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.deepwiki.image.repository }}:{{ .Values.deepwiki.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.deepwiki.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: PROXY_AUTH_TOKEN
+              value: {{ .Values.global.env.PROXY_AUTH_TOKEN | quote }}
+            {{- range $key, $val := .Values.deepwiki.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.deepwiki.resources | nindent 12 }}

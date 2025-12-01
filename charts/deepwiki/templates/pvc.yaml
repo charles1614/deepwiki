@@ -1,0 +1,18 @@
+{{- if and .Values.claudeCode.enabled .Values.claudeCode.persistence.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "deepwiki.fullname" . }}-claude-code-pvc
+  labels:
+    {{- include "deepwiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: claude-code
+spec:
+  accessModes:
+    - {{ .Values.claudeCode.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.claudeCode.persistence.size }}
+  {{- if .Values.claudeCode.persistence.storageClass }}
+  storageClassName: {{ .Values.claudeCode.persistence.storageClass }}
+  {{- end }}
+{{- end }}
