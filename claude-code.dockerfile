@@ -1,5 +1,20 @@
 FROM debian:stable-slim
 
+# Configure Aliyun Debian mirrors
+RUN tee /etc/apt/sources.list.d/debian.sources <<'EOF'
+Types: deb
+URIs: https://mirrors.aliyun.com/debian
+Suites: trixie trixie-updates
+Components: main non-free contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: https://mirrors.aliyun.com/debian-security
+Suites: trixie-security
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+
 # Install minimal dependencies
 # bash: default in debian, but good to ensure
 # curl: required for downloading
@@ -7,6 +22,8 @@ FROM debian:stable-slim
 # openssh-server: for SSH access (note: openssh-server, not openssh)
 # openssl: for SSL certificate generation
 # Install Node.js and npm (for ssh-proxy.js)
+# tmux: terminal multiplexer
+# vim: text editor
 RUN apt-get update && apt-get install -y --no-install-recommends \
   bash \
   curl \
@@ -17,7 +34,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   npm \
   passwd \
   openssl \
+  tmux \
+  vim \
   && rm -rf /var/lib/apt/lists/*
+
+# Install Zellij
+RUN bash <(curl -L https://zellij.dev/launch)
 
 # Generate SSL certificate at build time
 RUN mkdir -p /etc/nginx/ssl_ip && \

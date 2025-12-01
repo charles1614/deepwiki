@@ -46,7 +46,7 @@ export function AiTerminal({ socket }: AiTerminalProps) {
         background: '#1e1e1e',
         foreground: '#ffffff',
       },
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontFamily: '"MesloLGS NF", Menlo, Monaco, "Courier New", monospace',
       fontSize: 14,
       scrollback: 1000, // Keep last 1000 lines
     })
