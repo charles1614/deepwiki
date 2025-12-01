@@ -28,10 +28,16 @@ export default function RootLayout({
 }) {
   // Read from server-side env var (NO NEXT_PUBLIC_ prefix)
   // This gets the runtime container value, not build-time value
-  const proxyAuthToken = process.env.PROXY_AUTH_TOKEN;
+  // Fallback to NEXT_PUBLIC_ variant just in case the env file wasn't updated
+  const proxyAuthToken = process.env.PROXY_AUTH_TOKEN || process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN;
 
   // Debug: verify token is available (server-side only, won't show in browser)
-  console.log('[Server] PROXY_AUTH_TOKEN present:', !!proxyAuthToken, 'Length:', proxyAuthToken?.length);
+  console.log('[Server] Token Check:', {
+    PROXY_AUTH_TOKEN: !!process.env.PROXY_AUTH_TOKEN,
+    NEXT_PUBLIC_VAR: !!process.env.NEXT_PUBLIC_PROXY_AUTH_TOKEN,
+    FINAL_TOKEN: !!proxyAuthToken,
+    LENGTH: proxyAuthToken?.length
+  });
 
   return (
     <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable}`}>
