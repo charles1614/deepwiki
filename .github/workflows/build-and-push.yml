@@ -50,6 +50,9 @@ jobs:
           find node_modules/@prisma -name "*.node" -type f | head -10 || echo "No .node files found"
           ls -la node_modules/.prisma/ 2>/dev/null || echo "No .prisma directory found"
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
