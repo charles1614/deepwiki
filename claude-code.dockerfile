@@ -5,6 +5,7 @@ FROM debian:stable-slim
 # curl: required for downloading
 # git: often required by development tools
 # openssh-server: for SSH access (note: openssh-server, not openssh)
+# openssl: for SSL certificate generation
 # Install Node.js and npm (for ssh-proxy.js)
 RUN apt-get update && apt-get install -y --no-install-recommends \
   bash \
@@ -15,7 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   nodejs \
   npm \
   passwd \
+  openssl \
   && rm -rf /var/lib/apt/lists/*
+
+# Generate SSL certificate at build time
+RUN mkdir -p /etc/nginx/ssl_ip && \
+  openssl req -x509 -newkey rsa:4096 -keyout /etc/nginx/ssl_ip/ip.key -out /etc/nginx/ssl_ip/ip.crt -days 365 -nodes -subj "/CN=localhost"
 
 # Configure SSH
 RUN mkdir -p /var/run/sshd && \
