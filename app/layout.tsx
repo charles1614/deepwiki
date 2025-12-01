@@ -6,6 +6,10 @@ import './globals.css';
 
 // import { getPublicSystemSettings } from '@/app/actions/public-settings';
 
+// Force dynamic rendering to ensure environment variables are read at runtime
+// and console logs appear in the container output
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'DeepWiki',
   description: 'Generated with Claude Code Next.js scaffolding',
