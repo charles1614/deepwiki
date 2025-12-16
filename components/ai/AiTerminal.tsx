@@ -147,18 +147,31 @@ export function AiTerminal({ socket }: AiTerminalProps) {
   const handleData = (data: string) => {
     if (!termRef.current) return
 
-    // Check for custom OSC sequence for directory sync: \x1b]99;path\x07
-    const oscMatch = data.match(/\x1b\]99;(.+?)\x07/)
-    if (oscMatch) {
-      const path = oscMatch[1]
-      console.log('AiTerminal: Detected path change:', path)
+    // Detect zellij-compatible marker: \x1b]99;__DEEPWIKI_PWD__:/path\x07
+    const zellijMarkerMatch = data.match(/\x1b\]99;__DEEPWIKI_PWD__:(.+?)\x07/)
+    if (zellijMarkerMatch) {
+      const path = zellijMarkerMatch[1]
+      console.log('AiTerminal: Zellij directory sync detected:', path)
       if (socket) {
         socket.emit('sftp-list', path)
       }
-
-      // Remove the sequence from data so it doesn't show up in terminal
-      data = data.replace(/\x1b\]99;.+?\x07/g, '')
+      // Remove marker from output (keep terminal clean)
+      data = data.replace(/\x1b\]99;__DEEPWIKI_PWD__:.+?\x07/g, '')
     }
+
+    // Fallback: Legacy OSC sequence support (non-zellij shells)
+    if (!zellijMarkerMatch) {
+      const legacyOscMatch = data.match(/\x1b\]99;(.+?)\x07/)
+      if (legacyOscMatch) {
+        const path = legacyOscMatch[1]
+        console.log('AiTerminal: Legacy OSC directory sync detected:', path)
+        if (socket) {
+          socket.emit('sftp-list', path)
+        }
+        data = data.replace(/\x1b\]99;.+?\x07/g, '')
+      }
+    }
+
     termRef.current.write(data)
   }
 
@@ -214,36 +227,8 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     }
   }, [socket, isInitialized])
 
-  // Periodic PWD polling for directory sync (fallback for zellij and other multiplexers)
-  useEffect(() => {
-    if (!socket || !isInitialized) return
-
-    let lastPath: string | null = null
-
-    const handlePwdResult = (path: string) => {
-      // Only emit sftp-list if path has changed
-      if (path && path !== lastPath) {
-        console.log('AiTerminal: PWD changed from', lastPath, 'to', path)
-        lastPath = path
-        socket.emit('sftp-list', path)
-      }
-    }
-
-    socket.on('ssh-pwd-result', handlePwdResult)
-
-    // Poll PWD every 2 seconds
-    const pollInterval = setInterval(() => {
-      socket.emit('ssh-get-pwd')
-    }, 2000)
-
-    // Get initial PWD
-    socket.emit('ssh-get-pwd')
-
-    return () => {
-      socket.off('ssh-pwd-result', handlePwdResult)
-      clearInterval(pollInterval)
-    }
-  }, [socket, isInitialized])
+  // Note: Automatic PWD polling has been removed because it's intrusive in terminal multiplexers like zellij.
+  // Use the manual sync button in the file browser instead, or configure your shell prompt to emit OSC sequences.
 
   return (
     <div className="h-full w-full bg-[#1e1e1e] rounded-lg overflow-hidden p-2" data-testid="ai-terminal">

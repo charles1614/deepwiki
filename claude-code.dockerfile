@@ -69,7 +69,26 @@ ENV PATH="/root/.local/bin:/root/.claude/bin:${PATH}"
 # Pass PROXY_AUTH_TOKEN to the container environment
 ENV PROXY_AUTH_TOKEN=""
 RUN echo 'export PATH="/root/.local/bin:/root/.claude/bin:$PATH"' >> /root/.bashrc && \
-  echo 'export PROMPT_COMMAND='\''printf "\033]99;$(pwd)\007"'\''' >> /root/.bashrc && \
+  echo '' >> /root/.bashrc && \
+  echo '# DeepWiki directory sync (zellij-compatible)' >> /root/.bashrc && \
+  echo 'if [[ -n "$ZELLIJ" ]]; then' >> /root/.bashrc && \
+  echo '  # Running in zellij - use enhanced marker' >> /root/.bashrc && \
+  echo '  __deepwiki_pwd_sync() {' >> /root/.bashrc && \
+  echo '    printf "\033]99;__DEEPWIKI_PWD__:$(pwd)\007"' >> /root/.bashrc && \
+  echo '  }' >> /root/.bashrc && \
+  echo '  if [[ -n "$BASH_VERSION" ]]; then' >> /root/.bashrc && \
+  echo '    # Bash: Use PROMPT_COMMAND' >> /root/.bashrc && \
+  echo '    if [[ "$PROMPT_COMMAND" == *"__deepwiki_pwd_sync"* ]]; then' >> /root/.bashrc && \
+  echo '      : # Already configured' >> /root/.bashrc && \
+  echo '    else' >> /root/.bashrc && \
+  echo '      PROMPT_COMMAND="__deepwiki_pwd_sync;${PROMPT_COMMAND}"' >> /root/.bashrc && \
+  echo '    fi' >> /root/.bashrc && \
+  echo '  fi' >> /root/.bashrc && \
+  echo 'else' >> /root/.bashrc && \
+  echo '  # Not in zellij - use legacy OSC sequence' >> /root/.bashrc && \
+  echo '  export PROMPT_COMMAND='\''printf "\033]99;$(pwd)\007"'\''' >> /root/.bashrc && \
+  echo 'fi' >> /root/.bashrc && \
+  echo '' >> /root/.bashrc && \
   echo 'if [ -f /root/.env ]; then set -a; source /root/.env; set +a; fi' >> /root/.bashrc && \
   # Debian uses .bashrc for interactive non-login shells, and .profile for login shells.
   # Ensure .bashrc is sourced in .profile if it exists

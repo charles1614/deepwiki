@@ -161,7 +161,16 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
 
   const handleFileClick = (file: FileItem) => {
     if (file.isDirectory) {
-      const newPath = currentPath === '.' ? file.filename : `${currentPath}/${file.filename}`
+      let newPath: string
+
+      if (currentPath === '.') {
+        newPath = file.filename
+      } else if (currentPath === '/') {
+        newPath = `/${file.filename}`  // Append to root
+      } else {
+        newPath = `${currentPath}/${file.filename}`
+      }
+
       loadDirectory(newPath)
     } else {
       if (file.filename.endsWith('.md')) {
@@ -178,8 +187,22 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
     if (selectedFile) {
       setSelectedFile(null)
       setFileContent('')
-    } else if (currentPath !== '.') {
-      const parentPath = currentPath.split('/').slice(0, -1).join('/') || '.'
+    } else if (currentPath !== '.' && currentPath !== '/') {
+      let parentPath: string
+
+      if (currentPath.startsWith('/')) {
+        // Absolute path: preserve leading slash
+        const parts = currentPath.split('/').filter(p => p !== '')
+        if (parts.length === 1) {
+          parentPath = '/'  // One level deep (e.g., /home), go to root
+        } else {
+          parentPath = '/' + parts.slice(0, -1).join('/')
+        }
+      } else {
+        // Relative path: existing logic
+        parentPath = currentPath.split('/').slice(0, -1).join('/') || '.'
+      }
+
       loadDirectory(parentPath)
     }
   }
@@ -365,7 +388,7 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
     >
       <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between bg-gray-50">
         <div className="flex items-center gap-2 overflow-hidden">
-          {(currentPath !== '.' || selectedFile) && (
+          {((currentPath !== '.' && currentPath !== '/') || selectedFile) && (
             <button
               onClick={handleBack}
               className="p-1 hover:bg-gray-200 rounded-full transition-colors"
@@ -381,8 +404,8 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={handleSyncWithTerminal}
-            className="p-1 hover:bg-gray-200 rounded-full transition-colors text-gray-500 hover:text-gray-700"
-            title="Sync with terminal directory"
+            className="p-1 hover:bg-blue-100 rounded-full transition-colors text-blue-600 hover:text-blue-700 ring-1 ring-blue-200"
+            title="Sync with terminal directory (useful when using zellij/tmux)"
             disabled={loading || publishing || !!selectedFile}
           >
             <ArrowsRightLeftIcon className={`h-4 w-4 ${loading ? 'animate-pulse' : ''}`} />
