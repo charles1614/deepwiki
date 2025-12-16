@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { FolderIcon, DocumentTextIcon, ArrowLeftIcon, ArrowPathIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline'
+import { FolderIcon, DocumentTextIcon, ArrowLeftIcon, ArrowPathIcon, CloudArrowUpIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline'
 import { MarkdownRenderer } from '@/lib/markdown/MarkdownRenderer'
 import { useAiConnection } from '@/lib/ai/AiConnectionContext'
 import { preserveFileBrowserState, retrieveFileBrowserState, clearFileBrowserState } from '@/lib/ai/aiStorage'
@@ -193,6 +193,35 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
     }
   }
 
+  const handleSyncWithTerminal = () => {
+    // Request current PWD from terminal and sync file browser
+    if (socket) {
+      setLoading(true)
+      setError(null)
+
+      const handlePwdResult = (path: string) => {
+        socket.off('ssh-pwd-result', handlePwdResult)
+        if (path) {
+          loadDirectory(path)
+        } else {
+          setLoading(false)
+        }
+      }
+
+      socket.on('ssh-pwd-result', handlePwdResult)
+      socket.emit('ssh-get-pwd')
+
+      // Timeout after 3 seconds
+      setTimeout(() => {
+        socket.off('ssh-pwd-result', handlePwdResult)
+        if (loading) {
+          setLoading(false)
+          setError('Sync timeout')
+        }
+      }, 3000)
+    }
+  }
+
   const isPublishable = () => {
     // Check if current path matches .../docs/xxx pattern
     // Filter out '.' AND empty strings (from leading/trailing slashes)
@@ -350,6 +379,14 @@ export function AiFileBrowser({ socket }: AiFileBrowserProps) {
           </h3>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleSyncWithTerminal}
+            className="p-1 hover:bg-gray-200 rounded-full transition-colors text-gray-500 hover:text-gray-700"
+            title="Sync with terminal directory"
+            disabled={loading || publishing || !!selectedFile}
+          >
+            <ArrowsRightLeftIcon className={`h-4 w-4 ${loading ? 'animate-pulse' : ''}`} />
+          </button>
           <button
             onClick={handleRefresh}
             className="p-1 hover:bg-gray-200 rounded-full transition-colors text-gray-500 hover:text-gray-700"

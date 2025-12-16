@@ -292,6 +292,45 @@ npx playwright test       # Alternative command
 3. Configure environment variables
 4. Deploy automatically
 
+### HTTPS with Let's Encrypt (Production)
+
+For secure public deployment with a custom domain (e.g., `wiki.litenext.digital`):
+
+#### 1. Start Docker container (bound to localhost only)
+```bash
+docker-compose -f docker-compose.prod.yml up -d --build
+```
+
+#### 2. Install Certbot and Nginx
+```bash
+sudo apt update
+sudo apt install -y certbot nginx
+```
+
+#### 3. Get Let's Encrypt certificate
+```bash
+sudo mkdir -p /var/www/certbot
+sudo certbot certonly --webroot -w /var/www/certbot -d wiki.litenext.digital
+```
+
+#### 4. Configure Nginx
+
+> [!IMPORTANT]
+> Update `server_name` and SSL certificate paths in `nginx/deepwiki.conf` to match your domain before copying.
+
+```bash
+sudo cp nginx/deepwiki.conf /etc/nginx/sites-available/deepwiki
+sudo ln -s /etc/nginx/sites-available/deepwiki /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+#### 5. Auto-renewal (cron job)
+```bash
+echo "0 0,12 * * * root certbot renew --quiet --post-hook 'systemctl reload nginx'" | sudo tee /etc/cron.d/certbot-renew
+```
+
+Your DeepWiki instance will now be accessible via HTTPS at your domain!
+
 ### Manual Deployment
 ```bash
 npm run build && npm run start

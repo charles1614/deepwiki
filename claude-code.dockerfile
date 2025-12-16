@@ -9,6 +9,8 @@ FROM debian:stable-slim
 # Install Node.js and npm (for ssh-proxy.js)
 # tmux: terminal multiplexer
 # vim: text editor
+# jq: JSON processor for command line
+# tree: directory tree viewer
 RUN apt-get update && apt-get install -y --no-install-recommends \
   bash \
   curl \
@@ -21,6 +23,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   openssl \
   tmux \
   vim \
+  jq \
+  tree \
   && rm -rf /var/lib/apt/lists/*
 
 # Configure Aliyun Debian mirrors

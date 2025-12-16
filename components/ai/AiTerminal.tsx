@@ -214,6 +214,37 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     }
   }, [socket, isInitialized])
 
+  // Periodic PWD polling for directory sync (fallback for zellij and other multiplexers)
+  useEffect(() => {
+    if (!socket || !isInitialized) return
+
+    let lastPath: string | null = null
+
+    const handlePwdResult = (path: string) => {
+      // Only emit sftp-list if path has changed
+      if (path && path !== lastPath) {
+        console.log('AiTerminal: PWD changed from', lastPath, 'to', path)
+        lastPath = path
+        socket.emit('sftp-list', path)
+      }
+    }
+
+    socket.on('ssh-pwd-result', handlePwdResult)
+
+    // Poll PWD every 2 seconds
+    const pollInterval = setInterval(() => {
+      socket.emit('ssh-get-pwd')
+    }, 2000)
+
+    // Get initial PWD
+    socket.emit('ssh-get-pwd')
+
+    return () => {
+      socket.off('ssh-pwd-result', handlePwdResult)
+      clearInterval(pollInterval)
+    }
+  }, [socket, isInitialized])
+
   return (
     <div className="h-full w-full bg-[#1e1e1e] rounded-lg overflow-hidden p-2" data-testid="ai-terminal">
       <div ref={terminalRef} className="h-full w-full" />

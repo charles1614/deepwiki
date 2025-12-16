@@ -453,6 +453,33 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('ssh-get-pwd', () => {
+    if (sshClient && sshClient._sock && sshClient._sock.readable) {
+      sshClient.exec('pwd', (err, execStream) => {
+        if (err) {
+          console.error('PWD exec error:', err);
+          return;
+        }
+
+        let pwdOutput = '';
+        execStream.on('data', (data) => {
+          pwdOutput += data.toString('utf-8');
+        });
+
+        execStream.on('close', () => {
+          const path = pwdOutput.trim();
+          if (path) {
+            socket.emit('ssh-pwd-result', path);
+          }
+        });
+
+        execStream.stderr.on('data', (data) => {
+          console.error('PWD stderr:', data.toString());
+        });
+      });
+    }
+  });
+
   socket.on('disconnect', () => {
     if (sshClient) {
       try {
