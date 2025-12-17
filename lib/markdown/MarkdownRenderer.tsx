@@ -43,7 +43,7 @@ export function MarkdownRenderer({
   const [mermaidInitialized, setMermaidInitialized] = useState(false)
   const [processedContent, setProcessedContent] = useState<string>('')
   const [zoomedDiagram, setZoomedDiagram] = useState<{ code: string; svg: string } | null>(null)
-  const [zoomLevel, setZoomLevel] = useState(4) // Set to 4x for maximum default view
+  const [zoomLevel, setZoomLevel] = useState(1) // Start with 1x, autoScale handles initial sizing
   const [autoScale, setAutoScale] = useState(1)
   const [renderedDiagrams, setRenderedDiagrams] = useState<Map<string, string>>(new Map())
   const [processedMermaid, setProcessedMermaid] = useState<Set<string>>(new Set())
@@ -793,56 +793,90 @@ export function MarkdownRenderer({
 
   // Auto-scale diagram to fit browser viewport with adaptive resolution
   useEffect(() => {
-    if (zoomedDiagram) {
-      // Parse SVG to get viewBox dimensions
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(zoomedDiagram.svg, 'text/html')
-      const svg = doc.querySelector('svg')
+    const calculateScale = () => {
+      if (zoomedDiagram && diagramContainerRef.current) {
+        // Get the actual rendered SVG element from the modal
+        const svgElement = diagramContainerRef.current.querySelector('svg')
 
-      if (svg) {
-        const viewBox = svg.getAttribute('viewBox')
-        if (viewBox) {
-          const [, , width, height] = viewBox.split(/\s+|,/).map(Number)
+        if (svgElement) {
+          // Reset transform temporarily to measure natural size
+          const originalTransform = diagramContainerRef.current.style.transform
+          diagramContainerRef.current.style.transform = 'none'
 
-          // Get actual viewport dimensions
+          // Force browser to calculate layout
+          diagramContainerRef.current.offsetHeight
+
+          // Get actual rendered pixel dimensions
+          const rect = svgElement.getBoundingClientRect()
+          let actualWidth = rect.width
+          let actualHeight = rect.height
+
+          // Restore original transform
+          diagramContainerRef.current.style.transform = originalTransform
+
+          // Fallback: if dimensions are 0 or very small, use viewBox
+          if (actualWidth < 10 || actualHeight < 10) {
+            const viewBox = svgElement.getAttribute('viewBox')
+            if (viewBox) {
+              const [, , vbWidth, vbHeight] = viewBox.split(/\s+|,/).map(Number)
+              actualWidth = vbWidth
+              actualHeight = vbHeight
+            }
+          }
+
+          // Get viewport dimensions
           const viewportWidth = window.innerWidth
           const viewportHeight = window.innerHeight
 
-          // Target: Fill 80-85% of viewport for optimal visibility
-          // Use minimal padding to maximize diagram size
-          const targetFillRatio = 0.82
-          const paddingRatio = 0.04 // 4% padding on each side
+          // Reserve space for controls at top (80px)
+          const availableHeight = viewportHeight - 80
 
-          // Calculate scale to fill target percentage of viewport
-          const targetWidth = viewportWidth * targetFillRatio
-          const targetHeight = viewportHeight * targetFillRatio
+          // Use higher fill ratio for better space utilization with comfortable margins
+          const targetWidthRatio = 0.92
+          const targetHeightRatio = 0.92
 
-          // Calculate required scale for both dimensions
-          const scaleForWidth = targetWidth / width
-          const scaleForHeight = targetHeight / height
+          // Calculate target dimensions
+          const targetWidth = viewportWidth * targetWidthRatio
+          const targetHeight = availableHeight * targetHeightRatio
 
-          // Use the smaller scale to ensure diagram fits completely
-          let scale = Math.min(scaleForWidth, scaleForHeight)
+          // Calculate scale to fit within target space using actual pixel dimensions
+          const scaleForWidth = targetWidth / actualWidth
+          const scaleForHeight = targetHeight / actualHeight
 
-          // Also calculate scale to fit with padding (fallback for very large diagrams)
-          const maxFitWidth = viewportWidth * (1 - paddingRatio * 2)
-          const maxFitHeight = viewportHeight * (1 - paddingRatio * 2)
-          const fitScale = Math.min(maxFitWidth / width, maxFitHeight / height)
+          // Always use the smaller scale to ensure diagram fits in BOTH dimensions
+          let optimalScale = Math.min(scaleForWidth, scaleForHeight)
 
-          // Use the larger of target scale or fit scale (no artificial limits)
-          scale = Math.max(scale, fitScale)
+          // Apply minimal bounds - only prevent extreme cases
+          // Remove restrictive maxScale to allow natural auto-fit
+          const minScale = 0.1
+          optimalScale = Math.max(minScale, optimalScale)
 
-          // No artificial size constraints - allow any scale that makes sense for the content
-
-          setAutoScale(scale)
+          setAutoScale(optimalScale)
+          setZoomLevel(1)
           setPosition({ x: 0, y: 0 })
         }
+      } else {
+        setAutoScale(1)
+        setZoomLevel(1)
+        setPosition({ x: 0, y: 0 })
       }
-    } else {
-      setAutoScale(1)
-      // Don't reset zoomLevel to 1, keep the default value (5)
-      setZoomLevel(4)
-      setPosition({ x: 0, y: 0 })
+    }
+
+    // Delay calculation slightly to ensure SVG is rendered
+    const timeoutId = setTimeout(calculateScale, 50)
+
+    // Recalculate on window resize
+    const handleResize = () => {
+      if (zoomedDiagram) {
+        calculateScale()
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      clearTimeout(timeoutId)
+      window.removeEventListener('resize', handleResize)
     }
   }, [zoomedDiagram])
 
@@ -948,8 +982,8 @@ export function MarkdownRenderer({
 
   const handleModalClose = () => {
     setZoomedDiagram(null)
-    // Reset to default zoom level (4x)
-    setZoomLevel(4)
+    // Reset to default zoom level (1x with autoScale)
+    setZoomLevel(1)
     setPosition({ x: 0, y: 0 })
   }
 
@@ -1032,14 +1066,65 @@ export function MarkdownRenderer({
           }}
           onClick={handleModalClose}
         >
-          {/* Close button */}
-          <button
-            onClick={handleModalClose}
-            className="absolute top-4 right-4 z-50 w-10 h-10 flex items-center justify-center bg-white/90 hover:bg-white cursor-pointer transition-colors"
-            aria-label="Close"
-          >
-            <span className="text-xl text-gray-700">✕</span>
-          </button>
+          {/* Control buttons */}
+          <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+            {/* Zoom out button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setZoomLevel(prev => Math.max(prev - 0.2, 0.1))
+              }}
+              className="w-10 h-10 flex items-center justify-center bg-white/90 hover:bg-white cursor-pointer transition-colors"
+              aria-label="Zoom out"
+              title="Zoom out"
+            >
+              <span className="text-xl text-gray-700">−</span>
+            </button>
+
+            {/* Zoom level indicator */}
+            <div className="px-3 h-10 flex items-center justify-center bg-white/90 text-sm text-gray-700 font-medium min-w-[60px]">
+              {Math.round(zoomLevel * autoScale * 100)}%
+            </div>
+
+            {/* Zoom in button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setZoomLevel(prev => Math.min(prev + 0.2, 10))
+              }}
+              className="w-10 h-10 flex items-center justify-center bg-white/90 hover:bg-white cursor-pointer transition-colors"
+              aria-label="Zoom in"
+              title="Zoom in"
+            >
+              <span className="text-xl text-gray-700">+</span>
+            </button>
+
+            {/* Reset zoom button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setZoomLevel(1)
+                setPosition({ x: 0, y: 0 })
+              }}
+              className="w-10 h-10 flex items-center justify-center bg-white/90 hover:bg-white cursor-pointer transition-colors"
+              aria-label="Reset zoom"
+              title="Reset zoom and position"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+
+            {/* Close button */}
+            <button
+              onClick={handleModalClose}
+              className="w-10 h-10 flex items-center justify-center bg-white/90 hover:bg-white cursor-pointer transition-colors"
+              aria-label="Close"
+              title="Close (ESC)"
+            >
+              <span className="text-xl text-gray-700">✕</span>
+            </button>
+          </div>
 
           {/* Diagram - center, draggable, zoomable */}
           <div
