@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback, useLayoutEffect } from
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import Prism from 'prismjs'
+import { useRouter, useParams } from 'next/navigation'
 import 'prismjs/components/prism-typescript'
 import 'prismjs/components/prism-javascript'
 import 'prismjs/components/prism-jsx'
@@ -36,6 +37,8 @@ export function MarkdownRenderer({
   className = ''
 }: MarkdownRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+  const params = useParams()
   const [mermaidModule, setMermaidModule] = useState<any>(null)
   const [mermaidInitialized, setMermaidInitialized] = useState(false)
   const [processedContent, setProcessedContent] = useState<string>('')
@@ -655,6 +658,25 @@ export function MarkdownRenderer({
             }
             const id = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')
             return `<h${depth} id="${id}" class="heading-${depth} prose-headings">${text}</h${depth}>`
+          },
+          link({ href, text, title }: { href: string; text: string; title?: string | null }): string {
+            // Check if this is an internal wiki link (ends with .md)
+            if (href && href.endsWith('.md')) {
+              // Mark as internal wiki link with data attribute
+              const titleAttr = title ? ` title="${title}"` : ''
+              return `<a href="${href}" data-wiki-link="true"${titleAttr} class="text-blue-600 hover:text-blue-800 underline">${text}</a>`
+            }
+
+            // Check if this is an external link (starts with http:// or https://)
+            if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+              // External link - open in new tab
+              const titleAttr = title ? ` title="${title}"` : ''
+              return `<a href="${href}" target="_blank" rel="noopener noreferrer"${titleAttr} class="text-blue-600 hover:text-blue-800 underline">${text}</a>`
+            }
+
+            // Default link handling
+            const titleAttr = title ? ` title="${title}"` : ''
+            return `<a href="${href}"${titleAttr} class="text-blue-600 hover:text-blue-800 underline">${text}</a>`
           }
           // Let marked use its default renderers for everything else (paragraph, list, etc.)
           // This ensures inline formatting (**bold**, *italic*, etc.) works correctly
@@ -716,7 +738,8 @@ export function MarkdownRenderer({
             'd', 'cx', 'cy', 'r', 'x', 'y', 'x1', 'y1', 'x2', 'y2',
             'transform', 'fill', 'stroke', 'stroke-width', 'font-family',
             'font-size', 'text-anchor', 'dominant-baseline', 'alignment-baseline',
-            'data-language', 'data-processed', 'role', 'aria-label'
+            'data-language', 'data-processed', 'role', 'aria-label',
+            'data-wiki-link', 'target', 'rel' // Allow wiki link marker and external link attributes
           ],
           ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
           ALLOW_DATA_ATTR: false
@@ -942,6 +965,39 @@ export function MarkdownRenderer({
       contentDiv.innerHTML = finalContent
     }
   }, [finalContent])
+
+  // Handle wiki link clicks - intercept and use Next.js router
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || !params?.slug) return
+
+    const handleLinkClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const link = target.closest('a[data-wiki-link="true"]') as HTMLAnchorElement
+
+      if (link) {
+        e.preventDefault()
+
+        const href = link.getAttribute('href')
+        if (!href) return
+
+        // Extract filename without .md extension
+        const filename = href.replace(/\.md$/, '').replace(/^\//, '')
+
+        // Navigate to the same wiki page with updated file parameter
+        const currentPath = `/wiki/${params.slug}`
+        const newUrl = `${currentPath}?file=${encodeURIComponent(filename)}`
+
+        router.push(newUrl)
+      }
+    }
+
+    container.addEventListener('click', handleLinkClick)
+
+    return () => {
+      container.removeEventListener('click', handleLinkClick)
+    }
+  }, [router, params])
 
   return (
     <>
