@@ -230,6 +230,37 @@ export function AiTerminal({ socket }: AiTerminalProps) {
   // Note: Automatic PWD polling has been removed because it's intrusive in terminal multiplexers like zellij.
   // Use the manual sync button in the file browser instead, or configure your shell prompt to emit OSC sequences.
 
+  // File-based PWD polling for zellij support
+  useEffect(() => {
+    if (!socket || !isInitialized) return
+
+    let lastPath: string | null = null
+
+    const handlePwdFileResult = (path: string) => {
+      // Only emit sftp-list if path has changed
+      if (path && path !== lastPath) {
+        console.log('AiTerminal: Directory changed (file-based):', lastPath, '→', path)
+        lastPath = path
+        socket.emit('sftp-list', path)
+      }
+    }
+
+    socket.on('ssh-pwd-file-result', handlePwdFileResult)
+
+    // Poll PWD file every 2 seconds
+    const pollInterval = setInterval(() => {
+      socket.emit('ssh-poll-pwd-file')
+    }, 2000)
+
+    // Get initial PWD
+    socket.emit('ssh-poll-pwd-file')
+
+    return () => {
+      socket.off('ssh-pwd-file-result', handlePwdFileResult)
+      clearInterval(pollInterval)
+    }
+  }, [socket, isInitialized])
+
   return (
     <div className="h-full w-full bg-[#1e1e1e] rounded-lg overflow-hidden p-2" data-testid="ai-terminal">
       <div ref={terminalRef} className="h-full w-full" />

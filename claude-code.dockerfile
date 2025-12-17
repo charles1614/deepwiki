@@ -70,23 +70,25 @@ ENV PATH="/root/.local/bin:/root/.claude/bin:${PATH}"
 ENV PROXY_AUTH_TOKEN=""
 RUN echo 'export PATH="/root/.local/bin:/root/.claude/bin:$PATH"' >> /root/.bashrc && \
   echo '' >> /root/.bashrc && \
-  echo '# DeepWiki directory sync (zellij-compatible)' >> /root/.bashrc && \
-  echo 'if [[ -n "$ZELLIJ" ]]; then' >> /root/.bashrc && \
-  echo '  # Running in zellij - use enhanced marker' >> /root/.bashrc && \
-  echo '  __deepwiki_pwd_sync() {' >> /root/.bashrc && \
+  echo '# DeepWiki directory sync (file-based for zellij compatibility)' >> /root/.bashrc && \
+  echo '__deepwiki_pwd_sync() {' >> /root/.bashrc && \
+  echo '  # Write current directory to file for SFTP polling' >> /root/.bashrc && \
+  echo '  echo "$(pwd)" > ~/.deepwiki_pwd 2>/dev/null || true' >> /root/.bashrc && \
+  echo '  # Also emit OSC sequence for non-zellij terminals' >> /root/.bashrc && \
+  echo '  if [[ -n "$ZELLIJ" ]]; then' >> /root/.bashrc && \
   echo '    printf "\033]99;__DEEPWIKI_PWD__:$(pwd)\007"' >> /root/.bashrc && \
-  echo '  }' >> /root/.bashrc && \
-  echo '  if [[ -n "$BASH_VERSION" ]]; then' >> /root/.bashrc && \
-  echo '    # Bash: Use PROMPT_COMMAND' >> /root/.bashrc && \
-  echo '    if [[ "$PROMPT_COMMAND" == *"__deepwiki_pwd_sync"* ]]; then' >> /root/.bashrc && \
-  echo '      : # Already configured' >> /root/.bashrc && \
-  echo '    else' >> /root/.bashrc && \
-  echo '      PROMPT_COMMAND="__deepwiki_pwd_sync;${PROMPT_COMMAND}"' >> /root/.bashrc && \
-  echo '    fi' >> /root/.bashrc && \
+  echo '  else' >> /root/.bashrc && \
+  echo '    printf "\033]99;$(pwd)\007"' >> /root/.bashrc && \
   echo '  fi' >> /root/.bashrc && \
-  echo 'else' >> /root/.bashrc && \
-  echo '  # Not in zellij - use legacy OSC sequence' >> /root/.bashrc && \
-  echo '  export PROMPT_COMMAND='\''printf "\033]99;$(pwd)\007"'\''' >> /root/.bashrc && \
+  echo '}' >> /root/.bashrc && \
+  echo '' >> /root/.bashrc && \
+  echo '# Set up PROMPT_COMMAND for bash' >> /root/.bashrc && \
+  echo 'if [[ -n "$BASH_VERSION" ]]; then' >> /root/.bashrc && \
+  echo '  if [[ "$PROMPT_COMMAND" == *"__deepwiki_pwd_sync"* ]]; then' >> /root/.bashrc && \
+  echo '    : # Already configured' >> /root/.bashrc && \
+  echo '  else' >> /root/.bashrc && \
+  echo '    PROMPT_COMMAND="__deepwiki_pwd_sync;${PROMPT_COMMAND}"' >> /root/.bashrc && \
+  echo '  fi' >> /root/.bashrc && \
   echo 'fi' >> /root/.bashrc && \
   echo '' >> /root/.bashrc && \
   echo 'if [ -f /root/.env ]; then set -a; source /root/.env; set +a; fi' >> /root/.bashrc && \

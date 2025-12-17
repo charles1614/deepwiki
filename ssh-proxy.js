@@ -480,6 +480,22 @@ io.on('connection', (socket) => {
     }
   });
 
+  // File-based PWD polling for zellij support
+  socket.on('ssh-poll-pwd-file', () => {
+    if (sftpClient) {
+      sftpClient.readFile('.deepwiki_pwd', (err, content) => {
+        if (err) {
+          // File doesn't exist or can't be read - silently ignore
+          return;
+        }
+        const path = content.toString('utf-8').trim();
+        if (path) {
+          socket.emit('ssh-pwd-file-result', path);
+        }
+      });
+    }
+  });
+
   socket.on('disconnect', () => {
     if (sshClient) {
       try {
