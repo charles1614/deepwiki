@@ -34,7 +34,7 @@ export function WikiUpload({
   enableCancellation = true,
   maxFileSize = 10 * 1024 * 1024, // 10MB default
   maxFiles = 50,
-  allowedFileTypes = ['.md']
+  allowedFileTypes = ['.md', '.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp']
 }: WikiUploadProps) {
   const [files, setFiles] = useState<File[]>([])
   const [fileProgress, setFileProgress] = useState<FileProgress[]>([])
@@ -120,8 +120,20 @@ export function WikiUpload({
       return false
     }
 
+    // Categorize files
+    const markdownFiles = files.filter(file => file.name.endsWith('.md'))
+    const imageFiles = files.filter(file =>
+      /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(file.name)
+    )
+
+    // Check if at least one markdown file exists
+    if (markdownFiles.length === 0) {
+      setError('At least one markdown (.md) file is required.')
+      return false
+    }
+
     // Check if index.md is included
-    const hasIndexMd = files.some(file => file.name === 'index.md')
+    const hasIndexMd = markdownFiles.some(file => file.name === 'index.md')
     if (!hasIndexMd) {
       setError('index.md file is required.')
       return false
@@ -136,10 +148,18 @@ export function WikiUpload({
       return false
     }
 
+    // Check individual image sizes (max 5MB per image)
+    const maxImageSize = 5 * 1024 * 1024 // 5MB
+    const oversizedImages = imageFiles.filter(file => file.size > maxImageSize)
+    if (oversizedImages.length > 0) {
+      setError(`Image files must be smaller than 5MB. Large images: ${oversizedImages.map(f => f.name).join(', ')}`)
+      return false
+    }
+
     // Check total size
     const totalSize = files.reduce((sum, file) => sum + file.size, 0)
     if (totalSize > maxFileSize) {
-      setError(`File size too large. Maximum allowed size is ${(maxFileSize / 1024 / 1024).toFixed(1)}MB`)
+      setError(`Total file size too large. Maximum allowed size is ${(maxFileSize / 1024 / 1024).toFixed(1)}MB`)
       return false
     }
 

@@ -1,389 +1,275 @@
-# DeepWiki - Claude Development Guide
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-DeepWiki is a Next.js 15 application with a complete authentication system, built with Claude Code scaffolding. It demonstrates modern web development patterns with TypeScript, Tailwind CSS, Prisma ORM, and comprehensive testing.
+DeepWiki is a Next.js 16 wiki management system with an integrated SSH terminal and AI workspace. It features wiki hosting with markdown support, Mermaid diagrams, cloud storage (R2), and remote server access via SSH with persistent session management.
 
-**Tech Stack:**
-- Next.js 15 with App Router
-- TypeScript
-- Tailwind CSS for styling
-- Prisma ORM with PostgreSQL
+**Core Tech Stack:**
+- Next.js 16 with App Router
+- Custom Node.js server with Socket.IO (server.js)
+- PostgreSQL with Prisma ORM
 - NextAuth.js v5 for authentication
-- React Hook Form + Zod for form validation
-- Jest & React Testing Library for unit tests
-- Playwright for E2E tests
+- Cloudflare R2 for wiki file storage
+- SSH2 for remote connections
+- xterm.js for terminal emulation
+- Mermaid for diagram rendering
 
 ## Development Commands
 
 ### Core Development
 ```bash
-# Install dependencies
-npm install
+npm run dev              # Start custom server with Socket.IO (NOT next dev)
+npm run build            # Build for production
+npm run start            # Start production server (custom server)
+```
 
-# Start development server
-npm run dev
+**IMPORTANT**: This project uses a custom Node.js server ([server.js](server.js)) instead of the default Next.js dev server. The server integrates Socket.IO for SSH connections and session management.
 
-# Build for production
-npm run build
-
-# Start production server
-npm run start
+### Database
+```bash
+npm run db:generate      # Generate Prisma client
+npm run db:migrate       # Run migrations
+npm run db:studio        # Open Prisma Studio
+npm run db:seed          # Seed database (admin@deepwiki.com/Admin123!, user@deepwiki.com/User123!)
 ```
 
 ### Code Quality
 ```bash
-# Run ESLint
-npm run lint
-
-# Type checking
-npm run type-check
-
-# Format code with Prettier
-npm run format
-npm run format:check
-```
-
-### Database Operations
-```bash
-# Generate Prisma client
-npm run db:generate
-
-# Run database migrations
-npm run db:migrate
-
-# Open Prisma Studio (database GUI)
-npm run db:studio
-
-# Seed database with test users
-npm run db:seed
+npm run lint             # ESLint
+npm run type-check       # TypeScript type checking
+npm run format           # Prettier formatting
+npm run format:check     # Check formatting
 ```
 
 ### Testing
 ```bash
-# Run unit/integration tests
-npm run test
-npm run test:watch
-npm run test:coverage
-
-# Run E2E tests
-npm run test:e2e
+npm run test             # Unit tests (Jest)
+npm run test:watch       # Watch mode
+npm run test:coverage    # Coverage report (70% threshold)
+npm run test:e2e         # E2E tests (Playwright, runs dev server automatically)
 ```
 
-## Architecture Overview
+**E2E Testing Notes:**
+- Playwright automatically starts dev server via dotenv
+- Uses 4 parallel workers (reduced from 8 for stability)
+- Tests run across Chromium, Firefox, and WebKit
+- Custom fixtures in [tests/e2e/helpers/fixtures.ts](tests/e2e/helpers/fixtures.ts)
+- R2 storage credentials configured in playwright.config.ts
 
-### Directory Structure
-```
-deepwiki/
-├── app/                          # Next.js App Router
-│   ├── (auth)/                   # Authentication route group
-│   │   ├── login/               # Login page
-│   │   ├── register/            # Registration page
-│   │   └── reset-password/      # Password reset flow
-│   ├── api/                     # API routes
-│   │   └── auth/                # Authentication endpoints
-│   ├── dashboard/               # Protected dashboard
-│   ├── globals.css              # Global styles
-│   ├── layout.tsx               # Root layout
-│   └── page.tsx                 # Home page
-├── components/                  # Reusable components
-│   ├── auth/                    # Authentication components
-│   ├── layout/                  # Layout components
-│   └── ui/                      # UI primitives
-├── lib/                         # Utilities and configuration
-│   ├── auth.ts                  # NextAuth configuration
-│   ├── database.ts              # Prisma client
-│   └── validations.ts           # Zod schemas
-├── prisma/                      # Database setup
-│   ├── schema.prisma            # Database schema
-│   └── seed.ts                  # Database seeding
-├── tests/                       # Test files
-│   └── e2e/                     # E2E tests
-└── __tests__/                   # Unit tests
-```
+## Architecture
 
-## Authentication System
+### Custom Server Architecture
 
-### NextAuth.js Configuration
-- **Provider**: Credentials (email/password)
-- **Strategy**: JWT sessions
-- **Database**: Prisma User model
-- **Role-based access**: USER/ADMIN roles
+The application uses a **custom Node.js server** ([server.js](server.js)) rather than the default Next.js server:
 
-### Authentication Flow
-1. User registers via `/api/auth/register`
-2. Credentials validated against Zod schema
-3. Password hashed with bcryptjs
-4. User stored in database with USER role
-5. Login handled by NextAuth credentials provider
-6. JWT tokens contain user role for authorization
+**Key Features:**
+- Socket.IO integration at `/api/socket` path
+- SSH connection management with session preservation
+- SFTP client for file browsing
+- Session manager for persistent connections across page navigation
+- 24-hour session timeout with cleanup intervals
 
-### Protected Routes
-- Use `ProtectedRoute` component for route protection
-- Set `requireAdmin={true}` for admin-only routes
-- Automatically redirects unauthenticated users to `/login`
+**SSH Session Flow:**
+1. Client emits `ssh-connect` with credentials or `connectionId`
+2. Server creates SSH client and SFTP client
+3. Session preserved with unique `sessionId`
+4. Terminal state and file browser state saved on navigation
+5. Session can be restored after page navigation via `navigation-restore` event
+6. Sessions auto-cleanup after 24 hours of inactivity
 
-### Session Management
-```tsx
-// Access session data
-import { useSession } from 'next-auth/react'
+**Important Socket.IO Events:**
+- `ssh-connect` - Establish SSH connection
+- `ssh-data` - Send/receive terminal data
+- `ssh-resize` - Terminal resize events
+- `navigation-pause/resume/disconnect/restore` - Session preservation
+- `sftp-list/read` - File browser operations
+- `ssh-get-pwd` - Get current working directory
+- `ssh-poll-pwd-file` - Poll `.deepwiki_pwd` file for zellij support
 
-const { data: session } = useSession()
-// session.user.email, session.user.role, session.user.id
-```
+### Database Schema
 
-## Database Schema
+**Core Models:**
+- `User` - Authentication with role-based access (USER/ADMIN)
+- `Wiki` - Wiki metadata with `isPublic` flag and owner relationship
+- `WikiFile` - Individual markdown files stored in R2
+- `WikiVersion` - File version history with checksums
+- `SystemSetting` - Key-value configuration store
+- `SshConnection` - Encrypted SSH credentials and proxy settings
 
-### User Model
-```prisma
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+**Important Relationships:**
+- All models use cascade deletes (`onDelete: Cascade`)
+- Files versioned per-file, not per-wiki
+- Users own wikis, wikis own files, files have versions
 
-enum Role {
-  USER
-  ADMIN
-}
-```
+### Storage Architecture
 
-### Database Configuration
-- **Development & Production**: PostgreSQL
-- **Production**: PostgreSQL (configure via DATABASE_URL)
-- **Seeded users**:
-  - Admin: `admin@deepwiki.com` / `Admin123!`
-  - User: `user@deepwiki.com` / `User123!`
+**R2 Cloud Storage** ([lib/storage/r2.ts](lib/storage/r2.ts)):
+- All wiki files stored in Cloudflare R2
+- File operations: upload, download, delete, bulk delete
+- Files organized by wiki slug and filename
+- Database tracks URLs, R2 stores actual content
 
-## Component Architecture
+**Encryption** ([lib/encryption.ts](lib/encryption.ts)):
+- AES-256-GCM encryption for sensitive data
+- SSH credentials encrypted at rest
+- Requires `ENCRYPTION_KEY` environment variable
+- Server.js includes decryption logic for SSH connections
 
-### UI Components (`components/ui/`)
-- **Button**: Loading states, test IDs
-- **Input**: Form integration, error handling
-- **Alert**: Success/error messages
+### AI Terminal Feature
 
-### Authentication Components (`components/auth/`)
-- **LoginForm**: React Hook Form + Zod validation
-- **RegisterForm**: Password confirmation, strength validation
-- **PasswordResetForm**: Email-based reset flow
+Located in [app/ai/page.tsx](app/ai/page.tsx), this feature provides:
+- SSH terminal with xterm.js
+- File browser with SFTP integration
+- Claude Code environment setup assistance
+- Session preservation across page navigation
+- Two connection modes: Web (direct SSH) and Proxy (via standalone SSH proxy)
+- File-based PWD polling for zellij/tmux support
 
-### Layout Components (`components/layout/`)
-- **ProtectedRoute**: Route protection with role support
-- **Providers**: NextAuth session provider
+**Directory Sync Pattern:**
+The terminal writes current directory to `.deepwiki_pwd` file, polled by frontend every 2 seconds. This enables directory synchronization in terminal multiplexers like zellij where traditional shell integration fails.
 
-## Form Validation
+## Key Application Areas
 
-### Zod Schemas (`lib/validations.ts`)
-```typescript
-// Registration validation
-export const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain uppercase, lowercase, and number'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-})
-```
+### Authentication ([lib/auth.ts](lib/auth.ts))
+- NextAuth.js v5 with credentials provider
+- JWT sessions with user verification on each session load
+- Role-based access (USER/ADMIN)
+- Session invalidation if user deleted from database
+- Docker-friendly with `trustHost: true`
 
-### Form Integration
-- React Hook Form for form state
-- Zod resolver for validation
-- Automatic error display
-- Loading states during submission
+### Wiki Management
+- Upload markdown files with bulk operations
+- Automatic slug generation from titles
+- Public/private wiki visibility
+- Complete cascade deletion (DB + R2 storage)
+- Search with full-text search across content
+- Mermaid diagram rendering with zoom/pan controls
 
-## API Routes
+### Admin Panel ([app/admin/](app/admin/))
+- User management with bulk operations
+- System settings configuration
+- Activity tracking
 
-### Authentication Endpoints
-```
-POST /api/auth/register           # User registration
-POST /api/auth/[...nextauth]      # NextAuth.js handler
-POST /api/auth/reset-password/request  # Request password reset
-POST /api/auth/reset-password/confirm  # Confirm password reset
-```
+## Environment Variables
 
-### API Response Pattern
-```typescript
-// Success response
-return NextResponse.json({
-  message: 'Success message',
-  data: result
-}, { status: 200 })
-
-// Error response
-return NextResponse.json({
-  error: 'Error message'
-}, { status: 400 })
-```
-
-## Testing Setup
-
-### Unit Tests (Jest + React Testing Library)
-- **Location**: `__tests__/`
-- **Configuration**: `jest.config.js`, `jest.setup.js`
-- **Coverage**: `npm run test:coverage`
-- **Mocking**: Next.js API routes, Request/Response objects
-
-### E2E Tests (Playwright)
-- **Location**: `tests/e2e/`
-- **Configuration**: `playwright.config.ts`
-- **Features covered**:
-  - Registration flow
-  - Login/logout
-  - Protected route access
-  - Form validation
-  - Admin access
-  - Keyboard navigation
-  - Accessibility
-
-### Running Tests
-```bash
-# Unit tests
-npm run test                    # Single run
-npm run test:watch             # Watch mode
-npm run test:coverage          # With coverage
-
-# E2E tests
-npm run test:e2e               # All browsers
-npx playwright test --project=chromium  # Specific browser
-npx playwright test --debug    # Debug mode
-```
-
-## Environment Configuration
-
-### Required Environment Variables (`.env.local`)
+**Required:**
 ```bash
 # Database
-DATABASE_URL="postgresql://deepwiki:devpassword@localhost:5432/deepwiki"    # PostgreSQL for all environments
-# DATABASE_URL="postgresql://..."  # PostgreSQL for production
+DATABASE_URL="postgresql://user:pass@localhost:5432/deepwiki"
 
-# NextAuth.js
+# NextAuth
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key"
 
-# Email (for password reset)
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT=587
-SMTP_USER="your-email@gmail.com"
-SMTP_PASS="your-app-password"
-EMAIL_FROM="noreply@deepwiki.com"
+# R2 Storage
+CLOUDFLARE_R2_BUCKET_NAME=your-bucket
+CLOUDFLARE_R2_ACCOUNT_ID=your-account-id
+CLOUDFLARE_R2_ACCESS_KEY_ID=your-key
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=your-secret
+CLOUDFLARE_R2_ENDPOINT_URL=https://your-account-id.r2.cloudflarestorage.com
 
-# App URL
+# Encryption
+ENCRYPTION_KEY="your-encryption-key"  # For SSH credential encryption
+```
+
+**Optional:**
+```bash
+# SSH Proxy (for AI feature)
+ANTHROPIC_BASE_URL="https://api.anthropic.com"  # Override API endpoint
+
+# App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NODE_ENV=development
+PORT=3000
 ```
 
-## Development Patterns
+## Important Patterns
 
-### File Naming
-- Components: `PascalCase.tsx`
-- Pages: `page.tsx` (App Router convention)
-- API routes: `route.ts`
-- Utilities: `camelCase.ts`
+### Server-Side Data Fetching
+Use Server Actions ([app/actions/](app/actions/)) or API routes for data mutations:
+- Server Actions: Direct database access with `'use server'`
+- API routes: RESTful endpoints with NextResponse
 
-### Import Aliases
+### Prisma Retry Logic ([lib/prisma-retry.ts](lib/prisma-retry.ts))
+Wrap Prisma operations with retry logic for transient failures:
 ```typescript
-// Configured in tsconfig.json
-import { Component } from '@/components/ui/Component'
-import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/database'
+import { withPrismaRetry } from '@/lib/prisma-retry'
+const result = await withPrismaRetry(() => prisma.wiki.findMany())
 ```
 
-### Error Handling
-- Form validation: Zod schemas with user-friendly messages
-- API errors: Consistent JSON error responses
-- Database errors: Try-catch with proper logging
+### Markdown Processing
+- Marked.js for parsing
+- DOMPurify for sanitization
+- Mermaid diagrams with auto-initialization and zoom controls
+- Syntax highlighting with Prism.js
+- Wiki link navigation with `[[link]]` syntax
 
-### Accessibility
-- Semantic HTML elements
-- ARIA labels and attributes
-- Keyboard navigation support
-- Screen reader testing via E2E tests
-
-## Deployment Considerations
-
-### Database Migration
-1. Set `DATABASE_URL` to PostgreSQL
-2. Run `npm run db:migrate`
-3. Run `npm run db:seed` for initial data
-
-### Environment Setup
-1. Configure production environment variables
-2. Set `NEXTAUTH_URL` to production domain
-3. Configure email provider for password resets
-4. Ensure `NEXTAUTH_SECRET` is secure and random
-
-### Security Headers
-- X-Frame-Options: DENY
-- X-Content-Type-Options: nosniff
-- (Configured in `next.config.js`)
-
-## Common Development Tasks
-
-### Adding New API Route
-```typescript
-// app/api/endpoint/route.ts
-import { NextResponse } from 'next/server'
-
-export async function GET() {
-  // Handle GET request
-  return NextResponse.json({ data: result })
-}
-
-export async function POST(request: NextRequest) {
-  const body = await request.json()
-  // Handle POST request
-  return NextResponse.json({ message: 'Success' })
-}
+### Component Organization
+```
+components/
+├── auth/          # Login, register, password reset forms
+├── layout/        # Protected routes, providers, navigation
+├── ui/            # Reusable UI primitives (Button, Input, Alert)
+├── wiki/          # Wiki-specific components (file browser, viewer)
+└── ai/            # SSH terminal and file browser components
 ```
 
-### Adding New Protected Page
-```tsx
-// app/new-page/page.tsx
-import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
+## Testing Conventions
 
-export default function NewPage() {
-  return (
-    <ProtectedRoute>
-      {/* Page content */}
-    </ProtectedRoute>
-  )
-}
+### Unit Tests ([__tests__/](\_\_tests__/))
+- React Testing Library for component tests
+- Mock Next.js API routes with custom helpers
+- Factory functions for test data
+- Coverage threshold: 70% (branches, functions, lines, statements)
+
+### E2E Tests ([tests/e2e/](tests/e2e/))
+- Custom fixtures for authentication and wiki setup
+- Test utilities for common operations
+- Global setup for polyfills ([tests/e2e/setup.ts](tests/e2e/setup.ts))
+- Isolated database for each test where needed
+
+## Deployment
+
+### Docker
+Development: `docker-compose up -d`
+Production: `docker-compose -f docker-compose.prod.yml up -d --build`
+
+**Important**: Database migrations run automatically in Docker setup (idempotent).
+
+### Manual Deployment
+```bash
+npm run build
+npm run start
 ```
 
-### Database Schema Changes
-1. Modify `prisma/schema.prisma`
-2. Run `npm run db:generate`
-3. Run `npm run db:migrate`
-4. Update seed file if needed
+### Production Considerations
+- Set `NODE_ENV=production`
+- Configure secure `NEXTAUTH_SECRET`
+- Use production PostgreSQL database
+- Configure R2 bucket with proper CORS
+- Set up Nginx reverse proxy for HTTPS (see README)
+- Ensure `ENCRYPTION_KEY` is consistent across deployments
 
-### Adding Form Validation
-1. Create Zod schema in `lib/validations.ts`
-2. Use with React Hook Form:
-```tsx
-const form = useForm({
-  resolver: zodResolver(yourSchema),
-  defaultValues: initialData
-})
-```
+## Common Issues
 
-## Testing Best Practices
+### Custom Server Conflicts
+If you see Socket.IO connection errors, ensure:
+- Running `npm run dev`, NOT `next dev`
+- Port 3000 is available
+- No other Next.js dev servers running
 
-### Unit Tests
-- Test component behavior, not implementation
-- Use meaningful test IDs for selection
-- Mock external dependencies
-- Test error states and edge cases
+### SSH Connection Issues
+- Check `ENCRYPTION_KEY` matches between deployments
+- Verify SSH credentials in database are properly encrypted
+- Check proxy URL configuration for proxy mode
+- Review server.js logs for detailed SSH errors
 
-### E2E Tests
-- Test user workflows end-to-end
-- Use data-testid attributes for reliable selectors
-- Test across different viewports
-- Include accessibility testing
+### R2 Storage Issues
+- Verify R2 credentials and bucket permissions
+- Check CORS configuration on R2 bucket
+- Ensure endpoint URL matches account ID
 
-This guide provides a comprehensive foundation for understanding and extending the DeepWiki codebase. The project demonstrates modern full-stack development patterns with a focus on security, testing, and developer experience.
+### Database Connection Pool
+Prisma connection pool optimized for parallel E2E tests. If encountering connection issues during tests, check `DATABASE_URL` connection limit.

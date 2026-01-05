@@ -210,6 +210,63 @@ export class R2StorageService {
   }
 
   /**
+   * Upload a single image file to R2 storage
+   * Images are stored in {wikiSlug}/imgs/ subfolder
+   * Returns the public R2 URL for the image
+   */
+  async uploadWikiImage(
+    wikiSlug: string,
+    imageName: string,
+    imageBuffer: Buffer,
+    contentType: string
+  ): Promise<string> {
+    try {
+      // Store in imgs/ subfolder
+      const key = `${wikiSlug}/imgs/${imageName}`
+
+      // Determine content type if not provided
+      let mimeType = contentType
+      if (!mimeType || mimeType === 'application/octet-stream') {
+        // Infer from extension
+        const ext = imageName.toLowerCase().split('.').pop()
+        const mimeTypes: Record<string, string> = {
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'png': 'image/png',
+          'gif': 'image/gif',
+          'svg': 'image/svg+xml',
+          'webp': 'image/webp'
+        }
+        mimeType = mimeTypes[ext || ''] || 'application/octet-stream'
+      }
+
+      // Upload to R2 - NO UTF-8 validation for binary files
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: imageBuffer,
+        ContentType: mimeType
+        // Do NOT add Metadata.encoding for binary files
+      })
+
+      await this.s3Client.send(command)
+
+      // Generate public URL
+      // Use R2_PUBLIC_URL if available (for public access), otherwise fall back to endpoint
+      const publicUrl = process.env.CLOUDFLARE_R2_PUBLIC_URL
+        ? `${process.env.CLOUDFLARE_R2_PUBLIC_URL}/${key}`
+        : `${process.env.CLOUDFLARE_R2_ENDPOINT_URL}/${this.bucketName}/${key}`
+
+      return publicUrl
+    } catch (error) {
+      console.error('Error uploading image to R2:', error)
+      throw new Error(
+        `Failed to upload image ${imageName}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
+    }
+  }
+
+  /**
    * Get a specific file version from R2 storage
    */
   async getFileVersion(
