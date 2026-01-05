@@ -110,7 +110,7 @@ button {
 
 /* Enhanced Markdown Content Styling */
 .markdown-content {
-  font-size: 0.9375rem;
+  font-size: 1rem;
 }
 
 /* GitHub-style code blocks */
@@ -219,7 +219,7 @@ button {
 
 /* Paragraph spacing */
 .markdown-content p {
-  font-size: 0.9375rem;
+  font-size: 1.1rem;
   margin-top: 1rem;
   margin-bottom: 1rem;
   line-height: 1.7;
