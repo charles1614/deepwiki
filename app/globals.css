@@ -34,6 +34,22 @@
   --accents-6: #444;
   --accents-7: #333;
   --accents-8: #111;
+
+  /* Fluid Typography - scales from 16px (mobile) to 17px (desktop), capped at 1200px viewport */
+  --font-size-base: clamp(1rem, 0.982rem + 0.089vw, 1.0625rem);
+  --font-size-xs: clamp(0.75rem, 0.741rem + 0.045vw, 0.7813rem);
+  --font-size-sm: clamp(0.875rem, 0.866rem + 0.045vw, 0.9063rem);
+  --font-size-lg: clamp(1.125rem, 1.107rem + 0.089vw, 1.1875rem);
+  --font-size-xl: clamp(1.25rem, 1.232rem + 0.089vw, 1.3125rem);
+  --font-size-2xl: clamp(1.5rem, 1.482rem + 0.089vw, 1.5625rem);
+  --font-size-3xl: clamp(1.875rem, 1.839rem + 0.179vw, 2rem);
+  --font-size-4xl: clamp(2.25rem, 2.196rem + 0.268vw, 2.4375rem);
+  --font-size-code: clamp(0.8125rem, 0.804rem + 0.045vw, 0.8438rem);
+
+  /* Fixed line heights for optimal readability */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.6;
+  --line-height-relaxed: 1.7;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -61,7 +77,7 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   line-height: 1.5;
 }
 
@@ -79,7 +95,7 @@ h6 {
 
 button {
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
 }
 
 /* Custom Utilities for Vercel-like Cards */
@@ -110,7 +126,7 @@ button {
 
 /* Enhanced Markdown Content Styling */
 .markdown-content {
-  font-size: 1rem;
+  font-size: var(--font-size-base);
 }
 
 /* GitHub-style code blocks */
@@ -122,14 +138,14 @@ button {
   overflow-x: auto;
   margin: 1.5rem 0;
   position: relative;
-  font-size: 0.875rem;
+  font-size: var(--font-size-code);
   line-height: 1.45;
 }
 
 .markdown-content pre code {
   display: block;
   color: #24292f;
-  font-size: 0.875rem;
+  font-size: var(--font-size-code);
   font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
   line-height: 1.45;
   background: transparent;
@@ -150,7 +166,7 @@ button {
 /* Enhanced heading styles - override prose defaults */
 .markdown-content h1,
 .markdown-content.prose h1 {
-  font-size: 1.5rem;
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   color: #111827;
   margin-bottom: 0.75rem !important;
@@ -167,7 +183,7 @@ button {
 
 .markdown-content h2,
 .markdown-content.prose h2 {
-  font-size: 1.25rem;
+  font-size: var(--font-size-xl);
   font-weight: 600;
   color: #1f2937;
   margin-bottom: 0.625rem !important;
@@ -179,7 +195,7 @@ button {
 
 .markdown-content h3,
 .markdown-content.prose h3 {
-  font-size: 1.125rem;
+  font-size: var(--font-size-lg);
   font-weight: 600;
   color: #1f2937;
   margin-bottom: 0.5rem !important;
@@ -189,7 +205,7 @@ button {
 
 .markdown-content h4,
 .markdown-content.prose h4 {
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   font-weight: 500;
   color: #374151;
   margin-bottom: 0.5rem !important;
@@ -199,7 +215,7 @@ button {
 
 .markdown-content h5,
 .markdown-content.prose h5 {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: #374151;
   margin-bottom: 0.5rem !important;
@@ -209,7 +225,7 @@ button {
 
 .markdown-content h6,
 .markdown-content.prose h6 {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: #4b5563;
   margin-bottom: 0.5rem !important;
@@ -219,10 +235,10 @@ button {
 
 /* Paragraph spacing */
 .markdown-content p {
-  font-size: 1.1rem;
+  font-size: var(--font-size-base);
   margin-top: 1rem;
   margin-bottom: 1rem;
-  line-height: 1.7;
+  line-height: var(--line-height-relaxed);
 }
 
 .markdown-content p:first-child {

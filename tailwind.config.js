@@ -12,6 +12,21 @@ module.exports = {
         sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'monospace'],
       },
+      fontSize: {
+        'xs': 'var(--font-size-xs)',
+        'sm': 'var(--font-size-sm)',
+        'base': 'var(--font-size-base)',
+        'lg': 'var(--font-size-lg)',
+        'xl': 'var(--font-size-xl)',
+        '2xl': 'var(--font-size-2xl)',
+        '3xl': 'var(--font-size-3xl)',
+        '4xl': 'var(--font-size-4xl)',
+      },
+      lineHeight: {
+        'tight': 'var(--line-height-tight)',
+        'normal': 'var(--line-height-normal)',
+        'relaxed': 'var(--line-height-relaxed)',
+      },
       colors: {
         vercel: {
           // Background colors (Light Mode)
