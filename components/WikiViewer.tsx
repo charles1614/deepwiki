@@ -666,8 +666,8 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
   }
 
   return (
-    <div className="flex flex-col gap-4 w-full">
-      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 w-full">
+    <div className="flex flex-col gap-4 w-full h-full">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 w-full flex-1 min-h-0">
         {/* Sidebar */}
         <div className="w-full lg:w-64 flex-shrink-0">
           <div className="bg-white rounded-lg shadow-md p-4">
@@ -807,8 +807,8 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 min-w-0 w-full">
-          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 w-full max-w-full">
+        <div className="flex-1 min-w-0 w-full min-h-0 flex flex-col">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 w-full max-w-full overflow-y-auto flex-1">
             {selectedFile && (
               <div className="mb-6">
                 <div className="flex items-center justify-between">

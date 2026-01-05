@@ -14,10 +14,10 @@ interface WithNavigationProps {
 export function WithNavigation({ children, className = '' }: WithNavigationProps) {
   return (
     <BreadcrumbRightContentProvider>
-      <div className="min-h-screen bg-gray-50">
+      <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
         <Navigation />
         <Breadcrumbs />
-        <main className={className}>
+        <main className={`flex-1 overflow-y-auto ${className}`}>
           {children}
         </main>
       </div>

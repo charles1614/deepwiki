@@ -132,8 +132,8 @@ export default function WikiViewPage() {
   // Content loading will be handled inside WikiViewer
   const WikiContent = () => (
     <WithNavigation>
-      <div className="max-w-7xl mx-auto py-2 px-4 sm:px-6 lg:px-8 w-full overflow-x-hidden">
-        <div className="w-full max-w-full overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full h-full overflow-x-hidden">
+        <div className="w-full max-w-full h-full overflow-x-hidden">
           <WikiViewer wiki={wiki} files={files} onBack={handleBack} onFilesRefresh={fetchWiki} />
         </div>
       </div>
