@@ -70,6 +70,17 @@ ENV PATH="/root/.local/bin:/root/.claude/bin:${PATH}"
 ENV PROXY_AUTH_TOKEN=""
 RUN echo 'export PATH="/root/.local/bin:/root/.claude/bin:$PATH"' >> /root/.bashrc && \
   echo '' >> /root/.bashrc && \
+  echo '# Enable color support' >> /root/.bashrc && \
+  echo 'export TERM=xterm-256color' >> /root/.bashrc && \
+  echo 'export CLICOLOR=1' >> /root/.bashrc && \
+  echo 'export LSCOLORS=ExGxBxDxCxEgEdxbxgxcxd' >> /root/.bashrc && \
+  echo '' >> /root/.bashrc && \
+  echo '# Colorful prompt' >> /root/.bashrc && \
+  echo 'export PS1='"'"'\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '"'"'' >> /root/.bashrc && \
+  echo '' >> /root/.bashrc && \
+  echo '# Enable colorful ls' >> /root/.bashrc && \
+  echo 'alias ls="ls --color=auto"' >> /root/.bashrc && \
+  echo '' >> /root/.bashrc && \
   echo '# DeepWiki directory sync (file-based for zellij compatibility)' >> /root/.bashrc && \
   echo '__deepwiki_pwd_sync() {' >> /root/.bashrc && \
   echo '  # Write current directory to file for SFTP polling' >> /root/.bashrc && \
