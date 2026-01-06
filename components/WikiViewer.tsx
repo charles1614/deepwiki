@@ -669,10 +669,10 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
     <div className="flex flex-col gap-4 w-full h-full">
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 w-full flex-1 min-h-0">
         {/* Sidebar */}
-        <div className="w-full lg:w-64 flex-shrink-0">
-          <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="w-full lg:w-64 flex-shrink-0 flex flex-col min-h-0">
+          <div className="bg-white rounded-lg shadow-md p-4 flex flex-col flex-1 min-h-0">
             {/* Header Section - Two rows for better spacing */}
-            <div className="mb-4 space-y-2">
+            <div className="mb-4 space-y-2 flex-shrink-0">
               {/* First row: Title and selection count */}
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
@@ -721,7 +721,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
                 <div className="text-gray-500 text-sm">No files found in this wiki</div>
               </div>
             ) : (
-              <ul className="space-y-0.5" data-testid="file-list">
+              <ul className="space-y-0.5 overflow-y-auto flex-1 min-h-0" data-testid="file-list">
                 {sortedFiles.map((file) => {
                   const isCached = fileContentCache.has(file.id)
                   const isPrefetching = prefetchingFile === file.id
@@ -729,14 +729,14 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
 
                   return (
                     <li key={file.id}>
-                      <div className={`flex items-center gap-2 w-full p-1 rounded transition-colors ${isManageMode && isSelected ? 'bg-blue-50' : ''
+                      <div className={`flex items-center gap-1.5 w-full p-1 rounded transition-colors ${isManageMode && isSelected ? 'bg-blue-50' : ''
                         }`}>
                         {isManageMode && (
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleFileSelection(file.id)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer flex-shrink-0"
                             data-testid={`checkbox-${file.id}`}
                             aria-label={`Select ${file.filename}`}
                           />
@@ -744,7 +744,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
                         <button
                           onClick={() => isManageMode ? toggleFileSelection(file.id) : handleFileSelect(file)}
                           onMouseEnter={() => !isManageMode && handleFileHover(file)}
-                          className={`flex-1 text-left px-3 py-1.5 rounded text-sm transition-all relative
+                          className={`flex-1 text-left px-2 py-1.5 rounded text-sm transition-all flex items-center gap-2
                           ${selectedFile?.id === file.id && !isManageMode
                               ? 'bg-blue-100 text-blue-700 font-medium'
                               : isManageMode && isSelected
@@ -753,17 +753,20 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
                             }`}
                           data-testid={`file-${file.filename}`}
                         >
-                          <span>{file.filename.replace(/\.md$/, '')}</span>
-                          {isCached && selectedFile?.id !== file.id && !isManageMode && (
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400" title="Cached">
-                              ●
-                            </span>
-                          )}
-                          {isPrefetching && selectedFile?.id !== file.id && !isManageMode && (
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-400 animate-pulse" title="Loading...">
-                              ○
-                            </span>
-                          )}
+                          {/* Status indicator dots - inside button for unified selection */}
+                          <div className="flex-shrink-0 w-3 flex items-center justify-start">
+                            {isCached && selectedFile?.id !== file.id && !isManageMode && (
+                              <span className="text-[8px] leading-none text-gray-400" title="Cached">
+                                ●
+                              </span>
+                            )}
+                            {isPrefetching && selectedFile?.id !== file.id && !isManageMode && (
+                              <span className="text-[8px] leading-none text-blue-400 animate-pulse" title="Loading...">
+                                ○
+                              </span>
+                            )}
+                          </div>
+                          <span className="flex-1">{file.filename.replace(/\.md$/, '')}</span>
                         </button>
                         {isManageMode && (
                           <>
