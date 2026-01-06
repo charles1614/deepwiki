@@ -14,7 +14,7 @@ import { retrieveConnectionSettings, preserveNavigationTimestamp, retrieveNaviga
 
 const AiTerminal = dynamic(() => import('@/components/ai/AiTerminal').then(mod => mod.AiTerminal), {
   ssr: false,
-  loading: () => <div className="h-full w-full bg-[#1e1e1e] animate-pulse" />
+  loading: () => <div className="h-full w-full bg-white animate-pulse" />
 })
 
 const NAVIGATION_TIMEOUT = 24 * 60 * 60 * 1000 // 24 hours (effectively indefinite)
@@ -577,7 +577,7 @@ function AiPageContent() {
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Left Column: Terminal */}
-        <div className="w-full h-1/2 md:w-1/2 md:h-full border-b md:border-b-0 md:border-r border-gray-200 bg-[#1e1e1e] p-4">
+        <div className="w-full h-1/2 md:w-1/2 md:h-full border-b md:border-b-0 md:border-r border-gray-200 bg-white p-4">
           {connectionState.socket && <AiTerminal socket={connectionState.socket} />}
         </div>
 

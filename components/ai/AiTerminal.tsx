@@ -43,8 +43,29 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     const term = new Terminal({
       cursorBlink: true,
       theme: {
-        background: '#1e1e1e',
-        foreground: '#ffffff',
+        background: '#ffffff',
+        foreground: '#1e1e1e',
+        cursor: '#3b82f6',
+        cursorAccent: '#ffffff',
+        selectionBackground: '#3b82f6',
+        selectionForeground: '#ffffff',
+        // ANSI colors for terminal output
+        black: '#1e1e1e',
+        red: '#dc2626',
+        green: '#16a34a',
+        yellow: '#ca8a04',
+        blue: '#2563eb',
+        magenta: '#9333ea',
+        cyan: '#0891b2',
+        white: '#6b7280',
+        brightBlack: '#4b5563',
+        brightRed: '#ef4444',
+        brightGreen: '#22c55e',
+        brightYellow: '#eab308',
+        brightBlue: '#3b82f6',
+        brightMagenta: '#a855f7',
+        brightCyan: '#06b6d4',
+        brightWhite: '#1e1e1e',
       },
       fontFamily: '"MesloLGS NF", Menlo, Monaco, "Courier New", monospace',
       fontSize: 14,
@@ -262,7 +283,7 @@ export function AiTerminal({ socket }: AiTerminalProps) {
   }, [socket, isInitialized])
 
   return (
-    <div className="h-full w-full bg-[#1e1e1e] rounded-lg overflow-hidden p-2" data-testid="ai-terminal">
+    <div className="h-full w-full bg-white rounded-lg overflow-hidden p-2" data-testid="ai-terminal">
       <div ref={terminalRef} className="h-full w-full" />
     </div>
   )
