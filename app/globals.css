@@ -550,3 +550,9 @@ text.error-text {
   scrollbar-width: thin;
   scrollbar-color: #d1d5db transparent;
 }
+
+/* Force Xterm to fill container */
+.xterm-viewport, .xterm-screen {
+  width: 100% !important;
+  height: 100% !important;
+}

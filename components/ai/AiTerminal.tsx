@@ -107,13 +107,13 @@ export function AiTerminal({ socket }: AiTerminalProps) {
     // Handle resize with ResizeObserver
     const resizeObserver = new ResizeObserver(() => {
       try {
-        if (fitAddonRef.current) {
+        if (fitAddonRef.current && termRef.current) {
           fitAddonRef.current.fit()
           // Send new dimensions to server
           if (socket && socket.connected) {
             socket.emit('ssh-resize', {
-              cols: term.cols,
-              rows: term.rows
+              cols: termRef.current.cols,
+              rows: termRef.current.rows
             })
           }
         }
@@ -139,9 +139,6 @@ export function AiTerminal({ socket }: AiTerminalProps) {
       }
     })
 
-    // Socket event listeners are handled in a separate useEffect
-    // to ensure proper cleanup and avoid duplication
-
     setIsInitialized(true)
 
     return () => {
@@ -152,17 +149,70 @@ export function AiTerminal({ socket }: AiTerminalProps) {
       if (termRef.current && isInitializedRef.current && state.isConnected) {
         console.log('AiTerminal: Unmounting, preserving state')
         preserveTerminalState(termRef.current)
-        // We don't call preserveConnection() here because it might be a simple unmount
-        // (e.g. conditional rendering). The page/navigation logic should handle the connection preservation.
-        // However, since we moved the provider to global, we need to ensure the connection isn't lost.
-        // If we are navigating away, we want to preserve.
       }
 
       term.dispose()
       termRef.current = null
       setIsInitialized(false)
     }
-  }, [socket]) // Only re-run if socket changes (which is rare)
+  }, [socket])
+
+  // Fit terminal after initialization and FONT LOADING
+  useEffect(() => {
+    if (!isInitialized || !fitAddonRef.current || !termRef.current || !terminalRef.current) return
+
+    const fitTerminal = () => {
+      if (fitAddonRef.current && termRef.current && terminalRef.current) {
+        try {
+          const containerHeight = terminalRef.current.offsetHeight
+          const containerWidth = terminalRef.current.offsetWidth
+
+          console.log('AiTerminal: Fit attempt - Container dimensions:', containerWidth, 'x', containerHeight)
+
+          if (containerHeight > 0 && containerWidth > 0) {
+            fitAddonRef.current.fit()
+            if (socket && socket.connected) {
+              socket.emit('ssh-resize', {
+                cols: termRef.current.cols,
+                rows: termRef.current.rows
+              })
+            }
+            console.log('AiTerminal: Terminal fitted:', termRef.current.cols, 'x', termRef.current.rows)
+          } else {
+            console.warn('AiTerminal: Container has no dimensions yet, skipping fit')
+          }
+        } catch (e) {
+          console.error('AiTerminal: Error fitting terminal:', e)
+        }
+      }
+    }
+
+    // Wait for fonts to be ready before first fit
+    // This is critical because xterm calculates character size based on the font
+    document.fonts.ready.then(() => {
+      console.log('AiTerminal: Fonts loaded, performing initial fit')
+      // Small delay ensuring layout paint
+      requestAnimationFrame(() => {
+        fitTerminal()
+      })
+    })
+
+    // Safety net: Periodic check for the first few seconds
+    // significantly helps with layout shifts during page load/transitions
+    const intervals = [100, 300, 500, 1000, 2000, 3000]
+    const timeouts = intervals.map(delay =>
+      setTimeout(() => {
+        if (termRef.current) {
+          console.log(`AiTerminal: Safety refit at ${delay}ms`)
+          fitTerminal()
+        }
+      }, delay)
+    )
+
+    return () => {
+      timeouts.forEach(t => clearTimeout(t))
+    }
+  }, [isInitialized, socket])
 
   // Helper to handle incoming data and check for OSC sequences
   const handleData = (data: string) => {
@@ -284,7 +334,7 @@ export function AiTerminal({ socket }: AiTerminalProps) {
 
   return (
     <div className="h-full w-full bg-white rounded-lg overflow-hidden p-2" data-testid="ai-terminal">
-      <div ref={terminalRef} className="h-full w-full" />
+      <div ref={terminalRef} className="h-full w-full" style={{ width: '100%', height: '100%' }} />
     </div>
   )
 }
