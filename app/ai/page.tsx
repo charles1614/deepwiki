@@ -488,7 +488,7 @@ function AiPageContent() {
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
-      <div className="flex-none px-4 py-2 border-b border-gray-200 bg-white flex justify-between items-center">
+      <div className="flex-none px-4 sm:px-6 lg:px-8 py-2 border-b border-gray-200 bg-white flex justify-between items-center">
         <div className="flex items-center gap-2">
           <h1 className="text-lg font-semibold text-gray-900">AI Agent</h1>
           {connectionState.connectionStatus !== 'idle' && (
