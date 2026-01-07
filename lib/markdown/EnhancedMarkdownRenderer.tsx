@@ -68,7 +68,9 @@ export function EnhancedMarkdownRenderer({
             flowchart: {
               useMaxWidth: true,
               htmlLabels: true,
-              curve: 'basis'
+              curve: 'basis',
+              wrappingWidth: 800,
+              diagramPadding: 20
             }
           })
 

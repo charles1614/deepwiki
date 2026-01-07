@@ -359,8 +359,7 @@ button {
   border: 1px solid #e5e7eb;
   margin: 2rem 0;
   text-align: center;
-  max-height: 500px;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -369,7 +368,28 @@ button {
 .markdown-content .mermaid svg {
   max-width: 100%;
   height: auto;
-  max-height: 400px;
+}
+
+/* Force SVG text elements to show full content without truncation */
+.markdown-content .mermaid svg text,
+.markdown-content .mermaid svg tspan {
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+/* Ensure node labels can expand to fit content */
+.markdown-content .mermaid svg .nodeLabel {
+  overflow: visible !important;
+}
+
+/* Remove any clip-path constraints on text */
+.markdown-content .mermaid svg text[clip-path] {
+  clip-path: none !important;
+}
+
+/* Ensure foreignObject elements (if used for HTML labels) don't constrain size */
+.markdown-content .mermaid svg foreignObject {
+  overflow: visible !important;
 }
 
 /* Increase spacing between Mermaid subgraphs/clusters and nodes */

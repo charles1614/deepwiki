@@ -100,9 +100,9 @@ export function MarkdownRenderer({
                 htmlLabels: true,
                 curve: 'basis',
                 padding: 20,
-                nodeSpacing: 45,
-                rankSpacing: 55,
-                wrappingWidth: 200,
+                nodeSpacing: 50,
+                rankSpacing: 60,
+                wrappingWidth: 800,
                 diagramPadding: 20
               },
               themeCSS: theme === 'handwritten' ? `
