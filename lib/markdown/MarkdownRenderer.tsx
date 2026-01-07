@@ -318,7 +318,7 @@ export function MarkdownRenderer({
               const textElements = svgElement.querySelectorAll('text')
               textElements.forEach(textEl => {
                 textEl.style.zIndex = '100'
-                textEl.style.position = 'relative'
+                // Removed position: relative to preserve SVG native coordinate positioning
               })
 
               // Ensure all g elements containing text are on top
@@ -327,7 +327,7 @@ export function MarkdownRenderer({
                 const hasText = gEl.querySelector('text')
                 if (hasText) {
                   gEl.style.zIndex = '50'
-                  gEl.style.position = 'relative'
+                  // Removed position: relative to preserve SVG native coordinate positioning
                 }
               })
 
@@ -378,7 +378,7 @@ export function MarkdownRenderer({
                 const textElements = svgElement.querySelectorAll('text')
                 textElements.forEach(textEl => {
                   textEl.style.zIndex = '100'
-                  textEl.style.position = 'relative'
+                  // Removed position: relative to preserve SVG native coordinate positioning
                 })
 
                 // Ensure all g elements containing text are on top
@@ -387,7 +387,7 @@ export function MarkdownRenderer({
                   const hasText = gEl.querySelector('text')
                   if (hasText) {
                     gEl.style.zIndex = '50'
-                    gEl.style.position = 'relative'
+                    // Removed position: relative to preserve SVG native coordinate positioning
                   }
                 })
 

@@ -392,59 +392,50 @@ button {
   overflow: visible !important;
 }
 
+/* Fix cluster label foreignObject width constraint */
+.markdown-content .mermaid svg .cluster-label foreignObject {
+  width: auto !important;
+  min-width: 200px;
+  max-width: 800px;
+}
+
+/* Fix cluster label div width constraint */
+.markdown-content .mermaid svg .cluster-label foreignObject > div {
+  max-width: 800px !important;
+  width: auto !important;
+  white-space: nowrap !important;
+}
+
+/* Ensure cluster label text doesn't wrap unnecessarily */
+.markdown-content .mermaid svg .cluster-label .nodeLabel {
+  white-space: nowrap !important;
+}
+
+/* Preserve SVG native text positioning - prevent position:relative override */
+/* Exclude titleText and cluster elements which need transform-based positioning */
+.markdown-content .mermaid svg text:not(.titleText):not(.edgeLabel),
+.markdown-content .mermaid svg g:not(.cluster) {
+  position: static !important;
+}
+
 /* Increase spacing between Mermaid subgraphs/clusters and nodes */
 /* Add buffer zone above cluster titles to prevent arrow overlap with titles */
 /* Also add extra spacing when clusters are preceded by standalone text labels */
-.markdown-content .mermaid svg .cluster {
-  margin-top: 40px;
-  margin-bottom: 18px;
-}
+/* NOTE: Removed invalid .cluster margin rules - SVG groups don't use CSS margins */
 
 .markdown-content .mermaid svg .cluster rect {
   rx: 8;
   ry: 8;
 }
 
-/* Ensure proper spacing for cluster titles - prevent arrow overlap */
-.markdown-content .mermaid svg .cluster .titleText {
-  margin-bottom: 10px;
-  margin-top: 5px;
-  display: block;
-}
+/* NOTE: Removed invalid .titleText margin/display rules - breaks SVG positioning */
 
 /* Add spacing between different clusters */
-.markdown-content .mermaid svg g.cluster+g.cluster {
-  margin-top: 22px;
-}
+/* NOTE: Removed invalid cluster spacing rules - Mermaid handles spacing via layout algorithm */
 
-/* Ensure nodes inside clusters have proper spacing */
-.markdown-content .mermaid svg .cluster .node {
-  margin: 7px;
-}
+/* NOTE: Removed invalid node spacing rules - SVG doesn't use CSS margins */
 
-/* Add spacing for standalone text labels above subgraphs (like "Optimization Layers") */
-/* Target text elements that are not inside nodes or clusters */
-.markdown-content .mermaid svg g>text:not(.nodeLabel):not(.edgeLabel):not(.titleText) {
-  margin-bottom: 20px;
-  display: block;
-}
-
-/* Add spacing for text elements that appear before clusters */
-.markdown-content .mermaid svg g:has(text:not(.nodeLabel):not(.edgeLabel):not(.titleText))+g.cluster {
-  margin-top: 45px;
-}
-
-/* Alternative: Target any text group that comes before a cluster */
-.markdown-content .mermaid svg g[class*="text"]+g.cluster,
-.markdown-content .mermaid svg g:has(> text[class=""])+g.cluster {
-  margin-top: 45px;
-}
-
-/* Ensure standalone text has bottom margin */
-.markdown-content .mermaid svg g:has(> text:not(.nodeLabel):not(.edgeLabel):not(.titleText)):not(.cluster):not(.node) {
-  margin-bottom: 25px;
-  padding-bottom: 10px;
-}
+/* NOTE: Removed invalid text spacing rules - display:block and margins break SVG positioning */
 
 /* Hide Mermaid error messages */
 .markdown-content .mermaid .error-icon,
