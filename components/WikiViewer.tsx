@@ -481,7 +481,12 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
   const handleFileSelect = useCallback((file: WikiFile) => {
     setSelectedFile(file)
     setContentError(null)
-  }, [])
+
+    // Update URL with file parameter for direct linking
+    const fileNameWithoutExt = file.filename.replace(/\.md$/, '')
+    const newUrl = `${window.location.pathname}?file=${encodeURIComponent(fileNameWithoutExt)}`
+    router.push(newUrl, { scroll: false })
+  }, [router])
 
   const handleRetry = useCallback(() => {
     if (contentError && selectedFile) {
