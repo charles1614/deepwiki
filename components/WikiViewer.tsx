@@ -83,6 +83,9 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  // Mobile file list collapse state
+  const [isFileListCollapsed, setIsFileListCollapsed] = useState(false)
+
   // Initialize files from props with priority: URL param > index > first file
   useEffect(() => {
     if (initialFiles.length > 0) {
@@ -674,7 +677,9 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
     <div className="flex flex-col gap-4 w-full h-full">
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 w-full flex-1 min-h-0">
         {/* Sidebar */}
-        <div className="w-full lg:w-64 flex-shrink-0 flex flex-col min-h-0">
+        <div className={`w-full lg:w-64 flex-shrink-0 flex flex-col min-h-0 ${
+          isFileListCollapsed ? 'max-h-14' : 'max-h-[50vh]'
+        } lg:max-h-none transition-all duration-300 overflow-hidden`}>
           <div className="bg-white rounded-lg shadow-md p-4 flex flex-col flex-1 min-h-0">
             {/* Header Section - Two rows for better spacing */}
             <div className="mb-4 space-y-2 flex-shrink-0">
@@ -682,6 +687,21 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-semibold text-gray-900">Files</h3>
+                  {/* Mobile collapse toggle */}
+                  <button
+                    onClick={() => setIsFileListCollapsed(!isFileListCollapsed)}
+                    className="lg:hidden p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-all"
+                    aria-label={isFileListCollapsed ? "Expand files" : "Collapse files"}
+                  >
+                    <svg
+                      className={`h-5 w-5 transition-transform duration-300 ${isFileListCollapsed ? '' : 'rotate-180'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
                   {isManageMode && (
                     <span className="text-sm text-gray-500">
                       ({selectedFiles.size} selected)
@@ -701,7 +721,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
 
               {/* Second row: Action buttons (only shown in manage mode) */}
               {isManageMode && (
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className={`flex items-center gap-2 flex-wrap ${isFileListCollapsed ? 'hidden lg:flex' : ''}`}>
                   {selectedFiles.size > 0 ? (
                     <button
                       onClick={handleDeleteSelected}
@@ -722,11 +742,11 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
             </div>
 
             {initialFiles.length === 0 ? (
-              <div className="text-center py-8">
+              <div className={`text-center py-8 ${isFileListCollapsed ? 'hidden lg:block' : ''}`}>
                 <div className="text-gray-500 text-sm">No files found in this wiki</div>
               </div>
             ) : (
-              <ul className="space-y-0.5 overflow-y-auto flex-1 min-h-0" data-testid="file-list">
+              <ul className={`space-y-0.5 overflow-y-auto flex-1 min-h-0 ${isFileListCollapsed ? 'hidden lg:block' : ''}`} data-testid="file-list">
                 {sortedFiles.map((file) => {
                   const isCached = fileContentCache.has(file.id)
                   const isPrefetching = prefetchingFile === file.id
