@@ -87,7 +87,7 @@ export default function WikiViewPage() {
     const isAccessDenied = error.includes('Access denied')
     const Content = () => (
       <WithNavigation>
-        <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto pt-4 sm:px-6 lg:px-8">
           <div className="px-4 py-2 sm:px-0">
             <div className="text-center py-12">
               <div
@@ -115,7 +115,7 @@ export default function WikiViewPage() {
   if (initialLoading || !wiki) {
     const LoadingContent = () => (
       <WithNavigation>
-        <div className="max-w-7xl mx-auto py-2 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto pt-4 sm:px-6 lg:px-8">
           <div className="px-4 py-2 sm:px-0">
             <div className="flex justify-center items-center py-12">
               <div className="text-gray-500">Loading wiki...</div>
@@ -132,7 +132,7 @@ export default function WikiViewPage() {
   // Content loading will be handled inside WikiViewer
   const WikiContent = () => (
     <WithNavigation>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full h-full overflow-x-hidden">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-0.5 w-full h-full overflow-x-hidden">
         <div className="w-full max-w-full h-full overflow-x-hidden">
           <WikiViewer wiki={wiki} files={files} onBack={handleBack} onFilesRefresh={fetchWiki} />
         </div>

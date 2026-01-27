@@ -21,7 +21,7 @@ export function Breadcrumbs({ className = '' }: BreadcrumbProps) {
 
   // Generate breadcrumb navigation
   const generateBreadcrumbs = (): Breadcrumb[] => {
-    const parts = pathname.split('/').filter(Boolean)
+    const parts = (pathname || '').split('/').filter(Boolean)
     let breadcrumbs: Breadcrumb[] = []
 
     if (parts.length === 0 || (parts.length === 1 && parts[0] === 'dashboard')) {
@@ -55,6 +55,11 @@ export function Breadcrumbs({ className = '' }: BreadcrumbProps) {
 
   const breadcrumbs = generateBreadcrumbs()
 
+  // Hide breadcrumbs on wiki list page (/wiki)
+  if (pathname === '/wiki') {
+    return null
+  }
+
   // Show breadcrumbs if we have multiple items OR if there's right content to display
   // (right content includes Manage button, privacy toggle, etc.)
   if (breadcrumbs.length <= 1 && !rightContent) {
@@ -67,8 +72,8 @@ export function Breadcrumbs({ className = '' }: BreadcrumbProps) {
       aria-label="Breadcrumb navigation"
       data-testid="breadcrumb-nav"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between pt-3 pb-1">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between py-1">
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             {breadcrumbs.map((crumb, index) => (
               <React.Fragment key={`${crumb.href}-${index}`}>

@@ -8,6 +8,7 @@ import { EditPageModal } from '@/components/EditPageModal'
 import { DeletePageModal } from '@/components/DeletePageModal'
 import { VersionHistoryModal } from '@/components/VersionHistoryModal'
 import { PrivacyToggle } from '@/components/wiki/PrivacyToggle'
+import { TableOfContents } from '@/components/wiki/TableOfContents'
 import { useBreadcrumbRightContent } from '@/components/layout/BreadcrumbsRightContent'
 import { useSession } from 'next-auth/react'
 
@@ -675,9 +676,9 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
 
   return (
     <div className="flex flex-col gap-4 w-full h-full">
-      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 w-full flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row gap-2 lg:gap-4 w-full flex-1 min-h-0">
         {/* Sidebar */}
-        <div className={`w-full lg:w-64 flex-shrink-0 flex flex-col min-h-0 ${
+        <div className={`w-full lg:w-56 flex-shrink-0 flex flex-col min-h-0 ${
           isFileListCollapsed ? 'max-h-14' : 'max-h-[50vh]'
         } lg:max-h-none transition-all duration-300 overflow-hidden`}>
           <div className="bg-white rounded-lg shadow-md p-4 flex flex-col flex-1 min-h-0">
@@ -746,7 +747,7 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
                 <div className="text-gray-500 text-sm">No files found in this wiki</div>
               </div>
             ) : (
-              <ul className={`space-y-0.5 overflow-y-auto flex-1 min-h-0 ${isFileListCollapsed ? 'hidden lg:block' : ''}`} data-testid="file-list">
+              <ul className={`file-list sidebar-scroll-outer space-y-0.5 flex-1 min-h-0 ${isFileListCollapsed ? 'hidden lg:block' : ''}`} data-testid="file-list">
                 {sortedFiles.map((file) => {
                   const isCached = fileContentCache.has(file.id)
                   const isPrefetching = prefetchingFile === file.id
@@ -769,12 +770,12 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
                         <button
                           onClick={() => isManageMode ? toggleFileSelection(file.id) : handleFileSelect(file)}
                           onMouseEnter={() => !isManageMode && handleFileHover(file)}
-                          className={`flex-1 text-left px-2 py-1.5 rounded text-sm transition-all flex items-center gap-2
+                          className={`file-list-item flex-1 text-left rounded flex items-center gap-2
                           ${selectedFile?.id === file.id && !isManageMode
-                              ? 'bg-blue-100 text-blue-700 font-medium'
+                              ? 'file-list-item-active'
                               : isManageMode && isSelected
                                 ? 'bg-blue-100 text-blue-700 font-medium border border-blue-300'
-                                : 'hover:bg-gray-100 text-gray-700'
+                                : 'text-gray-700'
                             }`}
                           data-testid={`file-${file.filename}`}
                         >
@@ -1017,6 +1018,13 @@ export function WikiViewer({ wiki, onBack, files: initialFiles = [], onFilesRefr
                 <div className="text-gray-500">No content available for {selectedFile.filename.replace(/\.md$/, '')}</div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* TOC Sidebar - Right side, hidden on mobile/tablet */}
+        <div className="toc-sidebar">
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <TableOfContents content={isEditMode && isPreviewMode ? editContent : content} />
           </div>
         </div>
       </div>
